@@ -89,7 +89,9 @@ class Video {
       duration: duration,
       progress: json['progress'] ?? -1,
       viewAt: json['view_at'] ?? 0,
-      cid: history['cid'] ?? 0,
+      cid: (history['cid'] != null && history['cid'] != 0)
+          ? history['cid']
+          : (history['oid'] ?? 0),
       historyPage: history['page'] ?? 0,
       historyPart: history['part'] ?? '',
       historyVideos: videos, // 分P总数 (多P > 1)

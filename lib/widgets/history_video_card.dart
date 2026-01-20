@@ -5,6 +5,7 @@ import '../models/video.dart';
 import '../services/settings_service.dart';
 import 'base_tv_card.dart';
 import '../utils/image_url_utils.dart';
+import '../screens/live/live_player_screen.dart';
 
 /// 历史记录专用视频卡片
 /// 特点：
@@ -69,8 +70,29 @@ class HistoryVideoCard extends StatelessWidget {
       focusNode: focusNode,
       autofocus: autofocus,
       onTap: () {
-        if (video.isLive) {
-          SettingsService.toast(context, '暂不支持观看直播');
+        // 只有当是直播且没有 BVID 时（表示是直播间而非回放视频）才跳转直播播放器
+        // "直播回放"通常有 BVID，应作为普通视频播放
+        if (video.isLive && video.bvid.isEmpty) {
+          if (video.badge == '未开播') {
+            SettingsService.toast(context, '当前未开播');
+            return;
+          }
+
+          // Navigate to LivePlayerScreen
+          // For live history, cid is mapped from oid which is the room id
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => LivePlayerScreen(
+                roomId: video.cid,
+                title: video.title,
+                cover: video.pic,
+                uname: video.ownerName,
+                face: video.ownerFace,
+                online: 0, // History doesn't have real-time online count
+              ),
+            ),
+          );
           return;
         }
         onTap();
@@ -151,19 +173,20 @@ class HistoryVideoCard extends StatelessWidget {
                           ),
                         ),
                       if (video.historyVideos <= 1) const SizedBox(), // 占位
-                      // 右侧：时间/进度
-                      Text(
-                        _isCompleted
-                            ? '已看完'
-                            : '${_formatTime(video.progress > 0 ? video.progress : 0)} / ${_formatTime(video.duration)}',
-                        style: TextStyle(
-                          color: _isCompleted
-                              ? const Color(0xFFfb7299)
-                              : Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
+                      // 右侧：时间/进度 (直播/未开播不显示)
+                      if (!video.isLive)
+                        Text(
+                          _isCompleted
+                              ? '已看完'
+                              : '${_formatTime(video.progress > 0 ? video.progress : 0)} / ${_formatTime(video.duration)}',
+                          style: TextStyle(
+                            color: _isCompleted
+                                ? const Color(0xFFfb7299)
+                                : Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
                     ],
                   ),
                 ),

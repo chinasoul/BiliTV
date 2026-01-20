@@ -246,6 +246,17 @@ class LiveTabState extends State<LiveTab> {
                 ? const Center(
                     child: CircularProgressIndicator(color: Color(0xFFfb7299)),
                   )
+                : currentRooms.isEmpty
+                ? const Center(
+                    child: Text(
+                      "暂无开播的主播",
+                      style: TextStyle(
+                        color: Colors.white54,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  )
                 : SizeCacheWidget(
                     child: CustomScrollView(
                       controller: _scrollController,

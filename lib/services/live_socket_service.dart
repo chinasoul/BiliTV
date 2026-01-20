@@ -155,7 +155,13 @@ class LiveSocketService {
     // 每 30 秒发送一次心跳
     _heartbeatTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
       if (_isConnected) {
-        _sendPacket(1, 2, const []); // Opcode 2 = Heartbeat
+        // Bilibili quirk: server expects "[object Object]" as heartbeat body
+        // to return correct popularity. Empty body returns 1.
+        _sendPacket(
+          1,
+          2,
+          utf8.encode('[object Object]'),
+        ); // Opcode 2 = Heartbeat
         // debugPrint('💓 Heartbeat sent');
       }
     });

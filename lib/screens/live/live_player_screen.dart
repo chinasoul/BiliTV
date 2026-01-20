@@ -44,6 +44,7 @@ class _LivePlayerScreenState extends State<LivePlayerScreen>
   String? _errorMessage;
   bool _showControls = true;
   Timer? _hideTimer;
+  Timer? _popularityTimer;
   String _onlineCount = '0';
 
   // Settings State
@@ -148,9 +149,11 @@ class _LivePlayerScreenState extends State<LivePlayerScreen>
   void dispose() {
     WakelockPlus.disable();
     WidgetsBinding.instance.removeObserver(this);
-    _hideTimer?.cancel();
-    _controller?.dispose();
+    // _danmakuController is disposed by its widget usually, or doesn't need disposal
     _socketService.dispose();
+    _hideTimer?.cancel();
+    _popularityTimer?.cancel();
+    _controller?.dispose();
     super.dispose();
   }
 
@@ -356,6 +359,12 @@ class _LivePlayerScreenState extends State<LivePlayerScreen>
       if (!_socketService.isConnected) {
         _connectDanmaku();
       }
+
+      // 4. Start API polling for popularity (fallback for socket)
+      _startPopularityTimer();
+
+      // 4. Start API polling for popularity (fallback for socket)
+      _startPopularityTimer();
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -394,6 +403,10 @@ class _LivePlayerScreenState extends State<LivePlayerScreen>
         } else if (msg['type'] == 'popularity') {
           setState(() {
             final count = msg['count'] as int;
+            // Hotfix: Bilibili heartbeat sometimes returns 1 (invalid).
+            // If we have a valid count, ignore 1 to avoid UI flicker.
+            if (count <= 1) return;
+
             if (count >= 10000) {
               _onlineCount = '${(count / 10000).toStringAsFixed(1)}万';
             } else {
@@ -423,6 +436,36 @@ class _LivePlayerScreenState extends State<LivePlayerScreen>
     _hideTimer?.cancel();
     // Start a new timer
     _hideTimer = Timer(const Duration(seconds: 5), _hideControls);
+  }
+
+  void _startPopularityTimer() {
+    _popularityTimer?.cancel();
+    // Poll API every 60 seconds as a fallback
+    _popularityTimer = Timer.periodic(const Duration(seconds: 60), (
+      timer,
+    ) async {
+      try {
+        if (!mounted) {
+          timer.cancel();
+          return;
+        }
+        final info = await LiveApi.getRoomInfo(_realRoomId);
+        if (info != null && mounted) {
+          final online = info['online'] as int?;
+          if (online != null && online > 1) {
+            setState(() {
+              if (online >= 10000) {
+                _onlineCount = '${(online / 10000).toStringAsFixed(1)}万';
+              } else {
+                _onlineCount = online.toString();
+              }
+            });
+          }
+        }
+      } catch (e) {
+        debugPrint('Error polling popularity: $e');
+      }
+    });
   }
 
   KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
