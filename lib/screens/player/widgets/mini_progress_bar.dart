@@ -4,17 +4,21 @@ import 'package:flutter/material.dart';
 class MiniProgressBar extends StatelessWidget {
   final Duration position;
   final Duration duration;
+  final Duration buffered;
 
   const MiniProgressBar({
     super.key,
     required this.position,
     required this.duration,
+    this.buffered = Duration.zero,
   });
 
   @override
   Widget build(BuildContext context) {
-    final progress = duration.inMilliseconds > 0
-        ? position.inMilliseconds / duration.inMilliseconds
+    final totalMs = duration.inMilliseconds;
+    final progress = totalMs > 0 ? position.inMilliseconds / totalMs : 0.0;
+    final bufferedProgress = totalMs > 0
+        ? buffered.inMilliseconds / totalMs
         : 0.0;
 
     return Positioned(
@@ -27,33 +31,22 @@ class MiniProgressBar extends StatelessWidget {
           children: [
             // 背景条
             Container(color: Colors.white.withValues(alpha: 0.3)),
+            // 缓冲进度
+            FractionallySizedBox(
+              alignment: Alignment.centerLeft,
+              widthFactor: bufferedProgress.clamp(0.0, 1.0),
+              child: Container(
+                decoration: const BoxDecoration(color: Colors.white24),
+              ),
+            ),
             // 进度条
             FractionallySizedBox(
               alignment: Alignment.centerLeft,
               widthFactor: progress.clamp(0.0, 1.0),
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  // 粉色进度
-                  Container(
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFfb7299), // B站粉
-                    ),
-                  ),
-                  // 半圆指示器
-                  Positioned(
-                    right: -4,
-                    top: -2,
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFfb7299), // B站粉
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-                ],
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Color(0xFFfb7299), // B站粉
+                ),
               ),
             ),
           ],

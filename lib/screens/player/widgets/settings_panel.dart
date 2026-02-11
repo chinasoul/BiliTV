@@ -266,7 +266,7 @@ class _SettingsPanelState extends State<SettingsPanel> {
     if (widget.danmakuArea >= 0.75) return '3/4屏';
     if (widget.danmakuArea >= 0.5) return '半屏';
     if (widget.danmakuArea >= 0.25) return '1/4屏';
-    return '1/4屏';
+    return '1/8屏';
   }
 
   Widget _buildSettingItem({

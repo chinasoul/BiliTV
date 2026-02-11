@@ -5,6 +5,7 @@ import '../../models/video.dart';
 import '../../services/bilibili_api.dart';
 import 'package:keframe/keframe.dart';
 import '../../services/auth_service.dart';
+import '../../services/settings_service.dart';
 import '../../widgets/history_video_card.dart';
 import '../../widgets/time_display.dart';
 import '../player/player_screen.dart';
@@ -143,6 +144,8 @@ class HistoryTabState extends State<HistoryTab> {
 
   @override
   Widget build(BuildContext context) {
+    final gridColumns = SettingsService.videoGridColumns;
+
     // 未登录提示
     if (!AuthService.isLoggedIn) {
       return Center(
@@ -204,8 +207,8 @@ class HistoryTabState extends State<HistoryTab> {
                   padding: const EdgeInsets.fromLTRB(30, 80, 30, 80),
                   sliver: SliverGrid(
                     gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 4,
+                        SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: gridColumns,
                           childAspectRatio: 320 / 280,
                           crossAxisSpacing: 20,
                           mainAxisSpacing: 30,
@@ -220,20 +223,24 @@ class HistoryTabState extends State<HistoryTab> {
                           focusNode: _getFocusNode(index),
                           onTap: () => _onVideoTap(video),
                           // 最左列按左键跳到侧边栏
-                          onMoveLeft: (index % 4 == 0)
+                          onMoveLeft: (index % gridColumns == 0)
                               ? () => widget.sidebarFocusNode?.requestFocus()
                               : () => _getFocusNode(index - 1).requestFocus(),
                           // 强制向右导航
                           onMoveRight: (index + 1 < _videos.length)
                               ? () => _getFocusNode(index + 1).requestFocus()
                               : null,
-                          // 严格按列向上移动（4个一行）
-                          onMoveUp: index >= 4
-                              ? () => _getFocusNode(index - 4).requestFocus()
+                          // 严格按列向上移动
+                          onMoveUp: index >= gridColumns
+                              ? () => _getFocusNode(
+                                  index - gridColumns,
+                                ).requestFocus()
                               : () {}, // 最顶行为无效输入
                           // 严格按列向下移动
-                          onMoveDown: (index + 4 < _videos.length)
-                              ? () => _getFocusNode(index + 4).requestFocus()
+                          onMoveDown: (index + gridColumns < _videos.length)
+                              ? () => _getFocusNode(
+                                  index + gridColumns,
+                                ).requestFocus()
                               : null,
                           onFocus: () {
                             if (!_scrollController.hasClients) return;

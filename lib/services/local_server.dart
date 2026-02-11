@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import '../config/build_flags.dart';
 import '../plugins/ad_filter_plugin.dart';
 import '../plugins/danmaku_enhance_plugin.dart';
 import '../core/plugin/plugin_manager.dart';
@@ -133,11 +134,27 @@ class LocalServer {
       }
       // API 路由
       else if (path.startsWith('/api/')) {
-        await _handleApi(request);
+        if (BuildFlags.pluginsEnabled) {
+          await _handleApi(request);
+        } else {
+          request.response.statusCode = 404;
+          request.response.write('Plugin API disabled in this build');
+        }
       }
       // Web 管理界面
       else if (path == '/' || path == '/index.html') {
-        await _serveWebUI(request);
+        if (BuildFlags.pluginsEnabled) {
+          await _serveWebUI(request);
+        } else {
+          request.response.statusCode = 200;
+          request.response.headers.contentType = ContentType.html;
+          request.response.write(
+            '<html><body style="background:#111;color:#eee;font-family:sans-serif;padding:24px;">'
+            '<h2>Plugin Center Disabled</h2>'
+            '<p>This build was compiled with ENABLE_PLUGINS=false.</p>'
+            '</body></html>',
+          );
+        }
       }
       // 404
       else {

@@ -12,6 +12,7 @@ import java.io.File
 class MainActivity : FlutterActivity() {
     private val UPDATE_CHANNEL = "com.bili.tv/update"
     private val CODEC_CHANNEL = "com.bili.tv/codec"
+    private val DEVICE_INFO_CHANNEL = "com.bili.tv/device_info"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -45,6 +46,20 @@ class MainActivity : FlutterActivity() {
                         result.success(hwCodecs)
                     } catch (e: Exception) {
                         result.error("CODEC_ERROR", e.message, null)
+                    }
+                }
+                else -> result.notImplemented()
+            }
+        }
+
+        // 本机信息 Channel
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, DEVICE_INFO_CHANNEL).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "getDeviceInfo" -> {
+                    try {
+                        result.success(getDeviceInfo())
+                    } catch (e: Exception) {
+                        result.error("DEVICE_INFO_ERROR", e.message, null)
                     }
                 }
                 else -> result.notImplemented()
@@ -110,5 +125,51 @@ class MainActivity : FlutterActivity() {
         }
 
         startActivity(intent)
+    }
+
+    private fun getDeviceInfo(): Map<String, Any> {
+        val supportedAbis = Build.SUPPORTED_ABIS?.toList() ?: emptyList()
+        val primaryAbi = if (supportedAbis.isNotEmpty()) supportedAbis[0] else "unknown"
+        val gpuInfo = getSystemProperty("ro.hardware.egl")
+            .ifEmpty { getSystemProperty("ro.board.platform") }
+            .ifEmpty { Build.HARDWARE ?: "unknown" }
+
+        return mapOf(
+            "platform" to "Android",
+            "androidVersion" to (Build.VERSION.RELEASE ?: "unknown"),
+            "sdkInt" to Build.VERSION.SDK_INT,
+            "model" to (Build.MODEL ?: "unknown"),
+            "manufacturer" to (Build.MANUFACTURER ?: "unknown"),
+            "brand" to (Build.BRAND ?: "unknown"),
+            "device" to (Build.DEVICE ?: "unknown"),
+            "product" to (Build.PRODUCT ?: "unknown"),
+            "board" to (Build.BOARD ?: "unknown"),
+            "hardware" to (Build.HARDWARE ?: "unknown"),
+            "cpuAbi" to primaryAbi,
+            "supportedAbis" to supportedAbis,
+            "arch" to (System.getProperty("os.arch") ?: "unknown"),
+            "kernel" to (System.getProperty("os.version") ?: "unknown"),
+            "gpu" to gpuInfo,
+            "glEsVersion" to getGlEsVersion()
+        )
+    }
+
+    private fun getGlEsVersion(): String {
+        return try {
+            val activityManager = getSystemService(ACTIVITY_SERVICE) as android.app.ActivityManager
+            activityManager.deviceConfigurationInfo.glEsVersion ?: "unknown"
+        } catch (e: Exception) {
+            "unknown"
+        }
+    }
+
+    private fun getSystemProperty(key: String): String {
+        return try {
+            val systemProperties = Class.forName("android.os.SystemProperties")
+            val getMethod = systemProperties.getMethod("get", String::class.java, String::class.java)
+            getMethod.invoke(null, key, "") as String
+        } catch (e: Exception) {
+            ""
+        }
     }
 }

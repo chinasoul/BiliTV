@@ -17,6 +17,8 @@ class TvFocusableItem extends StatelessWidget {
   final VoidCallback onTap;
   final bool autofocus;
   final VoidCallback? onMoveRight;
+  final VoidCallback? onMoveUp;
+  final VoidCallback? onMoveDown;
   final bool isFirst;
   final bool isLast;
 
@@ -30,16 +32,20 @@ class TvFocusableItem extends StatelessWidget {
     required this.onTap,
     this.autofocus = false,
     this.onMoveRight,
+    this.onMoveUp,
+    this.onMoveDown,
     this.isFirst = false,
     this.isLast = false,
   });
 
   @override
   Widget build(BuildContext context) => TvFocusScope(
-    pattern: FocusPattern.vertical,
+    pattern: FocusPattern.grid,
     focusNode: focusNode,
     autofocus: autofocus,
     onFocusChange: (f) => f ? onFocus() : null,
+    onExitUp: onMoveUp,
+    onExitDown: onMoveDown,
     onExitRight: onMoveRight,
     onSelect: onTap,
     isFirst: isFirst,

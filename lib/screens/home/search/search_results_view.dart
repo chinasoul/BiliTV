@@ -5,6 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:keframe/keframe.dart';
 import '../../../models/video.dart';
 import '../../../services/bilibili_api.dart';
+import '../../../services/settings_service.dart';
 import '../../../widgets/tv_video_card.dart';
 import '../../player/player_screen.dart';
 
@@ -155,6 +156,7 @@ class _SearchResultsViewState extends State<SearchResultsView> {
 
   @override
   Widget build(BuildContext context) {
+    final gridColumns = SettingsService.videoGridColumns;
     Widget content;
 
     // 初始加载或完全重新加载时显示加载圈
@@ -201,8 +203,8 @@ class _SearchResultsViewState extends State<SearchResultsView> {
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(30, 140, 30, 40),
               sliver: SliverGrid(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 4,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: gridColumns,
                   childAspectRatio: 360 / 300,
                   crossAxisSpacing: 20,
                   mainAxisSpacing: 30,
@@ -219,16 +221,17 @@ class _SearchResultsViewState extends State<SearchResultsView> {
                       disableCache: false,
                       onTap: () => _onVideoTap(video),
                       // 最左列按左键跳到侧边栏
-                      onMoveLeft: (index % 4 == 0)
+                      onMoveLeft: (index % gridColumns == 0)
                           ? () => widget.sidebarFocusNode?.requestFocus()
                           : () => _getFocusNode(index - 1).requestFocus(),
                       // 强制向右导航
                       onMoveRight: (index + 1 < _searchResults.length)
                           ? () => _getFocusNode(index + 1).requestFocus()
                           : null,
-                      // 严格按列向上移动（4个一行），最顶行跳到排序按钮
-                      onMoveUp: index >= 4
-                          ? () => _getFocusNode(index - 4).requestFocus()
+                      // 严格按列向上移动，最顶行跳到排序按钮
+                      onMoveUp: index >= gridColumns
+                          ? () =>
+                                _getFocusNode(index - gridColumns).requestFocus()
                           : () {
                               final sortIdx = _sortOptions.keys
                                   .toList()
@@ -239,8 +242,9 @@ class _SearchResultsViewState extends State<SearchResultsView> {
                               }
                             },
                       // 严格按列向下移动
-                      onMoveDown: (index + 4 < _searchResults.length)
-                          ? () => _getFocusNode(index + 4).requestFocus()
+                      onMoveDown: (index + gridColumns < _searchResults.length)
+                          ? () =>
+                                _getFocusNode(index + gridColumns).requestFocus()
                           : null,
                       onBack: widget.onBackToKeyboard,
                       onFocus: () {

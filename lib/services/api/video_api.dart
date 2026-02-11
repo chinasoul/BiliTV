@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'base_api.dart';
 import 'sign_utils.dart';
 import '../auth_service.dart';
+import '../../models/favorite_folder.dart';
 import '../../models/video.dart';
 
 /// 视频列表和搜索相关 API
@@ -159,6 +160,117 @@ class VideoApi {
     return {'list': <Video>[], 'hasMore': false};
   }
 
+  /// 获取收藏夹列表
+  static Future<List<FavoriteFolder>> getFavoriteFolders() async {
+    if (!AuthService.isLoggedIn) return [];
+    try {
+      final mid = AuthService.mid;
+      if (mid == null || mid == 0) return [];
+
+      final uri = Uri.parse(
+        '${BaseApi.apiBase}/x/v3/fav/folder/created/list-all',
+      ).replace(queryParameters: {'up_mid': mid.toString()});
+
+      final response = await http.get(
+        uri,
+        headers: BaseApi.getHeaders(withCookie: true),
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['code'] == 0 && json['data'] != null) {
+          final list = json['data']['list'] as List? ?? [];
+          return list
+              .whereType<Map<String, dynamic>>()
+              .map(FavoriteFolder.fromJson)
+              .toList();
+        }
+      }
+    } catch (e) {
+      // 忽略错误
+    }
+    return [];
+  }
+
+  /// 获取收藏夹视频
+  /// 返回 { 'list': List<Video>, 'hasMore': bool }
+  static Future<Map<String, dynamic>> getFavoriteFolderVideos({
+    required int mediaId,
+    int page = 1,
+    int pageSize = 20,
+  }) async {
+    if (!AuthService.isLoggedIn || mediaId <= 0) {
+      return {'list': <Video>[], 'hasMore': false};
+    }
+
+    try {
+      final uri = Uri.parse(
+        '${BaseApi.apiBase}/x/v3/fav/resource/list',
+      ).replace(
+        queryParameters: {
+          'media_id': mediaId.toString(),
+          'pn': page.toString(),
+          'ps': pageSize.toString(),
+          'order': 'mtime', // 最近收藏优先
+          'type': '0',
+          'tid': '0',
+          'platform': 'web',
+        },
+      );
+
+      final response = await http.get(
+        uri,
+        headers: BaseApi.getHeaders(withCookie: true),
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['code'] == 0 && json['data'] != null) {
+          final info = json['data']['info'] as Map<String, dynamic>? ?? {};
+          final medias = json['data']['medias'] as List? ?? [];
+          final list = medias
+              .whereType<Map<String, dynamic>>()
+              .map(_videoFromFavoriteMedia)
+              .where((v) => v.bvid.isNotEmpty)
+              .toList();
+          final mediaCount = BaseApi.toInt(info['media_count']);
+          final hasMore = page * pageSize < mediaCount;
+          return {'list': list, 'hasMore': hasMore};
+        }
+      }
+    } catch (e) {
+      // 忽略错误
+    }
+    return {'list': <Video>[], 'hasMore': false};
+  }
+
+  /// 获取稍后再看列表
+  static Future<List<Video>> getWatchLaterVideos() async {
+    if (!AuthService.isLoggedIn) return [];
+    try {
+      final uri = Uri.parse('${BaseApi.apiBase}/x/v2/history/toview/web');
+      final response = await http.get(
+        uri,
+        headers: BaseApi.getHeaders(withCookie: true),
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['code'] == 0 && json['data'] != null) {
+          final list = json['data']['list'] as List? ?? [];
+          return list
+              .whereType<Map<String, dynamic>>()
+              .map(_videoFromWatchLaterItem)
+              .where((v) => v.bvid.isNotEmpty)
+              .toList();
+        }
+      }
+    } catch (e) {
+      // 忽略错误
+    }
+    return [];
+  }
+
   /// 获取搜索建议
   static Future<List<String>> getSearchSuggestions(String keyword) async {
     if (keyword.isEmpty) return [];
@@ -189,6 +301,42 @@ class VideoApi {
       // 忽略错误
     }
     return [];
+  }
+
+  static Video _videoFromFavoriteMedia(Map<String, dynamic> item) {
+    final upper = item['upper'] as Map<String, dynamic>? ?? {};
+    final cnt = item['cnt_info'] as Map<String, dynamic>? ?? {};
+    return Video(
+      bvid: (item['bvid'] ?? '').toString(),
+      title: (item['title'] ?? '').toString(),
+      pic: BaseApi.fixPicUrl((item['cover'] ?? '').toString()),
+      ownerName: (upper['name'] ?? '').toString(),
+      ownerFace: BaseApi.fixPicUrl((upper['face'] ?? '').toString()),
+      ownerMid: BaseApi.toInt(upper['mid']),
+      view: BaseApi.toInt(cnt['play']),
+      danmaku: BaseApi.toInt(cnt['danmaku']),
+      duration: BaseApi.toInt(item['duration']),
+      pubdate: BaseApi.toInt(item['pubtime']),
+      badge: (item['badge'] ?? '').toString(),
+    );
+  }
+
+  static Video _videoFromWatchLaterItem(Map<String, dynamic> item) {
+    final owner = item['owner'] as Map<String, dynamic>? ?? {};
+    final stat = item['stat'] as Map<String, dynamic>? ?? {};
+    return Video(
+      bvid: (item['bvid'] ?? '').toString(),
+      title: (item['title'] ?? '').toString(),
+      pic: BaseApi.fixPicUrl((item['pic'] ?? '').toString()),
+      ownerName: (owner['name'] ?? '').toString(),
+      ownerFace: BaseApi.fixPicUrl((owner['face'] ?? '').toString()),
+      ownerMid: BaseApi.toInt(owner['mid']),
+      view: BaseApi.toInt(stat['view']),
+      danmaku: BaseApi.toInt(stat['danmaku']),
+      duration: BaseApi.toInt(item['duration']),
+      pubdate: BaseApi.toInt(item['pubdate']),
+      badge: (item['badge'] ?? '').toString(),
+    );
   }
 
   /// 搜索视频 (需要 WBI 签名)

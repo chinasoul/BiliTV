@@ -11,6 +11,7 @@ import '../../../services/auth_service.dart';
 import '../../../services/mpd_generator.dart';
 import '../../../services/local_server.dart';
 import '../../../services/api/videoshot_api.dart';
+import '../../../config/build_flags.dart';
 import '../widgets/settings_panel.dart';
 import '../player_screen.dart';
 import '../widgets/quality_picker_sheet.dart';
@@ -166,219 +167,338 @@ mixin PlayerActionMixin on PlayerStateMixin {
       }
 
       String? lastError;
+      final baseQn = currentQuality > 0 ? currentQuality : 80;
+      // 只做“降级”画质兜底，避免出现先升后降导致的额外等待
+      final qualityFallbackList = <int>[
+        baseQn,
+        if (baseQn > 64) 64,
+        if (baseQn > 32) 32,
+        if (baseQn > 16) 16,
+      ];
 
       // 尝试每个编码器
-      codecLoop:
       for (final tryCodec in uniqueCodecs) {
-        // 1. 首次请求: 使用默认画质(80)或当前设定画质
-        // 这样可以获取到视频实际支持的 accept_quality 列表，而不是盲猜
-        var playInfo = await BilibiliApi.getVideoPlayUrl(
-          bvid: widget.video.bvid,
-          cid: cid!,
-          qn: currentQuality,
-          forceCodec: tryCodec,
-        );
+        // 二次兜底：同一编码器下按画质降级重试
+        qualityLoop:
+        for (final tryQn in qualityFallbackList) {
+          // 1. 首次请求: 使用默认画质(80)或当前设定画质
+          // 这样可以获取到视频实际支持的 accept_quality 列表，而不是盲猜
+          var playInfo = await BilibiliApi.getVideoPlayUrl(
+            bvid: widget.video.bvid,
+            cid: cid!,
+            qn: tryQn,
+            forceCodec: tryCodec,
+          );
 
-        // 2. 智能升级 (仅针对 VIP)
-        // 如果是 VIP 且首次请求成功，检查是否有更高画质可用
-        if (AuthService.isVip &&
-            playInfo != null &&
-            playInfo['qualities'] != null) {
-          final qualities = playInfo['qualities'] as List;
-          if (qualities.isNotEmpty) {
-            // 获取该视频支持的最高画质
-            // qualities 是 List<Map<String, dynamic>>, 需提取 qn 并排序
-            final supportedQns = qualities.map((e) => e['qn'] as int).toList();
-            if (supportedQns.isNotEmpty) {
-              final maxQn = supportedQns.reduce(
-                (curr, next) => curr > next ? curr : next,
-              );
-              final currentQn = playInfo['currentQuality'] as int? ?? 0;
-
-              // 如果最高画质 > 当前画质 (且当前画质只是默认的80，或者我们想强制升级)
-              // 注意: 有时候 maxQn 可能高达 127/126，而 currentQn 只有 80
-              if (maxQn > currentQn) {
-                debugPrint(
-                  '🎬 [SmartQuality] VIP detected. Upgrading from $currentQn to $maxQn',
+          // 2. 智能升级 (仅针对 VIP)
+          // 只在首次画质尝试时启用，避免兜底降级时又回到超高画质导致循环失败
+          if (AuthService.isVip &&
+              tryQn == qualityFallbackList.first &&
+              playInfo != null &&
+              playInfo['qualities'] != null) {
+            final qualities = playInfo['qualities'] as List;
+            if (qualities.isNotEmpty) {
+              // 获取该视频支持的最高画质
+              // qualities 是 List<Map<String, dynamic>>, 需提取 qn 并排序
+              final supportedQns = qualities.map((e) => e['qn'] as int).toList();
+              if (supportedQns.isNotEmpty) {
+                final maxQn = supportedQns.reduce(
+                  (curr, next) => curr > next ? curr : next,
                 );
+                final currentQn = playInfo['currentQuality'] as int? ?? 0;
 
-                final upgradePlayInfo = await BilibiliApi.getVideoPlayUrl(
-                  bvid: widget.video.bvid,
-                  cid: cid!,
-                  qn: maxQn, // 精确请求最高画质
-                  forceCodec: tryCodec,
-                );
+                // 如果最高画质 > 当前画质 (且当前画质只是默认的80，或者我们想强制升级)
+                // 注意: 有时候 maxQn 可能高达 127/126，而 currentQn 只有 80
+                if (maxQn > currentQn) {
+                  debugPrint(
+                    '🎬 [SmartQuality] VIP detected. Upgrading from $currentQn to $maxQn',
+                  );
 
-                // 如果升级请求成功，使用新数据
-                if (upgradePlayInfo != null) {
-                  playInfo = upgradePlayInfo;
+                  final upgradePlayInfo = await BilibiliApi.getVideoPlayUrl(
+                    bvid: widget.video.bvid,
+                    cid: cid!,
+                    qn: maxQn, // 精确请求最高画质
+                    forceCodec: tryCodec,
+                  );
+
+                  // 如果升级请求成功，使用新数据
+                  if (upgradePlayInfo != null) {
+                    playInfo = upgradePlayInfo;
+                  }
                 }
               }
             }
           }
-        }
 
-        if (playInfo == null) {
-          lastError = '解析播放地址失败';
-          continue codecLoop;
-        }
+          if (playInfo == null) {
+            lastError = '解析播放地址失败(codec=${tryCodec?.name ?? 'auto'}, qn=$tryQn)';
+            continue qualityLoop;
+          }
 
-        // 检查是否返回了错误信息
-        if (playInfo['error'] != null) {
-          lastError = playInfo['error'];
-          continue codecLoop;
-        }
+          // 检查是否返回了错误信息
+          if (playInfo['error'] != null) {
+            lastError = '${playInfo['error']} (codec=${tryCodec?.name ?? 'auto'}, qn=$tryQn)';
+            continue qualityLoop;
+          }
 
-        if (!mounted) return;
-        qualities = List<Map<String, dynamic>>.from(
-          playInfo['qualities'] ?? [],
-        );
-        currentQuality = playInfo['currentQuality'] ?? 80;
-        currentCodec = playInfo['codec'] ?? '';
-        currentAudioUrl = playInfo['audioUrl'];
+          if (!mounted) return;
+          qualities = List<Map<String, dynamic>>.from(
+            playInfo['qualities'] ?? [],
+          );
+          currentQuality = playInfo['currentQuality'] ?? tryQn;
+          currentCodec = playInfo['codec'] ?? '';
+          currentAudioUrl = playInfo['audioUrl'];
+          videoWidth = int.tryParse(playInfo['width']?.toString() ?? '') ?? 0;
+          videoHeight = int.tryParse(playInfo['height']?.toString() ?? '') ?? 0;
+          videoFrameRate =
+              double.tryParse(playInfo['frameRate']?.toString() ?? '') ?? 0.0;
+          videoDataRateKbps =
+              ((int.tryParse(playInfo['videoBandwidth']?.toString() ?? '') ?? 0) /
+                      1000)
+                  .round();
 
-        String? playUrl;
+          String? playUrl;
 
-        // 如果有 DASH 数据，生成 MPD 并使用全局服务器
-        if (playInfo['dashData'] != null) {
-          final mpdContent = await MpdGenerator.generate(playInfo['dashData']);
+          // 如果有 DASH 数据，生成 MPD 并使用全局服务器
+          if (playInfo['dashData'] != null) {
+            final mpdContent = await MpdGenerator.generate(playInfo['dashData']);
 
-          // 使用全局 LocalServer 提供 MPD 内容 (纯内存)
-          LocalServer.instance.setMpdContent(mpdContent);
-          playUrl = LocalServer.instance.mpdUrl;
-        } else {
-          // 回退到直接 URL (mp4/flv)
-          playUrl = playInfo['url'];
-        }
+            // 使用全局 LocalServer 提供 MPD 内容 (纯内存)
+            LocalServer.instance.setMpdContent(mpdContent);
+            playUrl = LocalServer.instance.mpdUrl;
+          } else {
+            // 回退到直接 URL (mp4/flv)
+            playUrl = playInfo['url'];
+          }
 
-        // 创建 VideoPlayerController (带重试逻辑)
-        const maxRetries = 3;
-        const retryDelay = Duration(milliseconds: 1500);
+          // 未登录/受限清晰度场景下，可能拿不到可播放地址
+          if (playUrl == null || playUrl.isEmpty) {
+            lastError =
+                '未获取到可播放地址(codec=${tryCodec?.name ?? 'auto'}, qn=$tryQn)';
+            continue qualityLoop;
+          }
 
-        for (int attempt = 1; attempt <= maxRetries; attempt++) {
-          try {
-            videoController = VideoPlayerController.networkUrl(
-              Uri.parse(playUrl!),
-              httpHeaders: {
-                'User-Agent':
-                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36',
-                'Referer': 'https://www.bilibili.com/',
-                'Origin': 'https://www.bilibili.com',
-                if (AuthService.sessdata != null)
-                  'Cookie': 'SESSDATA=${AuthService.sessdata}',
-              },
-            );
+          // 创建 VideoPlayerController (快速失败 + 轻量重试)
+          const maxRetries = 2;
+          const retryDelay = Duration(milliseconds: 500);
 
-            // 初始化
-            await videoController!.initialize();
-            break; // 成功，跳出循环
-          } catch (e) {
-            // 清理失败的控制器
-            await videoController?.dispose();
-            videoController = null;
+          for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+              videoController = VideoPlayerController.networkUrl(
+                Uri.parse(playUrl),
+                httpHeaders: {
+                  'User-Agent':
+                      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36',
+                  'Referer': 'https://www.bilibili.com/',
+                  'Origin': 'https://www.bilibili.com',
+                  if (AuthService.sessdata != null)
+                    'Cookie': 'SESSDATA=${AuthService.sessdata}',
+                },
+              );
 
-            if (attempt < maxRetries) {
-              // 还有重试机会，等待后重试
-              debugPrint('视频初始化失败 (尝试 $attempt/$maxRetries): $e');
-              await Future.delayed(retryDelay);
-            } else {
-              // 重试次数用尽，尝试下一个编码器
-              debugPrint('Codec execution failed: $e');
-              lastError = '播放器初始化失败: $e';
-              continue codecLoop;
+              // 初始化
+              await videoController!.initialize();
+              break; // 成功，跳出循环
+            } catch (e) {
+              // 清理失败的控制器
+              await videoController?.dispose();
+              videoController = null;
+
+              final err = e.toString();
+              final isCodecInitError =
+                  err.contains('MediaCodecVideoRenderer') ||
+                  err.contains('Decoder init failed') ||
+                  err.contains('ExoPlaybackException') ||
+                  err.contains('VideoCodec');
+
+              // 典型硬解初始化错误时直接快速切换兜底分支，不再原地等待重试
+              if (isCodecInitError) {
+                debugPrint(
+                  '视频硬解初始化失败，跳过同组合重试(codec=${tryCodec?.name ?? 'auto'}, qn=$tryQn): $e',
+                );
+                lastError =
+                    '播放器初始化失败(codec=${tryCodec?.name ?? 'auto'}, qn=$tryQn): $e';
+                continue qualityLoop;
+              }
+
+              if (attempt < maxRetries) {
+                // 还有重试机会，等待后重试
+                debugPrint('视频初始化失败 (尝试 $attempt/$maxRetries): $e');
+                await Future.delayed(retryDelay);
+              } else {
+                // 单画质重试次数用尽，尝试同编码器的更低画质
+                debugPrint('Codec/qn execution failed: $e');
+                lastError =
+                    '播放器初始化失败(codec=${tryCodec?.name ?? 'auto'}, qn=$tryQn): $e';
+                continue qualityLoop;
+              }
             }
           }
-        }
 
-        if (!mounted) return;
+          if (!mounted) return;
 
-        // 监听播放状态变化
-        _setupPlayerListeners();
+          // 监听播放状态变化
+          _setupPlayerListeners();
+          _startStatsTimer();
 
-        // 初始化插件
-        final plugins = PluginManager().getEnabledPlugins<PlayerPlugin>();
-        for (var plugin in plugins) {
-          plugin.onVideoLoad(widget.video.bvid, cid!);
-        }
-
-        setState(() {
-          isLoading = false;
-        });
-
-        // 自动续播:
-        // 1. 如果 API 返回了历史记录，无条件使用历史记录的进度 (解决多端同步和本地列表过期问题)
-        // 2. 如果没有 API 历史，才使用本地列表传进来的 progress
-        int historyProgress = 0;
-        if (videoInfo != null && videoInfo['history'] != null) {
-          final historyData = videoInfo['history'];
-          debugPrint(
-            '🎬 [Resume] API History: cid=${historyData['cid']}, progress=${historyData['progress']}',
-          );
-          historyProgress = historyData['progress'] as int? ?? 0;
-          // 再次确认 CID 匹配 (一般都匹配，因为前面已经强行切换 CID 了)
-          final historyCid = historyData['cid'] as int?;
-          if (historyCid != null && historyCid != cid) {
-            // 如果历史记录的 CID 和当前 CID 不一致（理论上不该发生，防止万一），不自动跳转进度以防错乱
-            debugPrint(
-              '🎬 [Resume] CID mismatch: historyCid=$historyCid, cid=$cid - resetting progress',
-            );
-            historyProgress = 0;
+          if (BuildFlags.pluginsEnabled) {
+            // 初始化插件
+            final plugins = PluginManager().getEnabledPlugins<PlayerPlugin>();
+            for (var plugin in plugins) {
+              plugin.onVideoLoad(widget.video.bvid, cid!);
+            }
           }
-        } else {
-          debugPrint('🎬 [Resume] No API history available');
-        }
 
-        // 2. 🔥 优先使用本地缓存（比列表数据更新鲜）
-        if (historyProgress == 0 &&
-            cachedRecord != null &&
-            cachedRecord.cid == cid) {
-          debugPrint(
-            '🎬 [Resume] Using LOCAL CACHE: cid=${cachedRecord.cid}, progress=${cachedRecord.progress}',
-          );
-          historyProgress = cachedRecord.progress;
-        }
+          setState(() {
+            isLoading = false;
+          });
 
-        // 3. 最后兜底：使用列表传入的 progress（可能是旧数据）
-        if (historyProgress == 0 && widget.video.progress > 0) {
-          debugPrint(
-            '🎬 [Resume] Using list progress (fallback): ${widget.video.progress}',
-          );
-          historyProgress = widget.video.progress;
-        }
-
-        if (historyProgress > 0) {
-          // 🔥 如果进度接近视频总时长（最后5秒内），说明视频已播完，从头开始
-          final videoDuration = videoController!.value.duration.inSeconds;
-          if (videoDuration > 0 && historyProgress >= videoDuration - 5) {
+          // 自动续播:
+          // 1. 如果 API 返回了历史记录，无条件使用历史记录的进度 (解决多端同步和本地列表过期问题)
+          // 2. 如果没有 API 历史，才使用本地列表传进来的 progress
+          int historyProgress = 0;
+          if (videoInfo != null && videoInfo['history'] != null) {
+            final historyData = videoInfo['history'];
             debugPrint(
-              '🎬 [Resume] Video was completed (progress $historyProgress >= duration $videoDuration - 5), starting from beginning',
+              '🎬 [Resume] API History: cid=${historyData['cid']}, progress=${historyData['progress']}',
             );
-            // 不 seek，直接从头开始播放
+            historyProgress = historyData['progress'] as int? ?? 0;
+            // 再次确认 CID 匹配 (一般都匹配，因为前面已经强行切换 CID 了)
+            final historyCid = historyData['cid'] as int?;
+            if (historyCid != null && historyCid != cid) {
+              // 如果历史记录的 CID 和当前 CID 不一致（理论上不该发生，防止万一），不自动跳转进度以防错乱
+              debugPrint(
+                '🎬 [Resume] CID mismatch: historyCid=$historyCid, cid=$cid - resetting progress',
+              );
+              historyProgress = 0;
+            }
           } else {
-            initialProgress = historyProgress;
-
-            final seekPos = Duration(seconds: historyProgress);
-            await videoController!.seekTo(seekPos);
-            resetDanmakuIndex(seekPos);
-
-            final min = historyProgress ~/ 60;
-            final sec = historyProgress % 60;
-            Fluttertoast.showToast(
-              msg:
-                  '从${min.toString().padLeft(2, '0')}:${sec.toString().padLeft(2, '0')}继续播放',
-              toastLength: Toast.LENGTH_SHORT,
-            );
+            debugPrint('🎬 [Resume] No API history available');
           }
-        }
 
-        await videoController!.play();
-        startHideTimer();
+          // 2. 优先使用本地缓存（比列表数据更新鲜）
+          if (historyProgress == 0 &&
+              cachedRecord != null &&
+              cachedRecord.cid == cid) {
+            debugPrint(
+              '🎬 [Resume] Using LOCAL CACHE: cid=${cachedRecord.cid}, progress=${cachedRecord.progress}',
+            );
+            historyProgress = cachedRecord.progress;
+          }
 
-        await loadDanmaku();
-        return; // 成功，退出
+          // 3. 最后兜底：使用列表传入的 progress（可能是旧数据）
+          if (historyProgress == 0 && widget.video.progress > 0) {
+            debugPrint(
+              '🎬 [Resume] Using list progress (fallback): ${widget.video.progress}',
+            );
+            historyProgress = widget.video.progress;
+          }
+
+          if (historyProgress > 0) {
+            // 如果进度接近视频总时长（最后5秒内），说明视频已播完，从头开始
+            final videoDuration = videoController!.value.duration.inSeconds;
+            if (videoDuration > 0 && historyProgress >= videoDuration - 5) {
+              debugPrint(
+                '🎬 [Resume] Video was completed (progress $historyProgress >= duration $videoDuration - 5), starting from beginning',
+              );
+              // 不 seek，直接从头开始播放
+            } else {
+              initialProgress = historyProgress;
+
+              final seekPos = Duration(seconds: historyProgress);
+              await videoController!.seekTo(seekPos);
+              resetDanmakuIndex(seekPos);
+
+              final min = historyProgress ~/ 60;
+              final sec = historyProgress % 60;
+              Fluttertoast.showToast(
+                msg:
+                    '从${min.toString().padLeft(2, '0')}:${sec.toString().padLeft(2, '0')}继续播放',
+                toastLength: Toast.LENGTH_SHORT,
+              );
+            }
+          }
+
+          await videoController!.play();
+          startHideTimer();
+
+          await loadDanmaku();
+          return; // 成功，退出
+        } // qualityLoop 结束
       } // codecLoop 结束
 
-      // 所有编码器都失败了
+      // ── 最终兜底：用非 DASH(durl/mp4/flv) 再试一次 ──
+      debugPrint('🎬 [CompatFallback] All DASH codecs failed, trying durl compat...');
+      final compatInfo = await BilibiliApi.getVideoPlayUrlCompat(
+        bvid: widget.video.bvid,
+        cid: cid!,
+        qn: 32, // 最低画质，最大兼容
+      );
+
+      if (compatInfo != null &&
+          compatInfo['error'] == null &&
+          compatInfo['url'] != null) {
+        if (!mounted) return;
+        qualities = List<Map<String, dynamic>>.from(
+          compatInfo['qualities'] ?? [],
+        );
+        currentQuality = compatInfo['currentQuality'] ?? 32;
+        currentCodec = compatInfo['codec'] ?? 'avc_compat';
+        currentAudioUrl = null;
+        videoWidth = int.tryParse(compatInfo['width']?.toString() ?? '') ?? 0;
+        videoHeight = int.tryParse(compatInfo['height']?.toString() ?? '') ?? 0;
+        videoFrameRate =
+            double.tryParse(compatInfo['frameRate']?.toString() ?? '') ?? 0.0;
+        videoDataRateKbps =
+            ((int.tryParse(compatInfo['videoBandwidth']?.toString() ?? '') ?? 0) /
+                    1000)
+                .round();
+
+        final playUrl = compatInfo['url'] as String;
+
+        try {
+          videoController = VideoPlayerController.networkUrl(
+            Uri.parse(playUrl),
+            httpHeaders: {
+              'User-Agent':
+                  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36',
+              'Referer': 'https://www.bilibili.com/',
+              'Origin': 'https://www.bilibili.com',
+              if (AuthService.sessdata != null)
+                'Cookie': 'SESSDATA=${AuthService.sessdata}',
+            },
+          );
+          await videoController!.initialize();
+
+          debugPrint('🎬 [CompatFallback] durl playback succeeded!');
+
+          _setupPlayerListeners();
+          _startStatsTimer();
+
+          if (BuildFlags.pluginsEnabled) {
+            final plugins = PluginManager().getEnabledPlugins<PlayerPlugin>();
+            for (var plugin in plugins) {
+              plugin.onVideoLoad(widget.video.bvid, cid!);
+            }
+          }
+
+          setState(() {
+            isLoading = false;
+          });
+
+          await videoController!.play();
+          startHideTimer();
+          await loadDanmaku();
+          return; // 兜底成功
+        } catch (e) {
+          await videoController?.dispose();
+          videoController = null;
+          debugPrint('🎬 [CompatFallback] durl also failed: $e');
+          lastError = '兼容模式也失败: $e';
+        }
+      }
+
+      // 所有方式都失败了
       throw Exception(lastError ?? '视频加载失败');
     } catch (e) {
       if (mounted) {
@@ -438,11 +558,14 @@ mixin PlayerActionMixin on PlayerStateMixin {
     // 触发重绘以更新 UI (进度条等)
     setState(() {});
 
-    // 插件处理 (Debounce logic internal to plugin, but we update UI here)
-    _handlePlugins(value.position);
+    if (BuildFlags.pluginsEnabled) {
+      // 插件处理 (Debounce logic internal to plugin, but we update UI here)
+      _handlePlugins(value.position);
+    }
   }
 
   void _handlePlugins(Duration position) async {
+    if (!BuildFlags.pluginsEnabled) return;
     final plugins = PluginManager().getEnabledPlugins<PlayerPlugin>();
     if (plugins.isEmpty) return;
 
@@ -511,12 +634,15 @@ mixin PlayerActionMixin on PlayerStateMixin {
     cancelPlayerListeners();
     seekIndicatorTimer?.cancel();
     onlineCountTimer?.cancel(); // 取消在线人数定时器
+    statsTimer?.cancel();
     _clearSpritesFromMemory(); // 清理雪碧图内存缓存
 
-    // 通知插件视频结束
-    final plugins = PluginManager().getEnabledPlugins<PlayerPlugin>();
-    for (var plugin in plugins) {
-      plugin.onVideoEnd();
+    if (BuildFlags.pluginsEnabled) {
+      // 通知插件视频结束
+      final plugins = PluginManager().getEnabledPlugins<PlayerPlugin>();
+      for (var plugin in plugins) {
+        plugin.onVideoEnd();
+      }
     }
 
     await videoController?.dispose();
@@ -677,8 +803,9 @@ mixin PlayerActionMixin on PlayerStateMixin {
       }
     }
 
-    // 获取已启用的弹幕插件
-    final plugins = PluginManager().getEnabledPlugins<DanmakuPlugin>();
+    final plugins = BuildFlags.pluginsEnabled
+        ? PluginManager().getEnabledPlugins<DanmakuPlugin>()
+        : const <DanmakuPlugin>[];
 
     while (lastDanmakuIndex < danmakuList.length) {
       final dm = danmakuList[lastDanmakuIndex];
@@ -1074,6 +1201,64 @@ mixin PlayerActionMixin on PlayerStateMixin {
     );
   }
 
+  void toggleStatsForNerds() {
+    setState(() {
+      showStatsForNerds = !showStatsForNerds;
+      if (showStatsForNerds) {
+        videoSpeedKbps = 0;
+        networkActivityKb = 0;
+        // 重置基线：设为 null 让下一个 tick 只初始化基线、不计算，
+        // 避免 lastStatsBuffered 还是 Duration.zero 导致首次采样产生巨大尖峰。
+        lastStatsTime = null;
+      }
+    });
+    Fluttertoast.showToast(
+      msg: showStatsForNerds ? '视频数据实时监测已开启' : '视频数据实时监测已关闭',
+    );
+  }
+
+  void _startStatsTimer() {
+    statsTimer?.cancel();
+    lastStatsBuffered = Duration.zero;
+    lastStatsTime = null;
+    statsTimer = Timer.periodic(const Duration(milliseconds: 250), (_) {
+      _updateStatsForNerds();
+    });
+  }
+
+  void _updateStatsForNerds() {
+    if (!mounted || videoController == null || !showStatsForNerds) return;
+    final value = videoController!.value;
+    if (value.duration <= Duration.zero) return;
+
+    final buffered = value.buffered.isNotEmpty
+        ? value.buffered.last.end
+        : Duration.zero;
+    final now = DateTime.now();
+    final prevTime = lastStatsTime;
+
+    if (prevTime != null) {
+      final dt = now.difference(prevTime).inMilliseconds / 1000.0;
+      if (dt > 0.05) {
+        final bufferedDeltaSec =
+            (buffered - lastStatsBuffered).inMilliseconds / 1000.0;
+        final safeDelta = bufferedDeltaSec < 0 ? 0.0 : bufferedDeltaSec;
+
+        // 视频速度: buffer增量 × 码率
+        final instantSpeed = safeDelta * videoDataRateKbps / dt;
+        // 网络活动: 本采样周期内收到的 KB
+        final instantNetworkKb = safeDelta * videoDataRateKbps / 8.0;
+
+        setState(() {
+          videoSpeedKbps = instantSpeed;
+          networkActivityKb = instantNetworkKb;
+        });
+      }
+    }
+    lastStatsBuffered = buffered;
+    lastStatsTime = now;
+  }
+
   void adjustDanmakuSetting(int direction) {
     setState(() {
       switch (focusedSettingIndex) {
@@ -1090,9 +1275,17 @@ mixin PlayerActionMixin on PlayerStateMixin {
           );
           break;
         case 3:
-          final areas = [0.25, 0.5, 0.75, 1.0];
-          int currentIndex = areas.indexOf(danmakuArea);
-          if (currentIndex == -1) currentIndex = 1;
+          final areas = [0.125, 0.25, 0.5, 0.75, 1.0];
+          int currentIndex = areas.indexWhere(
+            (v) => (danmakuArea - v).abs() < 0.001,
+          );
+          if (currentIndex < 0) {
+            final normalized = areas.firstWhere(
+              (v) => danmakuArea <= v + 0.001,
+              orElse: () => areas.last,
+            );
+            currentIndex = areas.indexOf(normalized);
+          }
           int newIndex = (currentIndex + direction).clamp(0, areas.length - 1);
           danmakuArea = areas[newIndex];
           break;
@@ -1141,7 +1334,16 @@ mixin PlayerActionMixin on PlayerStateMixin {
       if (playInfo != null) {
         if (!mounted) return;
         currentQuality = playInfo['currentQuality'] ?? 80;
+        currentCodec = playInfo['codec'] ?? currentCodec;
         currentAudioUrl = playInfo['audioUrl'];
+        videoWidth = int.tryParse(playInfo['width']?.toString() ?? '') ?? 0;
+        videoHeight = int.tryParse(playInfo['height']?.toString() ?? '') ?? 0;
+        videoFrameRate =
+            double.tryParse(playInfo['frameRate']?.toString() ?? '') ?? 0.0;
+        videoDataRateKbps =
+            ((int.tryParse(playInfo['videoBandwidth']?.toString() ?? '') ?? 0) /
+                    1000)
+                .round();
         qualities = List<Map<String, dynamic>>.from(
           playInfo['qualities'] ?? [],
         );
@@ -1157,9 +1359,13 @@ mixin PlayerActionMixin on PlayerStateMixin {
           playUrl = playInfo['url'];
         }
 
+        if (playUrl == null || playUrl.isEmpty) {
+          throw Exception('当前清晰度暂无可播放地址，请尝试其他清晰度');
+        }
+
         // 创建新播放器
         videoController = VideoPlayerController.networkUrl(
-          Uri.parse(playUrl!),
+          Uri.parse(playUrl),
           httpHeaders: {
             'User-Agent':
                 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36',
@@ -1173,6 +1379,7 @@ mixin PlayerActionMixin on PlayerStateMixin {
         await videoController!.initialize();
 
         _setupPlayerListeners();
+        _startStatsTimer();
         await videoController!.play();
 
         setState(() => isLoading = false);
@@ -1259,7 +1466,16 @@ mixin PlayerActionMixin on PlayerStateMixin {
       LocalServer.instance.clearMpdContent();
 
       currentQuality = playInfo['currentQuality'] ?? qn;
+      currentCodec = playInfo['codec'] ?? currentCodec;
       currentAudioUrl = playInfo['audioUrl'];
+      videoWidth = int.tryParse(playInfo['width']?.toString() ?? '') ?? 0;
+      videoHeight = int.tryParse(playInfo['height']?.toString() ?? '') ?? 0;
+      videoFrameRate =
+          double.tryParse(playInfo['frameRate']?.toString() ?? '') ?? 0.0;
+      videoDataRateKbps =
+          ((int.tryParse(playInfo['videoBandwidth']?.toString() ?? '') ?? 0) /
+                  1000)
+              .round();
 
       String? playUrl;
 
@@ -1272,9 +1488,15 @@ mixin PlayerActionMixin on PlayerStateMixin {
         playUrl = playInfo['url'];
       }
 
+      if (playUrl == null || playUrl.isEmpty) {
+        Fluttertoast.showToast(msg: '当前清晰度暂无可播放地址，请切换清晰度');
+        setState(() => isLoading = false);
+        return;
+      }
+
       // 创建新播放器
       videoController = VideoPlayerController.networkUrl(
-        Uri.parse(playUrl!),
+        Uri.parse(playUrl),
         httpHeaders: {
           'User-Agent':
               'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36',
@@ -1290,6 +1512,7 @@ mixin PlayerActionMixin on PlayerStateMixin {
       resetDanmakuIndex(position);
 
       _setupPlayerListeners();
+      _startStatsTimer();
       await videoController!.play();
 
       // 恢复倍速

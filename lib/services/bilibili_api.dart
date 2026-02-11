@@ -18,7 +18,9 @@ import 'api/playback_api.dart';
 import 'api/interaction_api.dart';
 import 'api/videoshot_api.dart';
 import 'settings_service.dart' show VideoCodec;
+import '../models/favorite_folder.dart';
 import '../models/video.dart';
+import '../models/following_user.dart';
 import '../models/videoshot.dart';
 
 /// Bilibili API 服务 (门面模式)
@@ -61,6 +63,24 @@ class BilibiliApi {
     int viewAt = 0,
     int max = 0,
   }) => VideoApi.getHistory(ps: ps, viewAt: viewAt, max: max);
+
+  /// 获取收藏夹列表
+  static Future<List<FavoriteFolder>> getFavoriteFolders() =>
+      VideoApi.getFavoriteFolders();
+
+  /// 获取收藏夹视频
+  static Future<Map<String, dynamic>> getFavoriteFolderVideos({
+    required int mediaId,
+    int page = 1,
+    int pageSize = 20,
+  }) => VideoApi.getFavoriteFolderVideos(
+    mediaId: mediaId,
+    page: page,
+    pageSize: pageSize,
+  );
+
+  /// 获取稍后再看列表
+  static Future<List<Video>> getWatchLaterVideos() => VideoApi.getWatchLaterVideos();
 
   // ========== 搜索相关 ==========
 
@@ -113,6 +133,13 @@ class BilibiliApi {
     qn: qn,
     forceCodec: forceCodec,
   );
+
+  /// 兼容性兜底: 非 DASH 格式播放地址 (durl/mp4/flv)
+  static Future<Map<String, dynamic>?> getVideoPlayUrlCompat({
+    required String bvid,
+    required int cid,
+    int qn = 32,
+  }) => PlaybackApi.getVideoPlayUrlCompat(bvid: bvid, cid: cid, qn: qn);
 
   /// 获取弹幕数据
   static Future<List<Map<String, dynamic>>> getDanmaku(int cid) =>
@@ -172,4 +199,10 @@ class BilibiliApi {
   /// 检查是否已关注
   static Future<bool> checkFollowStatus(int mid) =>
       InteractionApi.checkFollowStatus(mid);
+
+  /// 获取关注列表
+  static Future<Map<String, dynamic>> getFollowingUsers({
+    int page = 1,
+    int pageSize = 30,
+  }) => InteractionApi.getFollowingUsers(page: page, pageSize: pageSize);
 }

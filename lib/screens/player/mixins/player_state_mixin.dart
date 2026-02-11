@@ -61,6 +61,16 @@ mixin PlayerStateMixin on State<PlayerScreen> {
   List<Map<String, dynamic>> qualities = [];
   int currentQuality = 80;
   String currentCodec = ''; // 当前编解码器 (avc/hev/av01)
+  bool showStatsForNerds = false;
+  int videoWidth = 0;
+  int videoHeight = 0;
+  double videoFrameRate = 0.0;
+  int videoDataRateKbps = 0;
+  double videoSpeedKbps = 0;
+  double networkActivityKb = 0;
+  Duration lastStatsBuffered = Duration.zero;
+  DateTime? lastStatsTime;
+  Timer? statsTimer;
 
   // 双击返回
   DateTime? lastBackPressed;

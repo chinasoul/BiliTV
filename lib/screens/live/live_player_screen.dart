@@ -669,12 +669,20 @@ class _LivePlayerScreenState extends State<LivePlayerScreen>
         }
         break;
       case 3: // Area (Slider)
-        double newVal = _danmakuArea + (direction * 0.25);
-        newVal = newVal.clamp(
-          0.25,
-          1.0,
-        ); // Min should probably be 0.25 (1/4 screen)
-        if (newVal != _danmakuArea) {
+        const areas = [0.125, 0.25, 0.5, 0.75, 1.0];
+        int currentIndex = areas.indexWhere(
+          (v) => (_danmakuArea - v).abs() < 0.001,
+        );
+        if (currentIndex < 0) {
+          final normalized = areas.firstWhere(
+            (v) => _danmakuArea <= v + 0.001,
+            orElse: () => areas.last,
+          );
+          currentIndex = areas.indexOf(normalized);
+        }
+        final newIndex = (currentIndex + direction).clamp(0, areas.length - 1);
+        final newVal = areas[newIndex];
+        if ((newVal - _danmakuArea).abs() > 0.001) {
           setState(() => _danmakuArea = newVal);
           await _saveSettings();
         }

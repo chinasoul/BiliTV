@@ -27,7 +27,7 @@ dependencies:
   shared_preferences: ^2.2.2
   
   # Toast
-  fluttertoast: ^8.2.14
+  fluttertoast: ^9.0.0
 
   # QR Code Generation
   qr_flutter: ^4.1.0
@@ -44,11 +44,11 @@ dependencies:
   xml: ^6.3.0
   
   # App Update
-  package_info_plus: ^8.3.1
-  permission_handler: ^11.4.0
+  package_info_plus: ^9.0.0
+  permission_handler: ^12.0.1
 
   # Performance
-  keframe: ^2.0.6
+  keframe: ^3.0.0
 
   # UI
   marquee: ^2.2.3
@@ -62,7 +62,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
-  flutter_launcher_icons: ^0.13.1
+  flutter_launcher_icons: ^0.14.4
 
 flutter_launcher_icons:
   android: true
@@ -76,8 +76,6 @@ flutter:
   uses-material-design: true
   
   assets:
-    - assets/icons/startup.mp4
-    - assets/icons/startup_frame.jpg
     - assets/icons/home.svg
     - assets/icons/history.svg
     - assets/icons/search.svg

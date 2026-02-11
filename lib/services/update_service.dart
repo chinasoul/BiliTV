@@ -47,12 +47,12 @@ class UpdateCheckResult {
 
 /// 更新服务
 class UpdateService {
-  static const String _serverUrlKey = 'update_server_url';
-  static const String _apiKeyKey = 'update_api_key';
+  static const String _githubRepoKey = 'update_github_repo';
+  static const String _githubTokenKey = 'update_github_token';
 
-  // 固定配置 (开源版本留空，需要更新功能请自行配置服务器)
-  static const String defaultServerUrl = Env.updateServerUrl;
-  static const String defaultApiKey = Env.updateApiKey;
+  // 固定配置（可被本地设置覆盖）
+  static const String defaultGitHubRepo = Env.githubRepo;
+  static const String defaultGitHubToken = Env.githubToken;
 
   static SharedPreferences? _prefs;
 
@@ -61,26 +61,40 @@ class UpdateService {
     _prefs ??= await SharedPreferences.getInstance();
   }
 
-  /// 获取更新服务器地址
-  static String get serverUrl {
-    return _prefs?.getString(_serverUrlKey) ?? defaultServerUrl;
+  /// 获取 GitHub 仓库（owner/repo）
+  static String get githubRepo {
+    return _prefs?.getString(_githubRepoKey) ?? defaultGitHubRepo;
   }
 
-  /// 设置更新服务器地址
-  static Future<void> setServerUrl(String url) async {
+  /// 设置 GitHub 仓库（owner/repo）
+  static Future<void> setGitHubRepo(String repo) async {
     await init();
-    await _prefs!.setString(_serverUrlKey, url);
+    await _prefs!.setString(_githubRepoKey, repo);
   }
 
-  /// 获取 API Key
-  static String get apiKey {
-    return _prefs?.getString(_apiKeyKey) ?? defaultApiKey;
+  /// 获取 GitHub Token
+  static String get githubToken {
+    return _prefs?.getString(_githubTokenKey) ?? defaultGitHubToken;
   }
 
-  /// 设置 API Key
-  static Future<void> setApiKey(String key) async {
+  /// 设置 GitHub Token
+  static Future<void> setGitHubToken(String token) async {
     await init();
-    await _prefs!.setString(_apiKeyKey, key);
+    await _prefs!.setString(_githubTokenKey, token);
+  }
+
+  static bool get _isRepoConfigured => githubRepo.trim().isNotEmpty;
+
+  static Map<String, String> _githubHeaders({bool asJson = false}) {
+    final headers = <String, String>{
+      'User-Agent': 'BiliTV-UpdateChecker',
+      if (asJson) 'Accept': 'application/vnd.github+json',
+    };
+    final token = githubToken.trim();
+    if (token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+    return headers;
   }
 
   /// 获取设备 CPU 架构
@@ -94,8 +108,67 @@ class UpdateService {
     } else if (arch.contains('arm')) {
       return 'armeabi-v7a';
     }
-    // 默认返回 arm64-v7a
-    return 'arm64-v7a';
+    // 默认返回 arm64-v8a
+    return 'arm64-v8a';
+  }
+
+  static String _normalizeVersion(String raw) {
+    final s = raw.trim();
+    if (s.startsWith('v') || s.startsWith('V')) {
+      return s.substring(1);
+    }
+    return s;
+  }
+
+  static List<int> _parseVersion(String raw) {
+    final normalized = _normalizeVersion(raw);
+    final core = normalized.split('+').first; // 忽略 +build，仅比较主版本
+    final coreNums = core.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+    while (coreNums.length < 3) {
+      coreNums.add(0);
+    }
+    return [coreNums[0], coreNums[1], coreNums[2]];
+  }
+
+  static int _compareVersion(String a, String b) {
+    final pa = _parseVersion(a);
+    final pb = _parseVersion(b);
+    for (var i = 0; i < 3; i++) {
+      if (pa[i] > pb[i]) return 1;
+      if (pa[i] < pb[i]) return -1;
+    }
+    return 0;
+  }
+
+  static String? _pickApkAssetUrl(
+    List<dynamic> assets,
+    String arch,
+  ) {
+    final apkAssets = assets
+        .whereType<Map>()
+        .map((e) => Map<String, dynamic>.from(e))
+        .where((asset) {
+          final name = (asset['name'] ?? '').toString().toLowerCase();
+          final url = (asset['browser_download_url'] ?? '').toString();
+          return name.endsWith('.apk') && url.isNotEmpty;
+        })
+        .toList();
+
+    if (apkAssets.isEmpty) return null;
+
+    final archKeywords = arch == 'armeabi-v7a'
+        ? ['armeabi-v7a', 'armv7', 'armeabi']
+        : ['arm64-v8a', 'arm64', 'aarch64'];
+
+    for (final asset in apkAssets) {
+      final name = (asset['name'] ?? '').toString().toLowerCase();
+      if (archKeywords.any(name.contains)) {
+        return (asset['browser_download_url'] ?? '').toString();
+      }
+    }
+
+    // 若没有显式架构后缀，兜底使用第一个 apk 资产
+    return (apkAssets.first['browser_download_url'] ?? '').toString();
   }
 
   /// 检查更新
@@ -103,34 +176,79 @@ class UpdateService {
     try {
       await init();
 
-      // 如果未配置服务器地址，跳过更新检查
-      if (serverUrl.isEmpty) {
-        return UpdateCheckResult(hasUpdate: false, error: null);
+      if (!_isRepoConfigured) {
+        return UpdateCheckResult(hasUpdate: false, error: '未配置 GitHub 仓库');
       }
 
-      // 获取服务器版本信息
+      // 获取 GitHub latest release 信息
+      final latestReleaseUrl = 'https://api.github.com/repos/$githubRepo/releases/latest';
       final response = await http
-          .get(Uri.parse('$serverUrl/version'), headers: {'X-API-Key': apiKey})
+          .get(
+            Uri.parse(latestReleaseUrl),
+            headers: _githubHeaders(asJson: true),
+          )
           .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 404) {
+        return UpdateCheckResult(
+          hasUpdate: false,
+          error: '未找到 Release（请先发布 release）',
+        );
+      }
+
+      if (response.statusCode == 403) {
+        return UpdateCheckResult(
+          hasUpdate: false,
+          error: 'GitHub API 访问受限（可能触发频率限制）',
+        );
+      }
 
       if (response.statusCode != 200) {
         return UpdateCheckResult(
           hasUpdate: false,
-          error: '服务器响应错误: ${response.statusCode}',
+          error: 'GitHub 响应错误: ${response.statusCode}',
         );
       }
 
-      final json = jsonDecode(response.body);
-      final updateInfo = UpdateInfo.fromJson(json);
+      final release = Map<String, dynamic>.from(jsonDecode(response.body));
+      if ((release['draft'] ?? false) == true) {
+        return UpdateCheckResult(hasUpdate: false, error: '当前 latest 是草稿 release');
+      }
+
+      final tagName = _normalizeVersion((release['tag_name'] ?? '').toString());
+      if (tagName.isEmpty) {
+        return UpdateCheckResult(hasUpdate: false, error: 'Release 缺少 tag_name');
+      }
 
       // 获取当前 App 版本
       final packageInfo = await PackageInfo.fromPlatform();
-      final currentVersionCode = int.tryParse(packageInfo.buildNumber) ?? 0;
+      final currentVersion = packageInfo.version;
 
-      // 比较版本号
-      final hasUpdate = updateInfo.versionCode > currentVersionCode;
+      // 比较版本号（支持 tag: v1.2.3 或 v1.2.3+4）
+      final hasUpdate = _compareVersion(tagName, currentVersion) > 0;
+      if (!hasUpdate) {
+        return UpdateCheckResult(hasUpdate: false, updateInfo: null);
+      }
 
-      return UpdateCheckResult(hasUpdate: hasUpdate, updateInfo: updateInfo);
+      final arch = _getDeviceArch();
+      final assets = (release['assets'] as List?) ?? const [];
+      final apkUrl = _pickApkAssetUrl(assets, arch);
+      if (apkUrl == null || apkUrl.isEmpty) {
+        return UpdateCheckResult(
+          hasUpdate: false,
+          error: 'Release 中未找到可下载的 APK 资产',
+        );
+      }
+
+      final updateInfo = UpdateInfo(
+        version: tagName,
+        versionCode: 0,
+        downloadUrl: apkUrl,
+        changelog: (release['body'] ?? '').toString(),
+        forceUpdate: false,
+      );
+
+      return UpdateCheckResult(hasUpdate: true, updateInfo: updateInfo);
     } catch (e) {
       return UpdateCheckResult(hasUpdate: false, error: '检查更新失败: $e');
     }
@@ -159,15 +277,9 @@ class UpdateService {
         }
       }
 
-      // 获取设备架构
-      final arch = _getDeviceArch();
-
-      // 下载 APK（带架构参数）
-      final downloadUrl = Uri.parse(
-        '$serverUrl/download',
-      ).replace(queryParameters: {'arch': arch});
-      final request = http.Request('GET', downloadUrl);
-      request.headers['X-API-Key'] = apiKey;
+      // 下载 GitHub Release 资产 APK
+      final request = http.Request('GET', Uri.parse(updateInfo.downloadUrl));
+      request.headers.addAll(_githubHeaders());
 
       final streamedResponse = await request.send();
 

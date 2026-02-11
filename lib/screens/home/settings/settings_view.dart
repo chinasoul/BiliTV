@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../config/build_flags.dart';
 import '../../../services/auth_service.dart';
 import 'tabs/playback_settings.dart';
 import 'tabs/interface_settings.dart';
 import 'tabs/plugins_settings.dart';
 import 'tabs/storage_settings.dart';
 import 'tabs/about_settings.dart';
+import 'tabs/device_info_settings.dart';
 import '../../../widgets/time_display.dart';
 import '../../../widgets/vip_avatar_badge.dart';
 
@@ -15,7 +17,8 @@ enum SettingsCategory {
   interface_('界面设置'),
   plugins('插件中心'),
   storage('其他设置'),
-  about('关于软件');
+  about('关于软件'),
+  deviceInfo('本机信息');
 
   const SettingsCategory(this.label);
   final String label;
@@ -39,13 +42,21 @@ class SettingsViewState extends State<SettingsView> {
   int _selectedCategoryIndex = 0;
   late List<FocusNode> _categoryFocusNodes;
   late FocusNode _logoutFocusNode;
+  List<SettingsCategory> get _visibleCategories => [
+    SettingsCategory.playback,
+    SettingsCategory.interface_,
+    if (BuildFlags.pluginsEnabled) SettingsCategory.plugins,
+    SettingsCategory.storage,
+    SettingsCategory.about,
+    SettingsCategory.deviceInfo,
+  ];
 
   @override
   void initState() {
     super.initState();
     _logoutFocusNode = FocusNode();
     _categoryFocusNodes = List.generate(
-      SettingsCategory.values.length,
+      _visibleCategories.length,
       (_) => FocusNode(),
     );
   }
@@ -305,10 +316,10 @@ class SettingsViewState extends State<SettingsView> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 40),
               child: Row(
-                children: List.generate(SettingsCategory.values.length, (
+                children: List.generate(_visibleCategories.length, (
                   index,
                 ) {
-                  final category = SettingsCategory.values[index];
+                  final category = _visibleCategories[index];
                   final isSelected = _selectedCategoryIndex == index;
                   return _buildCategoryTab(
                     label: category.label,
@@ -342,7 +353,7 @@ class SettingsViewState extends State<SettingsView> {
   }
 
   Widget _buildContent(VoidCallback moveToCurrentTab) {
-    switch (SettingsCategory.values[_selectedCategoryIndex]) {
+    switch (_visibleCategories[_selectedCategoryIndex]) {
       case SettingsCategory.playback:
         return PlaybackSettings(
           onMoveUp: moveToCurrentTab,
@@ -354,7 +365,13 @@ class SettingsViewState extends State<SettingsView> {
           sidebarFocusNode: widget.sidebarFocusNode,
         );
       case SettingsCategory.plugins:
-        return PluginsSettingsTab(
+        if (BuildFlags.pluginsEnabled) {
+          return PluginsSettingsTab(
+            onMoveUp: moveToCurrentTab,
+            sidebarFocusNode: widget.sidebarFocusNode,
+          );
+        }
+        return StorageSettings(
           onMoveUp: moveToCurrentTab,
           sidebarFocusNode: widget.sidebarFocusNode,
         );
@@ -365,6 +382,11 @@ class SettingsViewState extends State<SettingsView> {
         );
       case SettingsCategory.about:
         return AboutSettings(
+          onMoveUp: moveToCurrentTab,
+          sidebarFocusNode: widget.sidebarFocusNode,
+        );
+      case SettingsCategory.deviceInfo:
+        return DeviceInfoSettings(
           onMoveUp: moveToCurrentTab,
           sidebarFocusNode: widget.sidebarFocusNode,
         );

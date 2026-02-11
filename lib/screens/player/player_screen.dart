@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
-import '../../core/plugin/plugin_types.dart';
+import '../../config/build_flags.dart';
 import '../../models/video.dart';
 import '../../services/settings_service.dart';
 import 'widgets/video_layer.dart';
@@ -211,6 +211,8 @@ class _PlayerScreenState extends State<PlayerScreen>
                     alwaysShowPlayerTime: SettingsService.alwaysShowPlayerTime,
                     onlineCount: onlineCount,
                     danmakuCount: danmakuList.length,
+                    showStatsForNerds: showStatsForNerds,
+                    onToggleStatsForNerds: toggleStatsForNerds,
                   ),
                 ),
 
@@ -226,6 +228,18 @@ class _PlayerScreenState extends State<PlayerScreen>
                   previewPosition != null &&
                   videoController != null)
                 _buildProgressPreview(),
+
+              // 视频数据实时监测（类似 YouTube Stats for Nerds）
+              if (!isLoading &&
+                  videoController != null &&
+                  showStatsForNerds &&
+                  !showSettingsPanel &&
+                  !showEpisodePanel)
+                Positioned(
+                  top: 20,
+                  left: 30,
+                  child: _buildStatsForNerds(),
+                ),
 
               // 点赞/投币/收藏按钮
               if (showActionButtons && !isLoading && videoController != null)
@@ -401,6 +415,76 @@ class _PlayerScreenState extends State<PlayerScreen>
     );
   }
 
+  Widget _buildStatsForNerds() {
+    final size = videoController!.value.size;
+    final width = videoWidth > 0 ? videoWidth : size.width.round();
+    final height = videoHeight > 0 ? videoHeight : size.height.round();
+    final fps = videoFrameRate > 0 ? videoFrameRate : 0.0;
+    final codec = currentCodec.startsWith('av01')
+        ? 'AV1'
+        : (currentCodec.startsWith('hev') || currentCodec.startsWith('hvc'))
+        ? 'H.265'
+        : (currentCodec.startsWith('avc') ? 'H.264' : '未知');
+
+    final resolutionText = '$width x $height@${fps.toStringAsFixed(3)}';
+    final dataRateText = '${videoDataRateKbps <= 0 ? 0 : videoDataRateKbps} Kbps [$codec]';
+    final speedText = '${videoSpeedKbps <= 0 ? '0.0' : videoSpeedKbps.toStringAsFixed(1)} Kbps';
+    final networkText = '${networkActivityKb <= 0 ? '0.00' : networkActivityKb.toStringAsFixed(2)} KB';
+
+    TextStyle labelStyle = const TextStyle(
+      color: Colors.white70,
+      fontSize: 15,
+      fontWeight: FontWeight.w500,
+    );
+    TextStyle valueStyle = const TextStyle(
+      color: Colors.white,
+      fontSize: 16,
+      fontWeight: FontWeight.w600,
+    );
+
+    Widget row(String label, String value) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 1),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(width: 190, child: Text(label, style: labelStyle)),
+            Expanded(child: Text(value, style: valueStyle)),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      width: 620,
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.40),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.white24, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            '视频数据实时监测',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 17,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 2),
+          row('分辨率', resolutionText),
+          row('视频码率', dataRateText),
+          row('视频速度', speedText),
+          row('网络活动', networkText),
+        ],
+      ),
+    );
+  }
+
   String _formatSeekTime(Duration d) {
     final h = d.inHours;
     final m = d.inMinutes % 60;
@@ -412,10 +496,10 @@ class _PlayerScreenState extends State<PlayerScreen>
   }
 
   Widget _buildSkipButton() {
-    if (currentSkipAction is! SkipActionShowButton) {
+    if (!BuildFlags.pluginsEnabled || currentSkipAction == null) {
       return const SizedBox.shrink();
     }
-    final action = currentSkipAction as SkipActionShowButton;
+    final action = currentSkipAction;
 
     return Positioned(
       bottom: 120,
@@ -461,7 +545,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        action.label,
+                        action.label.toString(),
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -478,9 +562,11 @@ class _PlayerScreenState extends State<PlayerScreen>
     );
   }
 
-  void _executeSkip(SkipActionShowButton action) {
-    videoController!.seekTo(Duration(milliseconds: action.skipToMs));
-    resetDanmakuIndex(Duration(milliseconds: action.skipToMs));
+  void _executeSkip(dynamic action) {
+    final skipToMs = action?.skipToMs;
+    if (skipToMs is! int) return;
+    videoController!.seekTo(Duration(milliseconds: skipToMs));
+    resetDanmakuIndex(Duration(milliseconds: skipToMs));
     setState(() {
       currentSkipAction = null;
     });

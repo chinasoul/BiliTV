@@ -54,7 +54,7 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
             setState(() {});
           },
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 10),
         SettingToggleRow(
           label: '迷你进度条',
           subtitle: '播放时在屏幕底部显示简约进度条',
@@ -65,7 +65,7 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
             setState(() {});
           },
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 10),
         SettingToggleRow(
           label: '默认隐藏控制栏',
           subtitle: '打开视频时不显示控制栏和进度条',
@@ -76,7 +76,7 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
             setState(() {});
           },
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 10),
         SettingToggleRow(
           label: '快进预览模式',
           subtitle: '快进快退时显示预览缩略图，按确定跳转',
@@ -87,7 +87,7 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
             setState(() {});
           },
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 10),
         SettingDropdownRow<VideoCodec>(
           label: '视频解码器',
           subtitle: '自动=按硬件支持选最优，失败时降级到其他格式',

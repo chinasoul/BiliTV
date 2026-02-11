@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 /// TV 遥控器优化的视频进度条
 ///
 /// 特性:
-/// - 圆点指示器显示当前位置
-/// - 支持焦点高亮
+/// - 进度条显示当前位置
+/// - 支持快进/快退预览时间标签
 /// - 显示缓冲进度
 class TvProgressBar extends StatelessWidget {
   final Duration position;
@@ -39,7 +39,6 @@ class TvProgressBar extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
-        final dotX = progress * width;
         final previewDotX = previewProgress != null
             ? previewProgress * width
             : null;
@@ -86,59 +85,6 @@ class TvProgressBar extends StatelessWidget {
                   ),
                 ),
               ),
-
-              // 预览位置指示器（快进/快退时）
-              if (previewDotX != null && previewProgress != null)
-                Positioned(
-                  left: previewDotX.clamp(10.0, width - 10.0) - 10,
-                  top: 8,
-                  child: Container(
-                    width: 20,
-                    height: 20,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white,
-                      border: Border.all(
-                        color: const Color(0xFFfb7299),
-                        width: 3,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.white.withValues(alpha: 0.6),
-                          blurRadius: 10,
-                          spreadRadius: 3,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-              // 当前位置圆点
-              if (previewDotX == null) // 正常播放时显示
-                Positioned(
-                  left: dotX.clamp(8.0, width - 8.0) - 8,
-                  top: isFocused ? 8 : 10,
-                  child: Container(
-                    width: isFocused ? 20 : 16,
-                    height: isFocused ? 20 : 16,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: const Color(0xFFfb7299),
-                      border: isFocused
-                          ? Border.all(color: Colors.white, width: 3)
-                          : null,
-                      boxShadow: isFocused
-                          ? [
-                              BoxShadow(
-                                color: Colors.white.withValues(alpha: 0.6),
-                                blurRadius: 12,
-                                spreadRadius: 3,
-                              ),
-                            ]
-                          : null,
-                    ),
-                  ),
-                ),
 
               // 预览时间标签
               if (previewPosition != null && previewDotX != null)

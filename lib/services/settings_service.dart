@@ -144,27 +144,13 @@ class SettingsService {
 
   /// 是否自动连播
   static bool get autoPlay {
-    return _prefs?.getBool(_autoPlayKey) ?? true; // 默认开启
+    return _prefs?.getBool(_autoPlayKey) ?? false; // 默认关闭
   }
 
   /// 设置自动连播
   static Future<void> setAutoPlay(bool value) async {
     await init();
     await _prefs!.setBool(_autoPlayKey, value);
-  }
-
-  // 启动动画设置
-  static const String _splashAnimationKey = 'splash_animation';
-
-  /// 是否显示启动动画
-  static bool get splashAnimationEnabled {
-    return _prefs?.getBool(_splashAnimationKey) ?? true; // 默认开启
-  }
-
-  /// 设置启动动画
-  static Future<void> setSplashAnimationEnabled(bool value) async {
-    await init();
-    await _prefs!.setBool(_splashAnimationKey, value);
   }
 
   // 首选编解码器设置
@@ -187,7 +173,7 @@ class SettingsService {
 
   /// 是否显示迷你进度条
   static bool get showMiniProgress {
-    return _prefs?.getBool(_showMiniProgressKey) ?? false; // 默认关闭
+    return _prefs?.getBool(_showMiniProgressKey) ?? true; // 默认开启
   }
 
   /// 设置迷你进度条
@@ -239,13 +225,28 @@ class SettingsService {
 
   /// 是否在播放器右上角常驻显示时间
   static bool get alwaysShowPlayerTime {
-    return _prefs?.getBool(_alwaysShowPlayerTimeKey) ?? false; // 默认关闭
+    return _prefs?.getBool(_alwaysShowPlayerTimeKey) ?? true; // 默认开启
   }
 
   /// 设置是否在播放器右上角常驻显示时间
   static Future<void> setAlwaysShowPlayerTime(bool value) async {
     await init();
     await _prefs!.setBool(_alwaysShowPlayerTimeKey, value);
+  }
+
+  // 视频网格列数设置
+  static const String _videoGridColumnsKey = 'video_grid_columns';
+
+  /// 视频网格每行列数（3~6）
+  static int get videoGridColumns {
+    final raw = _prefs?.getInt(_videoGridColumnsKey) ?? 4;
+    return raw.clamp(3, 6);
+  }
+
+  /// 设置视频网格每行列数（3~6）
+  static Future<void> setVideoGridColumns(int value) async {
+    await init();
+    await _prefs!.setInt(_videoGridColumnsKey, value.clamp(3, 6));
   }
 
   // 分区顺序设置

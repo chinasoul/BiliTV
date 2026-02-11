@@ -48,7 +48,7 @@ class SettingToggleRow extends StatelessWidget {
         builder: (context) {
           final isFocused = Focus.of(context).hasFocus;
           return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
               color: isFocused
                   ? Colors.white.withValues(alpha: 0.1)
@@ -73,7 +73,7 @@ class SettingToggleRow extends StatelessWidget {
                       ),
                       if (subtitle != null)
                         Padding(
-                          padding: const EdgeInsets.only(top: 4),
+                          padding: const EdgeInsets.only(top: 2),
                           child: Text(
                             subtitle!,
                             style: const TextStyle(

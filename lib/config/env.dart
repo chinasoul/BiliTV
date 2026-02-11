@@ -1,8 +1,10 @@
 /// 环境配置
 class Env {
-  /// 更新服务器地址
-  static const String updateServerUrl = '';
+  /// GitHub 仓库（格式: owner/repo）
+  /// 例如: chinasoul/BiliTV
+  static const String githubRepo = 'chinasoul/BiliTV';
 
-  /// 更新 API Key
-  static const String updateApiKey = '';
+  /// GitHub Token（可选）
+  /// 不填也可用；若频繁请求触发 rate limit，可配置 token
+  static const String githubToken = '';
 }

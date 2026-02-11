@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'base_api.dart';
 import 'sign_utils.dart';
 import '../auth_service.dart';
+import '../../models/following_user.dart';
 
 /// 用户互动相关 API (点赞/投币/收藏/关注)
 class InteractionApi {
@@ -267,5 +268,64 @@ class InteractionApi {
       // 忽略错误
     }
     return false;
+  }
+
+  /// 获取关注列表
+  /// 返回 { 'list': List<FollowingUser>, 'hasMore': bool }
+  static Future<Map<String, dynamic>> getFollowingUsers({
+    int page = 1,
+    int pageSize = 30,
+  }) async {
+    if (!AuthService.isLoggedIn) {
+      return {'list': <FollowingUser>[], 'hasMore': false};
+    }
+
+    try {
+      final mid = AuthService.mid;
+      if (mid == null || mid == 0) {
+        return {'list': <FollowingUser>[], 'hasMore': false};
+      }
+
+      final uri = Uri.parse(
+        '${BaseApi.apiBase}/x/relation/followings',
+      ).replace(
+        queryParameters: {
+          'vmid': mid.toString(),
+          'pn': page.toString(),
+          'ps': pageSize.toString(),
+          'order': 'desc',
+          'order_type': 'attention',
+        },
+      );
+
+      final response = await http.get(
+        uri,
+        headers: BaseApi.getHeaders(withCookie: true),
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['code'] == 0 && json['data'] != null) {
+          final data = json['data'] as Map<String, dynamic>;
+          final listData = data['list'] as List? ?? [];
+          final total = _toInt(data['total']);
+          final list = listData
+              .whereType<Map<String, dynamic>>()
+              .map(FollowingUser.fromJson)
+              .toList();
+          final hasMore = page * pageSize < total;
+          return {'list': list, 'hasMore': hasMore};
+        }
+      }
+    } catch (e) {
+      // 忽略错误
+    }
+
+    return {'list': <FollowingUser>[], 'hasMore': false};
+  }
+
+  static int _toInt(dynamic value) {
+    if (value is int) return value;
+    return int.tryParse(value?.toString() ?? '') ?? 0;
   }
 }

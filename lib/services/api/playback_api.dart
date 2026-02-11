@@ -10,6 +10,33 @@ import '../settings_service.dart';
 
 /// 播放相关 API (视频详情、播放地址、弹幕、进度上报)
 class PlaybackApi {
+  static int _toInt(dynamic value) {
+    if (value is int) return value;
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  static double _parseFrameRate(dynamic value) {
+    if (value == null) return 0;
+    if (value is num) return value.toDouble();
+    final s = value.toString().trim();
+    if (s.isEmpty) return 0;
+    if (s.contains('/')) {
+      final parts = s.split('/');
+      if (parts.length == 2) {
+        final n = double.tryParse(parts[0]) ?? 0;
+        final d = double.tryParse(parts[1]) ?? 1;
+        if (d > 0) return n / d;
+      }
+    }
+    return double.tryParse(s) ?? 0;
+  }
+
+  static String _toQueryString(Map<String, String> params) {
+    return params.entries
+        .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
+        .join('&');
+  }
+
   /// 获取视频详情（包含分P信息和播放历史）
   static Future<Map<String, dynamic>?> getVideoInfo(String bvid) async {
     try {
@@ -77,15 +104,13 @@ class PlaybackApi {
         'fourk': '1',
       };
 
-      final signedParams = SignUtils.signWithWbi(
-        params,
-        BaseApi.imgKey!,
-        BaseApi.subKey!,
-      );
-      final queryString = signedParams.entries
-          .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
-          .join('&');
-      final url = 'https://api.bilibili.com/x/player/playurl?$queryString';
+      final hasWbiKey = (BaseApi.imgKey?.isNotEmpty ?? false) &&
+          (BaseApi.subKey?.isNotEmpty ?? false);
+      final queryParams = hasWbiKey
+          ? SignUtils.signWithWbi(params, BaseApi.imgKey!, BaseApi.subKey!)
+          : params;
+      final url =
+          'https://api.bilibili.com/x/player/playurl?${_toQueryString(queryParams)}';
 
       final response = await http.get(
         Uri.parse(url),
@@ -210,6 +235,12 @@ class PlaybackApi {
               }
 
               if (videoUrl != null) {
+                final width = _toInt(selectedVideo['width']);
+                final height = _toInt(selectedVideo['height']);
+                final videoBandwidth = _toInt(selectedVideo['bandwidth']); // bps
+                final frameRate = _parseFrameRate(
+                  selectedVideo['frameRate'] ?? selectedVideo['frame_rate'],
+                );
                 return {
                   'url': videoUrl,
                   'audioUrl': audioUrl,
@@ -217,6 +248,10 @@ class PlaybackApi {
                   'currentQuality': data['quality'] ?? qn,
                   'isDash': isDash,
                   'codec': selectedCodec,
+                  'width': width,
+                  'height': height,
+                  'frameRate': frameRate,
+                  'videoBandwidth': videoBandwidth,
                   'dashData': data['dash'],
                 };
               }
@@ -240,6 +275,83 @@ class PlaybackApi {
     } catch (e) {
       // 返回错误信息而不是 null
       return {'error': e.toString()};
+    }
+    return null;
+  }
+
+  /// 兼容性兜底: 用 fnval=1 请求非 DASH 格式 (durl/mp4/flv)
+  /// 部分设备的 MediaCodecVideoRenderer 在 DASH 流上崩溃，此方法绕过 DASH。
+  static Future<Map<String, dynamic>?> getVideoPlayUrlCompat({
+    required String bvid,
+    required int cid,
+    int qn = 32,
+  }) async {
+    try {
+      await BaseApi.ensureWbiKeys();
+
+      final params = {
+        'bvid': bvid,
+        'cid': cid.toString(),
+        'qn': qn.toString(),
+        'fnval': '1', // 不请求 DASH，只要 durl(mp4/flv)
+        'fnver': '0',
+        'fourk': '0',
+      };
+
+      final hasWbiKey = (BaseApi.imgKey?.isNotEmpty ?? false) &&
+          (BaseApi.subKey?.isNotEmpty ?? false);
+      final queryParams = hasWbiKey
+          ? SignUtils.signWithWbi(params, BaseApi.imgKey!, BaseApi.subKey!)
+          : params;
+      final endpoint = hasWbiKey
+          ? 'https://api.bilibili.com/x/player/wbi/playurl'
+          : 'https://api.bilibili.com/x/player/playurl';
+      final queryString = _toQueryString(queryParams);
+
+      final response = await http.get(
+        Uri.parse('$endpoint?$queryString'),
+        headers: BaseApi.getHeaders(withCookie: true),
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['code'] == 0) {
+          final data = json['data'];
+          final durls = data['durl'] as List? ?? [];
+          if (durls.isNotEmpty) {
+            final url = durls.first['url'] as String?;
+            if (url != null && url.isNotEmpty) {
+              // 提取画质列表
+              final qualities = <Map<String, dynamic>>[];
+              final acceptQuality = data['accept_quality'] as List? ?? [];
+              final acceptDesc =
+                  data['accept_description'] as List? ?? [];
+              for (int i = 0; i < acceptQuality.length; i++) {
+                qualities.add({
+                  'qn': acceptQuality[i],
+                  'desc': i < acceptDesc.length ? acceptDesc[i] : '',
+                });
+              }
+
+              return {
+                'url': url,
+                'audioUrl': null,
+                'qualities': qualities,
+                'currentQuality': data['quality'] ?? qn,
+                'isDash': false,
+                'codec': 'avc_compat',
+                'width': 0,
+                'height': 0,
+                'frameRate': 0.0,
+                'videoBandwidth': 0,
+                'dashData': null,
+              };
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('getVideoPlayUrlCompat error: $e');
     }
     return null;
   }

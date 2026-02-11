@@ -16,6 +16,8 @@ class SettingActionRow extends StatelessWidget {
   final FocusNode? focusNode;
   final bool isFirst;
   final bool isLast;
+  final List<String>? optionLabels;
+  final String? selectedOption;
 
   const SettingActionRow({
     super.key,
@@ -30,6 +32,8 @@ class SettingActionRow extends StatelessWidget {
     this.focusNode,
     this.isFirst = false,
     this.isLast = false,
+    this.optionLabels,
+    this.selectedOption,
   });
 
   @override
@@ -47,8 +51,41 @@ class SettingActionRow extends StatelessWidget {
       child: Builder(
         builder: (context) {
           final isFocused = Focus.of(context).hasFocus;
+          Widget? optionChips;
+          if (optionLabels != null && optionLabels!.isNotEmpty) {
+            optionChips = Row(
+              mainAxisSize: MainAxisSize.min,
+              children: optionLabels!.map((opt) {
+                final isSelected = opt == selectedOption;
+                return Container(
+                  margin: const EdgeInsets.only(right: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? const Color(0xFFfb7299).withValues(alpha: 0.3)
+                        : Colors.white.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: isSelected
+                          ? const Color(0xFFfb7299)
+                          : Colors.transparent,
+                      width: 1.2,
+                    ),
+                  ),
+                  child: Text(
+                    opt,
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : Colors.white60,
+                      fontSize: 12,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                );
+              }).toList(),
+            );
+          }
           return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
               color: isFocused
                   ? Colors.white.withValues(alpha: 0.1)
@@ -73,7 +110,7 @@ class SettingActionRow extends StatelessWidget {
                       ),
                       if (value.isNotEmpty)
                         Padding(
-                          padding: const EdgeInsets.only(top: 4),
+                          padding: const EdgeInsets.only(top: 2),
                           child: Text(
                             value,
                             style: const TextStyle(
@@ -85,10 +122,11 @@ class SettingActionRow extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (optionChips != null) ...[optionChips],
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 8,
+                    horizontal: 14,
+                    vertical: 6,
                   ),
                   decoration: BoxDecoration(
                     color: isFocused
@@ -100,7 +138,7 @@ class SettingActionRow extends StatelessWidget {
                     buttonLabel,
                     style: TextStyle(
                       color: isFocused ? Colors.white : Colors.white70,
-                      fontSize: 14,
+                      fontSize: 13,
                     ),
                   ),
                 ),

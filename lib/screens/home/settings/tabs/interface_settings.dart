@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../services/settings_service.dart';
 import '../../../../core/focus/focus_navigation.dart';
+import '../widgets/setting_action_row.dart';
 import '../widgets/setting_toggle_row.dart';
 
 class InterfaceSettings extends StatefulWidget {
@@ -19,6 +20,8 @@ class InterfaceSettings extends StatefulWidget {
 }
 
 class _InterfaceSettingsState extends State<InterfaceSettings> {
+  int _videoGridColumns = SettingsService.videoGridColumns;
+
   // 分区排序相关
   List<String> _categoryOrder = [];
   int _selectedCategoryOrderIndex = 0;
@@ -104,20 +107,24 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // 启动动画开关
-        SettingToggleRow(
-          label: '启动动画',
-          subtitle: '启动应用时显示动画，关闭则直接进入主页',
-          value: SettingsService.splashAnimationEnabled,
+        SettingActionRow(
+          label: '每行视频列数',
+          value: '当前: $_videoGridColumns 列',
+          buttonLabel: '切换：$_videoGridColumns',
           autofocus: true,
-          isFirst: true, // 第一项，向上返回分类标签
+          isFirst: true,
           onMoveUp: widget.onMoveUp,
           sidebarFocusNode: widget.sidebarFocusNode,
-          onChanged: (value) async {
-            await SettingsService.setSplashAnimationEnabled(value);
-            setState(() {});
+          onTap: () async {
+            const options = [4, 5, 6];
+            final current = _videoGridColumns.clamp(4, 6);
+            final idx = options.indexOf(current);
+            final next = options[(idx + 1) % options.length];
+            await SettingsService.setVideoGridColumns(next);
+            setState(() => _videoGridColumns = next);
           },
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 10),
         // 播放器时间显示开关
         SettingToggleRow(
           label: '总是显示时间',
@@ -131,7 +138,7 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
             setState(() {});
           },
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 10),
 
         // 分区开关
         Padding(
@@ -210,7 +217,7 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
             },
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 12),
         // 分区排序标题
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
@@ -396,7 +403,7 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
                   },
                 ),
         ), // End of existing ListView
-        const SizedBox(height: 32),
+        const SizedBox(height: 18),
         // ==================== 直播分区设置 ====================
         // 直播分区开关
         Padding(
@@ -473,7 +480,7 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
             },
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 12),
         // 直播分区排序标题
         Padding(
           padding: const EdgeInsets.only(bottom: 8),

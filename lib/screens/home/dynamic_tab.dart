@@ -5,6 +5,7 @@ import '../../models/video.dart';
 import '../../services/bilibili_api.dart';
 import 'package:keframe/keframe.dart';
 import '../../services/auth_service.dart';
+import '../../services/settings_service.dart';
 import '../../widgets/tv_video_card.dart';
 import '../../widgets/time_display.dart';
 import '../player/player_screen.dart';
@@ -135,6 +136,8 @@ class DynamicTabState extends State<DynamicTab> {
 
   @override
   Widget build(BuildContext context) {
+    final gridColumns = SettingsService.videoGridColumns;
+
     if (!AuthService.isLoggedIn) {
       return Center(
         child: Column(
@@ -197,8 +200,8 @@ class DynamicTabState extends State<DynamicTab> {
                         padding: const EdgeInsets.fromLTRB(30, 80, 30, 80),
                         sliver: SliverGrid(
                           gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 4,
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: gridColumns,
                                 childAspectRatio: 320 / 280,
                                 crossAxisSpacing: 20,
                                 mainAxisSpacing: 30,
@@ -209,6 +212,13 @@ class DynamicTabState extends State<DynamicTab> {
                           ) {
                             final video = _videos[index];
 
+                            // 预取下一页：避免大列数时无法通过下移触发滚动加载
+                            if (_hasMore &&
+                                !_isLoadingMore &&
+                                index >= _videos.length - gridColumns) {
+                              _loadMore();
+                            }
+
                             // 构建卡片的内容
                             Widget buildCard(BuildContext ctx) {
                               return TvVideoCard(
@@ -217,7 +227,7 @@ class DynamicTabState extends State<DynamicTab> {
                                 disableCache: false,
                                 onTap: () => _onVideoTap(video),
                                 // 最左列按左键跳到侧边栏
-                                onMoveLeft: (index % 4 == 0)
+                                onMoveLeft: (index % gridColumns == 0)
                                     ? () => widget.sidebarFocusNode
                                           ?.requestFocus()
                                     : () => _getFocusNode(
@@ -229,16 +239,16 @@ class DynamicTabState extends State<DynamicTab> {
                                         index + 1,
                                       ).requestFocus()
                                     : null,
-                                // 严格按列向上移动（4个一行）
-                                onMoveUp: index >= 4
+                                // 严格按列向上移动
+                                onMoveUp: index >= gridColumns
                                     ? () => _getFocusNode(
-                                        index - 4,
+                                        index - gridColumns,
                                       ).requestFocus()
                                     : () {}, // 最顶行为无效输入
                                 // 严格按列向下移动
-                                onMoveDown: (index + 4 < _videos.length)
+                                onMoveDown: (index + gridColumns < _videos.length)
                                     ? () => _getFocusNode(
-                                        index + 4,
+                                        index + gridColumns,
                                       ).requestFocus()
                                     : null,
                                 onFocus: () {

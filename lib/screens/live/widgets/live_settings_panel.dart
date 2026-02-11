@@ -56,6 +56,7 @@ class LiveSettingsPanel extends StatefulWidget {
 
 class _LiveSettingsPanelState extends State<LiveSettingsPanel> {
   final ScrollController _scrollController = ScrollController();
+  static const List<double> _danmakuAreaOptions = [0.125, 0.25, 0.5, 0.75, 1.0];
 
   @override
   void didUpdateWidget(LiveSettingsPanel oldWidget) {
@@ -236,11 +237,8 @@ class _LiveSettingsPanelState extends State<LiveSettingsPanel> {
           icon: Icons.aspect_ratio,
           title: '弹幕占屏比',
           value: _getDanmakuAreaText(),
-          onTap: () {
-            double newVal = widget.danmakuArea + 0.25;
-            if (newVal > 1.0) newVal = 0.25;
-            widget.onDanmakuSettingChange('area', newVal);
-          },
+          onTap: () =>
+              widget.onDanmakuSettingChange('area', _nextDanmakuArea()),
         ),
         _buildSettingItem(
           index: 4,
@@ -317,11 +315,31 @@ class _LiveSettingsPanelState extends State<LiveSettingsPanel> {
   }
 
   String _getDanmakuAreaText() {
-    if (widget.danmakuArea >= 1.0) return '满屏';
-    if (widget.danmakuArea >= 0.75) return '3/4屏';
-    if (widget.danmakuArea >= 0.5) return '半屏';
-    if (widget.danmakuArea >= 0.25) return '1/4屏';
-    return '1/4屏';
+    switch (_normalizedDanmakuArea()) {
+      case 1.0:
+        return '满屏';
+      case 0.75:
+        return '3/4屏';
+      case 0.5:
+        return '半屏';
+      case 0.25:
+        return '1/4屏';
+      default:
+        return '1/8屏';
+    }
+  }
+
+  double _normalizedDanmakuArea() {
+    return _danmakuAreaOptions.firstWhere(
+      (v) => widget.danmakuArea <= v + 0.001,
+      orElse: () => _danmakuAreaOptions.last,
+    );
+  }
+
+  double _nextDanmakuArea() {
+    final current = _normalizedDanmakuArea();
+    final index = _danmakuAreaOptions.indexOf(current);
+    return _danmakuAreaOptions[(index + 1) % _danmakuAreaOptions.length];
   }
 
   Widget _buildSettingItem({

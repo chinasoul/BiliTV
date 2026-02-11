@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/rendering.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import '../../models/video.dart';
 import 'package:keframe/keframe.dart';
-import '../../services/auth_service.dart';
 import '../../services/bilibili_api.dart';
 import '../../services/settings_service.dart';
+import '../../config/build_flags.dart';
 import '../../widgets/tv_video_card.dart';
 import '../../widgets/time_display.dart';
 import '../../core/plugin/plugin_manager.dart';
@@ -121,7 +122,6 @@ class HomeTabState extends State<HomeTab> {
 
     if (refresh) {
       _categoryPage[categoryIndex] = 1;
-      _categoryRefreshIdx[categoryIndex] = 0;
       setState(() {
         _categoryLoading[categoryIndex] = true;
         _categoryVideos[categoryIndex] = [];
@@ -133,12 +133,15 @@ class HomeTabState extends State<HomeTab> {
 
     final category = _categories[categoryIndex];
     List<Video> videos;
+    bool requestFailed = false;
 
     try {
       // 网络请求逻辑...
       switch (category) {
         case HomeCategory.recommend:
-          final idx = refresh ? 0 : currentRefreshIdx;
+          final idx = refresh
+              ? (_categoryRefreshIdx[categoryIndex] ?? currentRefreshIdx)
+              : currentRefreshIdx;
           videos = await BilibiliApi.getRecommendVideos(idx: idx);
           _categoryRefreshIdx[categoryIndex] = idx + 1;
           break;
@@ -155,6 +158,7 @@ class HomeTabState extends State<HomeTab> {
           break;
       }
     } catch (e) {
+      requestFailed = true;
       videos = [];
     }
 
@@ -183,6 +187,17 @@ class HomeTabState extends State<HomeTab> {
         });
       }
     });
+
+    if (refresh) {
+      Fluttertoast.showToast(
+        msg: requestFailed ? '刷新失败' : '已刷新',
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.CENTER,
+        backgroundColor: Colors.black.withValues(alpha: 0.7),
+        textColor: Colors.white,
+        fontSize: 16.0,
+      );
+    }
   }
 
   // ... (省略 _loadMore, _switchCategory 等辅助方法) ...
@@ -202,7 +217,37 @@ class HomeTabState extends State<HomeTab> {
     if ((_categoryVideos[index] ?? []).isEmpty) _loadVideosForCategory(index);
   }
 
+  void _onCategoryTap(int index) {
+    // 点击当前分类时主动刷新，兼容鼠标点击和遥控器确认键
+    if (_selectedCategoryIndex == index) {
+      refreshCurrentCategory();
+      return;
+    }
+    _switchCategory(index);
+  }
+
   void refreshCurrentCategory() {
+    if (_isLoading) {
+      Fluttertoast.showToast(
+        msg: '正在刷新中，请稍候',
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.CENTER,
+        backgroundColor: Colors.black.withValues(alpha: 0.7),
+        textColor: Colors.white,
+        fontSize: 16.0,
+      );
+      return;
+    }
+
+    Fluttertoast.showToast(
+      msg: '正在刷新',
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.CENTER,
+      backgroundColor: Colors.black.withValues(alpha: 0.7),
+      textColor: Colors.white,
+      fontSize: 16.0,
+    );
+
     // 刷新后不再是初始预加载状态
     _usedPreloadedData = false;
     _loadVideosForCategory(_selectedCategoryIndex, refresh: true);
@@ -216,10 +261,7 @@ class HomeTabState extends State<HomeTab> {
 
   @override
   Widget build(BuildContext context) {
-    // ... (Auth check logic 保持不变) ...
-    if (!AuthService.isLoggedIn) {
-      return const Center(child: Text("请先登录")); // 简写，保持你原有的 UI
-    }
+    final gridColumns = SettingsService.videoGridColumns;
 
     // 判断是否是"启动后的第一屏数据"
     // 使用稳定的标志变量，避免 List 引用比较在 loadMore 后失效
@@ -241,8 +283,8 @@ class HomeTabState extends State<HomeTab> {
                           padding: const EdgeInsets.fromLTRB(30, 100, 30, 80),
                           sliver: SliverGrid(
                             gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 4,
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: gridColumns,
                                   childAspectRatio: 320 / 280,
                                   crossAxisSpacing: 20,
                                   mainAxisSpacing: 30,
@@ -253,7 +295,7 @@ class HomeTabState extends State<HomeTab> {
                             ) {
                               final video = _currentVideos[index];
 
-                              if (index == _currentVideos.length - 4) {
+                              if (index == _currentVideos.length - gridColumns) {
                                 _loadMore();
                               }
 
@@ -272,7 +314,7 @@ class HomeTabState extends State<HomeTab> {
                                   disableCache: false,
                                   staggerIndex: staggerIdx,
                                   onTap: () => _onVideoTap(video),
-                                  onMoveLeft: (index % 4 == 0)
+                                  onMoveLeft: (index % gridColumns == 0)
                                       ? () => widget.sidebarFocusNode
                                             ?.requestFocus()
                                       : () => _getFocusNode(
@@ -285,19 +327,19 @@ class HomeTabState extends State<HomeTab> {
                                           index + 1,
                                         ).requestFocus()
                                       : null,
-                                  // 严格按列向上移动（4个一行），最顶行跳到分类标签
-                                  onMoveUp: index >= 4
+                                  // 严格按列向上移动，最顶行跳到分类标签
+                                  onMoveUp: index >= gridColumns
                                       ? () => _getFocusNode(
-                                          index - 4,
+                                          index - gridColumns,
                                         ).requestFocus()
                                       : () =>
                                             _categoryFocusNodes[_selectedCategoryIndex]
                                                 .requestFocus(),
                                   // 严格按列向下移动
                                   onMoveDown:
-                                      (index + 4 < _currentVideos.length)
+                                      (index + gridColumns < _currentVideos.length)
                                       ? () => _getFocusNode(
-                                          index + 4,
+                                          index + gridColumns,
                                         ).requestFocus()
                                       : null,
                                   onFocus: () {
@@ -383,7 +425,7 @@ class HomeTabState extends State<HomeTab> {
                       label: _categories[index].label,
                       isSelected: _selectedCategoryIndex == index,
                       focusNode: _categoryFocusNodes[index],
-                      onTap: () => _switchCategory(index),
+                      onTap: () => _onCategoryTap(index),
                       onFocus: () => _switchCategory(index),
                       onConfirm: refreshCurrentCategory,
                       onMoveLeft: index == 0
@@ -403,6 +445,7 @@ class HomeTabState extends State<HomeTab> {
 
   List<Video> _filterVideos(List<Video> videos) {
     if (videos.isEmpty) return [];
+    if (!BuildFlags.pluginsEnabled) return videos;
     final plugins = PluginManager().getEnabledPlugins<FeedPlugin>();
     if (plugins.isEmpty) return videos;
 

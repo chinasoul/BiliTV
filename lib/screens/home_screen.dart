@@ -7,10 +7,10 @@ import 'home/history_tab.dart';
 import 'home/search_tab.dart';
 import 'home/login_tab.dart';
 import 'home/dynamic_tab.dart';
+import 'home/following_tab.dart';
 import 'home/live_tab.dart';
 import '../widgets/tv_focusable_item.dart';
 import '../services/auth_service.dart';
-import '../services/settings_service.dart';
 
 /// 主页框架 - 完全按照 animeone_tv_app 的方式
 class HomeScreen extends StatefulWidget {
@@ -23,18 +23,19 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _selectedTabIndex = 1; // 默认选中首页
+  int _selectedTabIndex = 0; // 默认选中首页
   DateTime? _lastBackPressed;
   DateTime? _backFromSearchHandled; // 防止搜索键盘返回键重复处理
 
-  // Tab 顺序: 搜索、首页、动态、历史、直播、登录
+  // Tab 顺序: 首页、动态、关注、历史、直播、登录、搜索
   final List<String> _tabIcons = [
-    'assets/icons/search.svg',
     'assets/icons/home.svg',
     'assets/icons/dynamic.svg',
+    'assets/icons/favorite.svg',
     'assets/icons/history.svg',
-    'assets/icons/live.svg', // 新增直播图标
+    'assets/icons/live.svg',
     'assets/icons/user.svg',
+    'assets/icons/search.svg',
   ];
 
   late List<FocusNode> _sideBarFocusNodes;
@@ -46,6 +47,8 @@ class _HomeScreenState extends State<HomeScreen> {
   // 动态和历史记录 Tab - 每次切换时刷新
   final GlobalKey<DynamicTabState> _dynamicTabKey =
       GlobalKey<DynamicTabState>();
+  final GlobalKey<FollowingTabState> _followingTabKey =
+      GlobalKey<FollowingTabState>();
   final GlobalKey<HistoryTabState> _historyTabKey =
       GlobalKey<HistoryTabState>();
   final GlobalKey<LoginTabState> _loginTabKey = GlobalKey<LoginTabState>();
@@ -86,7 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _preloadOtherTabs();
   }
 
-  // 后台预加载动态和历史记录
+  // 后台预加载动态、关注和历史记录
   void _preloadOtherTabs() {
     // 延迟 500ms 后开始预加载，避免影响首页渲染
     Future.delayed(const Duration(milliseconds: 500), () {
@@ -97,10 +100,18 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     });
 
-    // 再延迟 1 秒后预加载历史记录
+    // 再延迟 1 秒后预加载关注列表
     Future.delayed(const Duration(milliseconds: 1500), () {
       if (!mounted) return;
-      // 预加载历史记录（如果用户已登录）
+      // 预加载关注列表（如果用户已登录）
+      if (AuthService.isLoggedIn) {
+        _followingTabKey.currentState?.refresh();
+      }
+    });
+
+    // 再延迟 2 秒后预加载历史记录
+    Future.delayed(const Duration(milliseconds: 2000), () {
+      if (!mounted) return;
       if (AuthService.isLoggedIn) {
         _historyTabKey.currentState?.refresh();
       }
@@ -124,10 +135,12 @@ class _HomeScreenState extends State<HomeScreen> {
   void _handleSideBarTap(int index) {
     // 如果已经在当前标签，点击刷新
     if (index == _selectedTabIndex) {
-      if (index == 1) {
+      if (index == 0) {
         _homeTabKey.currentState?.refreshCurrentCategory();
-      } else if (index == 2) {
+      } else if (index == 1) {
         _dynamicTabKey.currentState?.refresh();
+      } else if (index == 2) {
+        _followingTabKey.currentState?.refresh();
       } else if (index == 3) {
         _historyTabKey.currentState?.refresh();
       } else if (index == 4) {
@@ -139,9 +152,11 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _selectedTabIndex = index);
     _sideBarFocusNodes[index].requestFocus();
 
-    // 动态和历史记录、直播标签: 切换时也刷新
-    if (index == 2) {
+    // 动态、关注、历史记录、直播标签: 切换时也刷新
+    if (index == 1) {
       _dynamicTabKey.currentState?.refresh();
+    } else if (index == 2) {
+      _followingTabKey.currentState?.refresh();
     } else if (index == 3) {
       _historyTabKey.currentState?.refresh();
     } else if (index == 4) {
@@ -151,6 +166,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _refreshCurrentTab() {
     setState(() {});
+  }
+
+  bool _isSidebarFocused() {
+    for (final node in _sideBarFocusNodes) {
+      if (node.hasFocus) return true;
+    }
+    return false;
+  }
+
+  void _focusSelectedSidebarItem() {
+    final index = _selectedTabIndex.clamp(0, _sideBarFocusNodes.length - 1);
+    _sideBarFocusNodes[index].requestFocus();
   }
 
   @override
@@ -167,45 +194,38 @@ class _HomeScreenState extends State<HomeScreen> {
           return; // 已被处理，忽略
         }
 
-        // 只有在主页标签 (index=1) 才显示退出提示
-        // 搜索标签需要特殊处理：结果界面返回键盘，键盘返回主页
-        if (_selectedTabIndex == 0) {
-          // 搜索标签
-          final handled = _searchTabKey.currentState?.handleBack() ?? false;
-          if (!handled) {
-            // 键盘界面 → 回主页
-            setState(() => _selectedTabIndex = 1);
-            _sideBarFocusNodes[1].requestFocus();
+        // 侧边栏按返回键：任意导航项都支持双击退出
+        if (_isSidebarFocused()) {
+          final now = DateTime.now();
+          if (_lastBackPressed == null ||
+              now.difference(_lastBackPressed!) > const Duration(seconds: 2)) {
+            _lastBackPressed = now;
+            Fluttertoast.showToast(
+              msg: '再按一次返回键退出应用',
+              toastLength: Toast.LENGTH_SHORT,
+              gravity: ToastGravity.CENTER,
+              backgroundColor: Colors.black.withValues(alpha: 0.7),
+              textColor: Colors.white,
+              fontSize: 18.0,
+            );
+          } else {
+            SystemNavigator.pop();
           }
           return;
         }
 
-        if (_selectedTabIndex != 1) {
-          // 其他标签（历史、直播、登录）按返回键都回到主页
-          setState(() => _selectedTabIndex = 1);
-          _sideBarFocusNodes[1].requestFocus();
+        // 搜索标签特殊处理：优先交给搜索页内部处理
+        if (_selectedTabIndex == 6) {
+          final handled = _searchTabKey.currentState?.handleBack() ?? false;
+          if (!handled) {
+            // 搜索页内容区 -> 回到搜索对应侧边栏
+            _focusSelectedSidebarItem();
+          }
           return;
         }
 
-        // 主页标签：按两次退出
-        final now = DateTime.now();
-        if (_lastBackPressed == null ||
-            now.difference(_lastBackPressed!) > const Duration(seconds: 2)) {
-          _lastBackPressed = now;
-
-          Fluttertoast.showToast(
-            msg: '再按一次返回键退出应用',
-            toastLength: Toast.LENGTH_SHORT,
-            gravity: ToastGravity.CENTER,
-            backgroundColor: Colors.black.withValues(alpha: 0.7),
-            textColor: Colors.white,
-            fontSize: 18.0,
-          );
-        } else {
-          // 退出前清理缓存
-          await SettingsService.clearImageCache();
-          SystemNavigator.pop();
-        }
+        // 其他页面：内容区按返回 -> 回当前页面对应的侧边栏
+        _focusSelectedSidebarItem();
       },
       child: Scaffold(
         body: Row(
@@ -235,8 +255,22 @@ class _HomeScreenState extends State<HomeScreen> {
                         setState(() => _selectedTabIndex = index);
                       },
                       onTap: () => _handleSideBarTap(index), // 按确定键才刷新
+                      onMoveUp: () {
+                        final target = index > 0 ? index - 1 : 0;
+                        _sideBarFocusNodes[target].requestFocus();
+                      },
+                      onMoveDown: () {
+                        final target = index < _tabIcons.length - 1
+                            ? index + 1
+                            : _tabIcons.length - 1;
+                        _sideBarFocusNodes[target].requestFocus();
+                      },
                       // 用户标签按右键导航到设置分类标签
-                      onMoveRight: index == 4
+                      onMoveRight: index == 2
+                          ? () =>
+                                _followingTabKey.currentState
+                                    ?.focusSelectedTopTab()
+                          : index == 4
                           ? () {
                               _liveTabKey.currentState?.focusFirstItem();
                             }
@@ -262,26 +296,22 @@ class _HomeScreenState extends State<HomeScreen> {
     return IndexedStack(
       index: _selectedTabIndex,
       children: [
-        // 0: 搜索
-        SearchTab(
-          key: _searchTabKey,
-          sidebarFocusNode: _sideBarFocusNodes[0],
-          onBackToHome: () {
-            _backFromSearchHandled = DateTime.now(); // 记录处理时间
-            setState(() => _selectedTabIndex = 1);
-            _sideBarFocusNodes[1].requestFocus();
-          },
-        ),
-        // 1: 首页
+        // 0: 首页
         HomeTab(
           key: _homeTabKey,
-          sidebarFocusNode: _sideBarFocusNodes[1],
+          sidebarFocusNode: _sideBarFocusNodes[0],
           onFirstLoadComplete: _activateFocusSystem,
           preloadedVideos: widget.preloadedVideos,
         ),
-        // 2: 动态
+        // 1: 动态
         DynamicTab(
           key: _dynamicTabKey,
+          sidebarFocusNode: _sideBarFocusNodes[1],
+          isVisible: _selectedTabIndex == 1,
+        ),
+        // 2: 关注
+        FollowingTab(
+          key: _followingTabKey,
           sidebarFocusNode: _sideBarFocusNodes[2],
           isVisible: _selectedTabIndex == 2,
         ),
@@ -302,6 +332,16 @@ class _HomeScreenState extends State<HomeScreen> {
           key: _loginTabKey,
           sidebarFocusNode: _sideBarFocusNodes[5],
           onLoginSuccess: _refreshCurrentTab,
+        ),
+        // 6: 搜索
+        SearchTab(
+          key: _searchTabKey,
+          sidebarFocusNode: _sideBarFocusNodes[6],
+          onBackToHome: () {
+            _backFromSearchHandled = DateTime.now(); // 记录处理时间
+            // 搜索内部返回：不跳主页，只回搜索对应侧边栏
+            _focusSelectedSidebarItem();
+          },
         ),
       ],
     );

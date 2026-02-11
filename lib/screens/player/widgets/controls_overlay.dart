@@ -12,6 +12,7 @@ class ControlsOverlay extends StatelessWidget {
   final int focusedIndex;
   final VoidCallback onPlayPause;
   final VoidCallback onSettings;
+  final VoidCallback onToggleStatsForNerds;
   final VoidCallback onEpisodes;
   final bool isDanmakuEnabled;
   final VoidCallback onToggleDanmaku;
@@ -21,6 +22,7 @@ class ControlsOverlay extends StatelessWidget {
   final Duration? previewPosition; // 预览位置（快进快退时）
   final String? onlineCount; // 在线观看人数
   final int danmakuCount; // 弹幕总数
+  final bool showStatsForNerds;
 
   const ControlsOverlay({
     super.key,
@@ -30,6 +32,7 @@ class ControlsOverlay extends StatelessWidget {
     required this.focusedIndex,
     required this.onPlayPause,
     required this.onSettings,
+    required this.onToggleStatsForNerds,
     required this.onEpisodes,
     required this.isDanmakuEnabled,
     required this.onToggleDanmaku,
@@ -40,6 +43,7 @@ class ControlsOverlay extends StatelessWidget {
     this.alwaysShowPlayerTime = false,
     this.onlineCount,
     this.danmakuCount = 0,
+    this.showStatsForNerds = false,
   });
 
   final bool alwaysShowPlayerTime;
@@ -220,9 +224,18 @@ class ControlsOverlay extends StatelessWidget {
                       onTap: onSettings,
                     ),
                     const SizedBox(width: 24),
-                    // 点赞/投币/收藏 (原 index 5 → 现 index 4)
+                    // 视频数据实时监测开关
                     _buildControlButton(
                       index: 4,
+                      icon: showStatsForNerds
+                          ? Icons.monitor_heart
+                          : Icons.monitor_heart_outlined,
+                      onTap: onToggleStatsForNerds,
+                    ),
+                    const SizedBox(width: 24),
+                    // 点赞/投币/收藏
+                    _buildControlButton(
+                      index: 5,
                       icon: Icons.thumb_up_outlined,
                       onTap: () {},
                     ),

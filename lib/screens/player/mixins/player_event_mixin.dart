@@ -208,7 +208,7 @@ mixin PlayerEventMixin on PlayerActionMixin {
     final nav = PlayerFocusHandler.handleControlsNavigation(
       event,
       currentIndex: focusedButtonIndex,
-      maxIndex: 4,
+      maxIndex: 5,
       onSelect: _activateControlButton,
       onHide: () => setState(() => showControls = false),
     );
@@ -260,7 +260,10 @@ mixin PlayerEventMixin on PlayerActionMixin {
           hideTimer?.cancel();
         });
         break;
-      case 4: // 点赞/投币/收藏
+      case 4: // 视频数据实时监测
+        toggleStatsForNerds();
+        break;
+      case 5: // 点赞/投币/收藏
         setState(() {
           showActionButtons = !showActionButtons;
         });
