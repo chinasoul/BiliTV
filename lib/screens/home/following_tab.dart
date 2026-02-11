@@ -49,6 +49,9 @@ class FollowingTabState extends State<FollowingTab> {
   List<FavoriteFolder> _folders = [];
   int _selectedFolderIndex = 0;
   List<Video> _favoriteVideos = [];
+  final Map<int, List<Video>> _favoriteVideosCache = {};
+  final Map<int, int> _favoriteNextPageCache = {};
+  final Map<int, bool> _favoriteHasMoreCache = {};
   bool _favoritesLoading = false;
   bool _favoritesLoadingMore = false;
   bool _favoritesHasMore = true;
@@ -133,6 +136,24 @@ class FollowingTabState extends State<FollowingTab> {
 
   /// 公开刷新方法 - 供 HomeScreen 调用
   void refresh() {
+    if (!AuthService.isLoggedIn) {
+      if (!mounted) return;
+      setState(() {
+        _followingLoading = false;
+        _followingLoadingMore = false;
+        _favoritesLoading = false;
+        _favoritesLoadingMore = false;
+        _watchLaterLoading = false;
+        _users = [];
+        _folders = [];
+        _favoriteVideos = [];
+        _watchLaterVideos = [];
+      });
+      _hasLoadedFollowing = false;
+      _hasLoadedFavorites = false;
+      _hasLoadedWatchLater = false;
+      return;
+    }
     _loadCurrentTab(reset: true);
   }
 
@@ -156,6 +177,8 @@ class FollowingTabState extends State<FollowingTab> {
   }
 
   void _loadCurrentTab({required bool reset}) {
+    if (!AuthService.isLoggedIn) return;
+
     if (_selectedTabIndex == 0) {
       if (reset || !_hasLoadedFollowing) {
         _hasLoadedFollowing = true;
@@ -221,6 +244,9 @@ class FollowingTabState extends State<FollowingTab> {
         _favoritesLoading = true;
         _folders = [];
         _favoriteVideos = [];
+        _favoriteVideosCache.clear();
+        _favoriteNextPageCache.clear();
+        _favoriteHasMoreCache.clear();
         _favoritesHasMore = true;
         _favoritesPage = 1;
       });
@@ -300,6 +326,11 @@ class FollowingTabState extends State<FollowingTab> {
       } else if (reset) {
         _favoritesPage = 2;
       }
+
+      // 按收藏夹缓存内容和分页状态，切换子收藏夹时可直接显示
+      _favoriteVideosCache[folderId] = List<Video>.from(_favoriteVideos);
+      _favoriteNextPageCache[folderId] = _favoritesPage;
+      _favoriteHasMoreCache[folderId] = _favoritesHasMore;
     });
   }
 
@@ -321,8 +352,36 @@ class FollowingTabState extends State<FollowingTab> {
       }
       return;
     }
-    setState(() => _selectedFolderIndex = index);
     _scrollToTop();
+    _showFolder(index);
+  }
+
+  void _showFolder(int index) {
+    if (index < 0 || index >= _folders.length) return;
+
+    final folderId = _folders[index].id;
+    final cachedVideos = _favoriteVideosCache[folderId];
+
+    if (cachedVideos != null) {
+      setState(() {
+        _selectedFolderIndex = index;
+        _favoriteVideos = List<Video>.from(cachedVideos);
+        _favoritesLoading = false;
+        _favoritesLoadingMore = false;
+        _favoritesPage = _favoriteNextPageCache[folderId] ?? 1;
+        _favoritesHasMore = _favoriteHasMoreCache[folderId] ?? false;
+      });
+      return;
+    }
+
+    setState(() {
+      _selectedFolderIndex = index;
+      _favoriteVideos = [];
+      _favoritesLoading = true;
+      _favoritesLoadingMore = false;
+      _favoritesHasMore = true;
+      _favoritesPage = 1;
+    });
     _loadFavoriteVideos(reset: true);
   }
 
@@ -412,12 +471,14 @@ class FollowingTabState extends State<FollowingTab> {
                 label: '${folder.title} (${folder.mediaCount})',
                 isSelected: _selectedFolderIndex == index,
                 focusNode: _folderFocusNodes[index],
-                onFocus: () {},
+                onFocus: () => _switchFolder(index, refreshIfSame: false),
                 onTap: () => _switchFolder(index, refreshIfSame: true),
                 onMoveLeft: index == 0
                     ? () => widget.sidebarFocusNode?.requestFocus()
+                    : () => _folderFocusNodes[index - 1].requestFocus(),
+                onMoveRight: (index + 1 < _folderFocusNodes.length)
+                    ? () => _folderFocusNodes[index + 1].requestFocus()
                     : null,
-                onMoveRight: null,
                 onMoveUp: () => _tabFocusNodes[1].requestFocus(),
               ),
             );

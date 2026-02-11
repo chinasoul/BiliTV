@@ -38,7 +38,7 @@ class HistoryTabState extends State<HistoryTab> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    if (widget.isVisible) {
+    if (widget.isVisible && AuthService.isLoggedIn) {
       _loadHistory(reset: true);
       _hasLoaded = true;
     }
@@ -47,7 +47,10 @@ class HistoryTabState extends State<HistoryTab> {
   @override
   void didUpdateWidget(HistoryTab oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.isVisible && !oldWidget.isVisible && !_hasLoaded) {
+    if (widget.isVisible &&
+        !oldWidget.isVisible &&
+        !_hasLoaded &&
+        AuthService.isLoggedIn) {
       _loadHistory(reset: true);
       _hasLoaded = true;
     }
@@ -81,11 +84,27 @@ class HistoryTabState extends State<HistoryTab> {
 
   /// 公开的刷新方法 - 供外部调用
   void refresh() {
+    if (!AuthService.isLoggedIn) {
+      _hasLoaded = false;
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _isLoadingMore = false;
+        _isRefreshing = false;
+        _videos = [];
+        _viewAt = 0;
+        _max = 0;
+        _hasMore = true;
+      });
+      return;
+    }
     _hasLoaded = true; // 标记已加载，避免切换时重复加载
     _loadHistory(reset: true);
   }
 
   Future<void> _loadHistory({bool reset = false}) async {
+    if (!AuthService.isLoggedIn) return;
+
     if (reset) {
       setState(() {
         _isLoading = true;

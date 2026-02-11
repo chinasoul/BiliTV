@@ -37,7 +37,7 @@ class DynamicTabState extends State<DynamicTab> {
   void initState() {
     super.initState();
     // 只有第一次可见时才加载
-    if (widget.isVisible) {
+    if (widget.isVisible && AuthService.isLoggedIn) {
       _loadDynamic(refresh: true);
       _hasLoaded = true;
     }
@@ -48,7 +48,10 @@ class DynamicTabState extends State<DynamicTab> {
   void didUpdateWidget(DynamicTab oldWidget) {
     super.didUpdateWidget(oldWidget);
     // 之前不可见，现在可见了，且没加载过 -> 加载
-    if (widget.isVisible && !oldWidget.isVisible && !_hasLoaded) {
+    if (widget.isVisible &&
+        !oldWidget.isVisible &&
+        !_hasLoaded &&
+        AuthService.isLoggedIn) {
       _loadDynamic(refresh: true);
       _hasLoaded = true;
     }
@@ -80,11 +83,26 @@ class DynamicTabState extends State<DynamicTab> {
 
   /// 公开的刷新方法 - 供外部调用
   void refresh() {
+    if (!AuthService.isLoggedIn) {
+      _hasLoaded = false;
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _isLoadingMore = false;
+        _isRefreshing = false;
+        _videos = [];
+        _offset = '';
+        _hasMore = true;
+      });
+      return;
+    }
     _hasLoaded = true; // 标记已加载，避免切换时重复加载
     _loadDynamic(refresh: true);
   }
 
   Future<void> _loadDynamic({bool refresh = false}) async {
+    if (!AuthService.isLoggedIn) return;
+
     if (refresh) {
       setState(() {
         _isLoading = true;

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
-  echo "Build 4 APK variants: v7a/v8a x plugins on/off"
+  echo "Build 2 APK variants: v7a/v8a with plugins enabled"
   echo
   echo "Usage:"
   echo "  bash scripts/build_apk_matrix.sh [extra flutter build apk args]"
@@ -23,25 +23,18 @@ mkdir -p "$OUTPUT_DIR"
 build_one() {
   local abi="$1"
   local target_platform="$2"
-  local plugin_enabled="$3"
-  local plugin_tag
   local src_apk
   local dst_apk
-
-  if [[ "$plugin_enabled" == "true" ]]; then
-    plugin_tag="plugins-on"
-  else
-    plugin_tag="plugins-off"
-  fi
+  local output_name
 
   echo
-  echo "==> Building $abi ($plugin_tag)"
+  echo "==> Building $abi (plugins-on)"
   local cmd=(
     flutter build apk
     --release
     --split-per-abi
     --target-platform "$target_platform"
-    --dart-define=ENABLE_PLUGINS="$plugin_enabled"
+    --dart-define=ENABLE_PLUGINS=true
   )
   if [[ ${#EXTRA_ARGS[@]} -gt 0 ]]; then
     cmd+=("${EXTRA_ARGS[@]}")
@@ -49,7 +42,14 @@ build_one() {
   "${cmd[@]}"
 
   src_apk="$FLUTTER_OUTPUT_DIR/app-$abi-release.apk"
-  dst_apk="$OUTPUT_DIR/bili_tv_${abi}_${plugin_tag}.apk"
+  if [[ "$abi" == "armeabi-v7a" ]]; then
+    output_name="v7a.apk"
+  elif [[ "$abi" == "arm64-v8a" ]]; then
+    output_name="v8a.apk"
+  else
+    output_name="${abi}.apk"
+  fi
+  dst_apk="$OUTPUT_DIR/$output_name"
 
   if [[ ! -f "$src_apk" ]]; then
     echo "ERROR: Expected APK not found: $src_apk" >&2
@@ -60,10 +60,8 @@ build_one() {
   echo "Saved: $dst_apk"
 }
 
-build_one "armeabi-v7a" "android-arm" "true"
-build_one "armeabi-v7a" "android-arm" "false"
-build_one "arm64-v8a" "android-arm64" "true"
-build_one "arm64-v8a" "android-arm64" "false"
+build_one "armeabi-v7a" "android-arm"
+build_one "arm64-v8a" "android-arm64"
 
 echo
 echo "Done. Output files:"

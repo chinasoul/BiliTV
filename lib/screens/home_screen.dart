@@ -164,8 +164,17 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _refreshCurrentTab() {
+  void _handleLoginSuccess() {
+    // 刷新侧边栏用户头像和登录态相关展示
     setState(() {});
+
+    // 登录成功后主动拉取依赖登录态的页面，避免首次进入仍停留旧状态
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !AuthService.isLoggedIn) return;
+      _dynamicTabKey.currentState?.refresh();
+      _followingTabKey.currentState?.refresh();
+      _historyTabKey.currentState?.refresh();
+    });
   }
 
   bool _isSidebarFocused() {
@@ -331,7 +340,7 @@ class _HomeScreenState extends State<HomeScreen> {
         LoginTab(
           key: _loginTabKey,
           sidebarFocusNode: _sideBarFocusNodes[5],
-          onLoginSuccess: _refreshCurrentTab,
+          onLoginSuccess: _handleLoginSuccess,
         ),
         // 6: 搜索
         SearchTab(

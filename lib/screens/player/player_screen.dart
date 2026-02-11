@@ -118,6 +118,9 @@ class _PlayerScreenState extends State<PlayerScreen>
                 MiniProgressBar(
                   position: videoController!.value.position,
                   duration: videoController!.value.duration,
+                  buffered: videoController!.value.buffered.isNotEmpty
+                      ? videoController!.value.buffered.last.end
+                      : Duration.zero,
                 ),
 
               // 快进快退指示器 (含预览缩略图)

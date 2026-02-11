@@ -286,6 +286,7 @@ mixin PlayerActionMixin on PlayerStateMixin {
             try {
               videoController = VideoPlayerController.networkUrl(
                 Uri.parse(playUrl),
+                viewType: VideoViewType.platformView,
                 httpHeaders: {
                   'User-Agent':
                       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36',
@@ -459,6 +460,7 @@ mixin PlayerActionMixin on PlayerStateMixin {
         try {
           videoController = VideoPlayerController.networkUrl(
             Uri.parse(playUrl),
+            viewType: VideoViewType.platformView,
             httpHeaders: {
               'User-Agent':
                   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36',
@@ -1366,6 +1368,7 @@ mixin PlayerActionMixin on PlayerStateMixin {
         // 创建新播放器
         videoController = VideoPlayerController.networkUrl(
           Uri.parse(playUrl),
+          viewType: VideoViewType.platformView,
           httpHeaders: {
             'User-Agent':
                 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36',
@@ -1497,6 +1500,7 @@ mixin PlayerActionMixin on PlayerStateMixin {
       // 创建新播放器
       videoController = VideoPlayerController.networkUrl(
         Uri.parse(playUrl),
+        viewType: VideoViewType.platformView,
         httpHeaders: {
           'User-Agent':
               'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36',

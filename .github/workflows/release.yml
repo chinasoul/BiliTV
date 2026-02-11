@@ -44,7 +44,7 @@ jobs:
           echo "RELEASE_NOTES_FILE=$NOTES_FILE" >> "$GITHUB_ENV"
           echo "Using release notes: $NOTES_FILE"
 
-      - name: Build Obfuscated APK Matrix
+      - name: Build Obfuscated Plugin APKs
         shell: bash
         run: |
           set -euo pipefail
@@ -53,27 +53,24 @@ jobs:
 
           build_variant() {
             local target_platform="$1"
-            local enable_plugins="$2"
-            local source_apk="$3"
-            local output_name="$4"
-            local symbol_dir="$5"
+            local source_apk="$2"
+            local output_name="$3"
+            local symbol_dir="$4"
 
             echo "Building: $output_name"
             flutter build apk \
               --release \
               --split-per-abi \
               --target-platform "$target_platform" \
-              --dart-define=ENABLE_PLUGINS="$enable_plugins" \
+              --dart-define=ENABLE_PLUGINS=true \
               --obfuscate \
               --split-debug-info="build/symbols/$symbol_dir"
 
             cp "build/app/outputs/flutter-apk/$source_apk" "release-assets/$output_name"
           }
 
-          build_variant "android-arm" "false" "app-armeabi-v7a-release.apk" "v7a.apk" "v7a-off"
-          build_variant "android-arm" "true"  "app-armeabi-v7a-release.apk" "v7a-chajian.apk" "v7a-on"
-          build_variant "android-arm64" "false" "app-arm64-v8a-release.apk" "v8a.apk" "v8a-off"
-          build_variant "android-arm64" "true"  "app-arm64-v8a-release.apk" "v8a-chajian.apk" "v8a-on"
+          build_variant "android-arm" "app-armeabi-v7a-release.apk" "v7a.apk" "v7a-on"
+          build_variant "android-arm64" "app-arm64-v8a-release.apk" "v8a.apk" "v8a-on"
 
       - name: Upload Symbols Artifact
         uses: actions/upload-artifact@v4
@@ -90,6 +87,4 @@ jobs:
           body_path: ${{ env.RELEASE_NOTES_FILE }}
           files: |
             release-assets/v7a.apk
-            release-assets/v7a-chajian.apk
             release-assets/v8a.apk
-            release-assets/v8a-chajian.apk
