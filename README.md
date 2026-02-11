@@ -1,4 +1,10 @@
-## 1) 更新 / 修改说明
+## 1) 截图预览
+
+![我的内容页](assets/screenshots/screenshot-my-content.png)
+![本机信息页](assets/screenshots/screenshot-device-info.png)
+![播放器数据监测](assets/screenshots/screenshot-stats-overlay.png)
+
+## 2) 更新 / 修改说明
 
 - 登录与可用性  
   - 支持未登录使用
@@ -6,6 +12,7 @@
 - 首页与导航  
   - 搜索移动到最后，方便选中推荐/热门
   - 新增「我的内容」页（关注 UP 主 / 收藏 / 稍后再看）
+
   - 修改遥控器按键逻辑（仍有问题，后续改进）
 
 - 播放器与稳定性  
@@ -21,7 +28,7 @@
   - 启动流程简化，无启动动画
   - 插件能力支持编译期开关（可构建带插件/不带插件版本）
 
-## 2) License
+## 3) License
 
 本项目采用 **GPL-3.0** 协议发布。
 
