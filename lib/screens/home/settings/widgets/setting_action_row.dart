@@ -62,12 +62,12 @@ class SettingActionRow extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? const Color(0xFFfb7299).withValues(alpha: 0.3)
+                        ? const Color(0xFF81C784).withValues(alpha: 0.3)
                         : Colors.white.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(
                       color: isSelected
-                          ? const Color(0xFFfb7299)
+                          ? const Color(0xFF81C784)
                           : Colors.transparent,
                       width: 1.2,
                     ),
@@ -92,7 +92,7 @@ class SettingActionRow extends StatelessWidget {
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(8),
               border: isFocused
-                  ? Border.all(color: const Color(0xFFfb7299), width: 2)
+                  ? Border.all(color: const Color(0xFF81C784), width: 2)
                   : null,
             ),
             child: Row(
@@ -130,7 +130,7 @@ class SettingActionRow extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: isFocused
-                        ? const Color(0xFFfb7299)
+                        ? const Color(0xFF81C784)
                         : Colors.white.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(6),
                   ),

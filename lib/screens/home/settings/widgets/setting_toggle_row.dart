@@ -55,7 +55,7 @@ class SettingToggleRow extends StatelessWidget {
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(8),
               border: isFocused
-                  ? Border.all(color: const Color(0xFFfb7299), width: 2)
+                  ? Border.all(color: const Color(0xFF81C784), width: 2)
                   : null,
             ),
             child: Row(
@@ -89,11 +89,11 @@ class SettingToggleRow extends StatelessWidget {
                   value: value,
                   onChanged: onChanged,
                   activeTrackColor: const Color(
-                    0xFFfb7299,
+                    0xFF81C784,
                   ).withValues(alpha: 0.5),
                   thumbColor: WidgetStateProperty.resolveWith((states) {
                     if (states.contains(WidgetState.selected)) {
-                      return const Color(0xFFfb7299);
+                      return const Color(0xFF81C784);
                     }
                     return Colors.grey;
                   }),

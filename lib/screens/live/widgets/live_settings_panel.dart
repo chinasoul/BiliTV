@@ -357,10 +357,10 @@ class _LiveSettingsPanelState extends State<LiveSettingsPanel> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            color: isFocused ? const Color(0xFFfb7299) : Colors.transparent,
+            color: isFocused ? const Color(0xFF81C784) : Colors.transparent,
             border: isFocused
                 ? const Border(
-                    left: BorderSide(color: Color(0xFFfb7299), width: 3),
+                    left: BorderSide(color: Color(0xFF81C784), width: 3),
                   )
                 : null,
           ),

@@ -79,7 +79,7 @@ class TvProgressBar extends StatelessWidget {
                         child: Container(
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(2),
-                            color: const Color(0xFFfb7299), // B站粉
+                            color: const Color(0xFF81C784), // B站粉
                           ),
                         ),
                       ),

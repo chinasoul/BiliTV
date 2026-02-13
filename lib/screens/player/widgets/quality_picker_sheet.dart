@@ -118,7 +118,7 @@ class _QualityPickerSheetState extends State<QualityPickerSheet> {
                         q['desc'] ?? '${q['qn']}P',
                         style: TextStyle(
                           color: isCurrent
-                              ? const Color(0xFFfb7299)
+                              ? const Color(0xFF81C784)
                               : Colors.white,
                           fontWeight: isCurrent || isFocused
                               ? FontWeight.bold
@@ -126,7 +126,7 @@ class _QualityPickerSheetState extends State<QualityPickerSheet> {
                         ),
                       ),
                       trailing: isCurrent
-                          ? const Icon(Icons.check, color: Color(0xFFfb7299))
+                          ? const Icon(Icons.check, color: Color(0xFF81C784))
                           : null,
                       onTap: () => widget.onSelect(q['qn']),
                     ),

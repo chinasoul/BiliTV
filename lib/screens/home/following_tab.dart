@@ -121,7 +121,8 @@ class FollowingTabState extends State<FollowingTab> {
     if (_selectedTabIndex == 0 &&
         !_followingLoading &&
         !_followingLoadingMore &&
-        _followingHasMore) {
+        _followingHasMore &&
+        _users.length < 60) {
       _loadFollowingUsers(reset: false);
       return;
     }
@@ -129,7 +130,8 @@ class FollowingTabState extends State<FollowingTab> {
     if (_selectedTabIndex == 1 &&
         !_favoritesLoading &&
         !_favoritesLoadingMore &&
-        _favoritesHasMore) {
+        _favoritesHasMore &&
+        _favoriteVideos.length < 60) {
       _loadFavoriteVideos(reset: false);
     }
   }
@@ -540,7 +542,7 @@ class FollowingTabState extends State<FollowingTab> {
       controller: _scrollController,
       slivers: [
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(30, 120, 30, 80),
+          padding: const EdgeInsets.fromLTRB(24, 90, 24, 80),
           sliver: SliverGrid(
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 4,
@@ -596,18 +598,18 @@ class FollowingTabState extends State<FollowingTab> {
   }) {
     final gridColumns = SettingsService.videoGridColumns;
     // 收藏夹存在子标签时，给列表更大顶部间距，避免覆盖第一行卡片
-    final topPadding = (_selectedTabIndex == 1 && _folders.isNotEmpty) ? 156.0 : 120.0;
+    final topPadding = (_selectedTabIndex == 1 && _folders.isNotEmpty) ? 120.0 : 90.0;
     return CustomScrollView(
       controller: _scrollController,
       slivers: [
         SliverPadding(
-          padding: EdgeInsets.fromLTRB(30, topPadding, 30, 80),
+          padding: EdgeInsets.fromLTRB(24, topPadding, 24, 80),
           sliver: SliverGrid(
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: gridColumns,
               childAspectRatio: 320 / 280,
               crossAxisSpacing: 20,
-              mainAxisSpacing: 30,
+              mainAxisSpacing: 10,
             ),
             delegate: SliverChildBuilderDelegate((context, index) {
               final video = videos[index];
@@ -707,14 +709,14 @@ class FollowingTabState extends State<FollowingTab> {
           right: 0,
           child: Container(
             color: const Color(0xFF121212),
-            padding: const EdgeInsets.fromLTRB(30, 20, 30, 12),
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
                   '我的内容',
                   style: TextStyle(
-                    fontSize: 24,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                   ),
@@ -726,7 +728,7 @@ class FollowingTabState extends State<FollowingTab> {
             ),
           ),
         ),
-        const Positioned(top: 20, right: 30, child: TimeDisplay()),
+        const Positioned(top: 10, right: 14, child: TimeDisplay()),
       ],
     );
   }
@@ -776,7 +778,7 @@ class _TopTab extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
               decoration: BoxDecoration(
-                color: focused ? const Color(0xFFfb7299) : Colors.transparent,
+                color: focused ? const Color(0xFF81C784) : Colors.transparent,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: focused ? Colors.white : Colors.transparent,
@@ -788,7 +790,7 @@ class _TopTab extends StatelessWidget {
                 style: TextStyle(
                   color: focused
                       ? Colors.white
-                      : (isSelected ? const Color(0xFFfb7299) : Colors.white70),
+                      : (isSelected ? const Color(0xFF81C784) : Colors.white70),
                   fontSize: 16,
                   fontWeight: focused || isSelected
                       ? FontWeight.bold
@@ -861,12 +863,12 @@ class _FolderTab extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: focused ? const Color(0xFFfb7299) : Colors.white10,
+                color: focused ? const Color(0xFF81C784) : Colors.white10,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
                   color: focused
                       ? Colors.white
-                      : (isSelected ? const Color(0xFFfb7299) : Colors.transparent),
+                      : (isSelected ? const Color(0xFF81C784) : Colors.transparent),
                   width: focused ? 1.5 : 1,
                 ),
               ),
@@ -875,7 +877,7 @@ class _FolderTab extends StatelessWidget {
                 style: TextStyle(
                   color: focused
                       ? Colors.white
-                      : (isSelected ? const Color(0xFFfb7299) : Colors.white70),
+                      : (isSelected ? const Color(0xFF81C784) : Colors.white70),
                   fontSize: 12,
                 ),
               ),
@@ -952,7 +954,7 @@ class _FollowingUserCard extends StatelessWidget {
             duration: const Duration(milliseconds: 120),
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: focused ? const Color(0xFFfb7299) : Colors.white10,
+              color: focused ? const Color(0xFF81C784) : Colors.white10,
               borderRadius: BorderRadius.circular(10),
               border: focused ? Border.all(color: Colors.white, width: 2) : null,
             ),

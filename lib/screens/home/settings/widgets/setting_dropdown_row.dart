@@ -85,7 +85,7 @@ class SettingDropdownRow<T> extends StatelessWidget {
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(8),
               border: isFocused
-                  ? Border.all(color: const Color(0xFFfb7299), width: 2)
+                  ? Border.all(color: const Color(0xFF81C784), width: 2)
                   : null,
             ),
             child: Row(
@@ -122,7 +122,7 @@ class SettingDropdownRow<T> extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: isFocused
-                        ? const Color(0xFFfb7299)
+                        ? const Color(0xFF81C784)
                         : Colors.white.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(6),
                   ),

@@ -47,7 +47,7 @@ class MiniProgressBar extends StatelessWidget {
               widthFactor: progress.clamp(0.0, 1.0),
               child: Container(
                 decoration: const BoxDecoration(
-                  color: Color(0xFFfb7299), // B站粉
+                  color: Color(0xFF81C784), // B站粉
                 ),
               ),
             ),

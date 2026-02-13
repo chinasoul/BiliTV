@@ -179,6 +179,8 @@ class LiveTabState extends State<LiveTab> {
 
   void _loadMore() {
     if (_categoryLoading[_selectedCategoryIndex] == true) return;
+    // 到 60 条后停止加载更多，防止内存无限增长
+    if ((_categoryRooms[_selectedCategoryIndex] ?? []).length >= 60) return;
 
     // Following list often returns all or has limited pages, avoid infinite loop if empty
     // But for now, simple increment
@@ -244,7 +246,7 @@ class LiveTabState extends State<LiveTab> {
                   )
                 : isLoading && currentRooms.isEmpty
                 ? const Center(
-                    child: CircularProgressIndicator(color: Color(0xFFfb7299)),
+                    child: CircularProgressIndicator(color: Color(0xFF81C784)),
                   )
                 : currentRooms.isEmpty
                 ? const Center(
@@ -262,14 +264,14 @@ class LiveTabState extends State<LiveTab> {
                       controller: _scrollController,
                       slivers: [
                         SliverPadding(
-                          padding: const EdgeInsets.fromLTRB(30, 100, 30, 80),
+                          padding: const EdgeInsets.fromLTRB(24, 70, 24, 80),
                           sliver: SliverGrid(
                             gridDelegate:
                                 const SliverGridDelegateWithFixedCrossAxisCount(
                                   crossAxisCount: 4,
                                   childAspectRatio: 320 / 280,
                                   crossAxisSpacing: 20,
-                                  mainAxisSpacing: 30,
+                                  mainAxisSpacing: 10,
                                 ),
                             delegate: SliverChildBuilderDelegate((
                               context,
@@ -374,10 +376,10 @@ class LiveTabState extends State<LiveTab> {
           top: 0,
           left: 0,
           right: 0,
-          height: 80,
+          height: 56,
           child: Container(
             color: const Color(0xFF121212),
-            padding: const EdgeInsets.only(left: 30, right: 30, top: 20),
+            padding: const EdgeInsets.only(left: 20, right: 20, top: 12),
             child: FocusTraversalGroup(
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -406,7 +408,7 @@ class LiveTabState extends State<LiveTab> {
           ),
         ),
 
-        const Positioned(top: 20, right: 30, child: TimeDisplay()),
+        const Positioned(top: 10, right: 14, child: TimeDisplay()),
       ],
     );
   }
@@ -448,7 +450,7 @@ class _LiveCategoryTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(right: 20),
+      padding: const EdgeInsets.only(right: 14),
       child: Focus(
         focusNode: focusNode,
         onFocusChange: (f) => f ? onFocus() : null,
@@ -474,9 +476,9 @@ class _LiveCategoryTab extends StatelessWidget {
             return GestureDetector(
               onTap: onTap,
               child: Container(
-                padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+                padding: const EdgeInsets.fromLTRB(10, 3, 10, 3),
                 decoration: BoxDecoration(
-                  color: f ? const Color(0xFFfb7299) : Colors.transparent,
+                  color: f ? const Color(0xFF81C784) : Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
                     color: f ? Colors.white : Colors.transparent,
@@ -492,9 +494,9 @@ class _LiveCategoryTab extends StatelessWidget {
                         color: f
                             ? Colors.white
                             : (isSelected
-                                  ? const Color(0xFFfb7299)
+                                  ? const Color(0xFF81C784)
                                   : Colors.grey),
-                        fontSize: 20,
+                        fontSize: 16,
                         fontWeight: f || isSelected
                             ? FontWeight.bold
                             : FontWeight.normal,
@@ -507,7 +509,7 @@ class _LiveCategoryTab extends StatelessWidget {
                       width: 20,
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? const Color(0xFFfb7299)
+                            ? const Color(0xFF81C784)
                             : Colors.transparent,
                         borderRadius: BorderRadius.circular(1.5),
                       ),

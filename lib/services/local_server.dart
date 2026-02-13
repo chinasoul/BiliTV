@@ -497,7 +497,7 @@ class LocalServer {
     h1 { 
       text-align: center; 
       margin-bottom: 30px;
-      color: #fb7299;
+      color: #81C784;
       font-size: 28px;
     }
     .card {
@@ -509,7 +509,7 @@ class LocalServer {
       border: 1px solid rgba(255,255,255,0.1);
     }
     .card h2 {
-      color: #fb7299;
+      color: #81C784;
       margin-bottom: 16px;
       font-size: 20px;
       display: flex;
@@ -538,7 +538,7 @@ class LocalServer {
       transition: border-color 0.2s;
     }
     input[type="text"]:focus {
-      border-color: #fb7299;
+      border-color: #81C784;
     }
     input[type="text"]::placeholder {
       color: rgba(255,255,255,0.4);
@@ -547,7 +547,7 @@ class LocalServer {
       padding: 12px 24px;
       border: none;
       border-radius: 8px;
-      background: #fb7299;
+      background: #81C784;
       color: #fff;
       font-size: 16px;
       cursor: pointer;
@@ -616,7 +616,7 @@ class LocalServer {
       transition: background 0.2s;
     }
     .switch.on {
-      background: #fb7299;
+      background: #81C784;
     }
     .switch::after {
       content: '';
@@ -645,7 +645,7 @@ class LocalServer {
       transition: background 0.2s;
     }
     .tab.active {
-      background: #fb7299;
+      background: #81C784;
     }
     .tab:hover:not(.active) {
       background: rgba(255,255,255,0.2);

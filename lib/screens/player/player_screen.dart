@@ -225,7 +225,7 @@ class _PlayerScreenState extends State<PlayerScreen>
               // 常驻时间显示 (当启用且不显示控制栏时，或 controlsOverlay 隐藏了其内部时间时)
               // 注意：ControlsOverlay 在 alwaysShowPlayerTime=true 时会隐藏内部时间但保留占位
               if (SettingsService.alwaysShowPlayerTime)
-                const Positioned(top: 20, right: 30, child: TimeDisplay()),
+                const Positioned(top: 10, right: 14, child: TimeDisplay()),
 
               // 进度条拖动预览
               if (isProgressBarFocused &&
@@ -403,7 +403,7 @@ class _PlayerScreenState extends State<PlayerScreen>
               widthFactor: progress.clamp(0.0, 1.0),
               child: Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFFfb7299),
+                  color: const Color(0xFF81C784),
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),

@@ -76,7 +76,7 @@ class SearchTabState extends State<SearchTab> {
                 onBackToHome: widget.onBackToHome,
                 onSearch: _onSearch,
               ),
-        const Positioned(top: 20, right: 30, child: TimeDisplay()),
+        const Positioned(top: 10, right: 14, child: TimeDisplay()),
       ],
     );
   }

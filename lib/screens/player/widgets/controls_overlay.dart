@@ -146,7 +146,7 @@ class ControlsOverlay extends StatelessWidget {
         // 位置与 PlayerScreen 的常驻时间保持一致 (top: 20, right: 30)
         // 注意：Global Time 在 PlayerScreen 中处理，这里只处理 Controls overlay 内部的临时显示
         if (!alwaysShowPlayerTime)
-          const Positioned(top: 20, right: 30, child: TimeDisplay()),
+          const Positioned(top: 10, right: 14, child: TimeDisplay()),
 
         // 底部控制区
         Positioned(
@@ -293,7 +293,7 @@ class ControlsOverlay extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: isFocused
-            ? const Color(0xFFfb7299).withValues(alpha: 0.8)
+            ? const Color(0xFF81C784).withValues(alpha: 0.8)
             : Colors.white.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(10),
         border: isFocused ? Border.all(color: Colors.white, width: 3) : null,

@@ -268,7 +268,7 @@ class _UpPanelState extends State<UpPanel> {
                         decoration: BoxDecoration(
                           color: _isFollowing
                               ? Colors.grey[700]
-                              : const Color(0xFFfb7299),
+                              : const Color(0xFF81C784),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Row(

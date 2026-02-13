@@ -151,17 +151,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
     setState(() => _selectedTabIndex = index);
     _sideBarFocusNodes[index].requestFocus();
-
-    // 动态、关注、历史记录、直播标签: 切换时也刷新
-    if (index == 1) {
-      _dynamicTabKey.currentState?.refresh();
-    } else if (index == 2) {
-      _followingTabKey.currentState?.refresh();
-    } else if (index == 3) {
-      _historyTabKey.currentState?.refresh();
-    } else if (index == 4) {
-      _liveTabKey.currentState?.refresh();
-    }
+    // 切换到不同标签时不刷新，只显示缓存内容
+    // 首次加载由各 Tab 的 didUpdateWidget + _hasLoaded 或 _preloadOtherTabs 负责
   }
 
   void _handleLoginSuccess() {
@@ -242,10 +233,10 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             // 左侧边栏
             Expanded(
-              flex: 8,
+              flex: 5,
               child: Container(
                 color: const Color(0xFF1E1E1E),
-                padding: const EdgeInsets.only(top: 40),
+                padding: const EdgeInsets.only(top: 30),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: List.generate(_tabIcons.length, (index) {
@@ -293,7 +284,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             // 右侧内容区
-            Expanded(flex: 92, child: _buildRightContent()),
+            Expanded(flex: 95, child: _buildRightContent()),
           ],
         ),
       ),

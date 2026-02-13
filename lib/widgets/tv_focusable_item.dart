@@ -54,11 +54,11 @@ class TvFocusableItem extends StatelessWidget {
       builder: (c) {
         final f = Focus.of(c).hasFocus;
         return Container(
-          height: 50,
-          margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 6),
+          height: 44,
+          margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
           decoration: BoxDecoration(
             color: f
-                ? const Color(0xFFfb7299)
+                ? const Color(0xFF81C784)
                 : (isSelected ? Colors.white10 : Colors.transparent),
             borderRadius: BorderRadius.circular(12),
             border: f ? Border.all(color: Colors.white, width: 2) : null,

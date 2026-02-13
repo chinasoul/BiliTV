@@ -13,6 +13,7 @@ import 'auth_service.dart'; // Import AuthService
 /// 直播弹幕 Socket 服务
 class LiveSocketService {
   WebSocketChannel? _channel;
+  StreamSubscription? _channelSubscription;
   Timer? _heartbeatTimer;
   final StreamController<Map<String, dynamic>> _msgController =
       StreamController.broadcast();
@@ -71,7 +72,8 @@ class LiveSocketService {
         _log('🚀 WS Connected & Channel Ready');
 
         // 5. 监听消息 (先监听，再发送)
-        _channel!.stream.listen(
+        _channelSubscription?.cancel();
+        _channelSubscription = _channel!.stream.listen(
           (message) {
             try {
               _handleMessage(message);
@@ -111,6 +113,8 @@ class LiveSocketService {
   }
 
   void disconnect() {
+    _channelSubscription?.cancel();
+    _channelSubscription = null;
     _channel?.sink.close(status.goingAway);
     _channel = null;
     _heartbeatTimer?.cancel();

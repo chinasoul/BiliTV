@@ -143,7 +143,7 @@ class _UpSpaceScreenState extends State<UpSpaceScreen> {
                                 crossAxisCount: gridColumns,
                                 childAspectRatio: 320 / 280,
                                 crossAxisSpacing: 20,
-                                mainAxisSpacing: 30,
+                                mainAxisSpacing: 10,
                               ),
                           delegate: SliverChildBuilderDelegate((context, index) {
                             final video = _videos[index];
@@ -243,18 +243,18 @@ class _UpSpaceScreenState extends State<UpSpaceScreen> {
                     onPressed: _toggleOrder,
                     icon: Icon(
                       _order == 'pubdate' ? Icons.schedule : Icons.whatshot,
-                      color: const Color(0xFFfb7299),
+                      color: const Color(0xFF81C784),
                     ),
                     label: Text(
                       _order == 'pubdate' ? '按最新' : '按最热',
-                      style: const TextStyle(color: Color(0xFFfb7299)),
+                      style: const TextStyle(color: Color(0xFF81C784)),
                     ),
                   ),
                 ],
               ),
             ),
           ),
-          const Positioned(top: 20, right: 30, child: TimeDisplay()),
+          const Positioned(top: 10, right: 14, child: TimeDisplay()),
         ],
       ),
     );

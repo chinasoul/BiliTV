@@ -151,11 +151,11 @@ class _LoginViewState extends State<LoginView> {
         break;
       case 'scanned':
         text = '已扫描，请在手机上确认登录';
-        color = const Color(0xFF4CAF50);
+        color = const Color(0xFF81C784);
         break;
       case 'success':
         text = '登录成功！';
-        color = const Color(0xFF4CAF50);
+        color = const Color(0xFF81C784);
         break;
       case 'expired':
         text = '二维码已过期，请刷新';
@@ -223,8 +223,8 @@ class _LoginViewState extends State<LoginView> {
                       ),
                       decoration: BoxDecoration(
                         color: isFocused
-                            ? const Color(0xFFfb7299)
-                            : const Color(0xFFfb7299).withValues(alpha: 0.3),
+                            ? const Color(0xFF81C784)
+                            : const Color(0xFF81C784).withValues(alpha: 0.3),
                         borderRadius: BorderRadius.circular(8),
                         border: isFocused
                             ? Border.all(color: Colors.white, width: 2)

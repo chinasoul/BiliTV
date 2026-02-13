@@ -286,11 +286,11 @@ class _SettingsPanelState extends State<SettingsPanel> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
             color: isFocused
-                ? const Color(0xFFfb7299).withValues(alpha: 0.3)
+                ? const Color(0xFF81C784).withValues(alpha: 0.3)
                 : Colors.transparent,
             border: isFocused
                 ? const Border(
-                    left: BorderSide(color: Color(0xFFfb7299), width: 3),
+                    left: BorderSide(color: Color(0xFF81C784), width: 3),
                   )
                 : null,
           ),
@@ -299,7 +299,7 @@ class _SettingsPanelState extends State<SettingsPanel> {
               Icon(
                 icon,
                 color: isFocused
-                    ? const Color(0xFFfb7299)
+                    ? const Color(0xFF81C784)
                     : Colors.white.withValues(alpha: 0.7),
                 size: 22,
               ),

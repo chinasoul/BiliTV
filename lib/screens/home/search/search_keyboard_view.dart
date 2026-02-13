@@ -225,7 +225,7 @@ class _SearchKeyboardViewState extends State<SearchKeyboardView> {
                       width: double.infinity,
                       child: TvActionButton(
                         label: '搜索',
-                        color: const Color(0xFFfb7299),
+                        color: const Color(0xFF81C784),
                         onTap: () => _handleKeyboardTap('搜索'),
                         onMoveLeft: () =>
                             widget.sidebarFocusNode?.requestFocus(),

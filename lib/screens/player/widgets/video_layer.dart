@@ -26,7 +26,7 @@ class VideoLayer extends StatelessWidget {
 
     if (isLoading || controller == null || !controller!.value.isInitialized) {
       return const Center(
-        child: CircularProgressIndicator(color: Color(0xFFfb7299)),
+        child: CircularProgressIndicator(color: Color(0xFF81C784)),
       );
     }
 

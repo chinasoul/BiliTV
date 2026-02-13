@@ -130,14 +130,14 @@ class _PluginCardState extends State<_PluginCard> {
                     : Colors.transparent,
                 borderRadius: BorderRadius.circular(8),
                 border: _focused
-                    ? Border.all(color: const Color(0xFFfb7299), width: 2)
+                    ? Border.all(color: const Color(0xFF81C784), width: 2)
                     : null,
               ),
               child: Row(
                 children: [
                   Icon(
                     widget.plugin.icon ?? Icons.extension,
-                    color: isEnabled ? const Color(0xFFfb7299) : Colors.white54,
+                    color: isEnabled ? const Color(0xFF81C784) : Colors.white54,
                     size: 28,
                   ),
                   const SizedBox(width: 16),
@@ -181,11 +181,11 @@ class _PluginCardState extends State<_PluginCard> {
                     value: isEnabled,
                     onChanged: (value) => widget.onToggle(widget.plugin, value),
                     activeTrackColor: const Color(
-                      0xFFfb7299,
+                      0xFF81C784,
                     ).withValues(alpha: 0.5),
                     thumbColor: WidgetStateProperty.resolveWith((states) {
                       if (states.contains(WidgetState.selected)) {
-                        return const Color(0xFFfb7299);
+                        return const Color(0xFF81C784);
                       }
                       return Colors.grey;
                     }),

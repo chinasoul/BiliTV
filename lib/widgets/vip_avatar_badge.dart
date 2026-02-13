@@ -28,7 +28,7 @@ class VipAvatarBadge extends StatelessWidget {
             width: badgeSize,
             height: badgeSize,
             decoration: BoxDecoration(
-              color: const Color(0xFFFB7299), // B站粉
+              color: const Color(0xFF81C784), // B站粉
               shape: BoxShape.circle,
               border: Border.all(
                 color: Colors.white,

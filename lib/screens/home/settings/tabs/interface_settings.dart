@@ -21,6 +21,7 @@ class InterfaceSettings extends StatefulWidget {
 
 class _InterfaceSettingsState extends State<InterfaceSettings> {
   int _videoGridColumns = SettingsService.videoGridColumns;
+  double _fontScale = SettingsService.fontScale;
 
   // 分区排序相关
   List<String> _categoryOrder = [];
@@ -139,6 +140,25 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
           },
         ),
         const SizedBox(height: 10),
+        // 字体大小
+        SettingActionRow(
+          label: '字体大小',
+          value: '当前: ${SettingsService.fontScaleLabel(_fontScale)}',
+          buttonLabel: SettingsService.fontScaleLabel(_fontScale),
+          sidebarFocusNode: widget.sidebarFocusNode,
+          optionLabels: SettingsService.fontScaleOptions
+              .map((s) => SettingsService.fontScaleLabel(s))
+              .toList(),
+          selectedOption: SettingsService.fontScaleLabel(_fontScale),
+          onTap: () async {
+            final options = SettingsService.fontScaleOptions;
+            final idx = options.indexOf(_fontScale);
+            final next = options[(idx + 1) % options.length];
+            await SettingsService.setFontScale(next);
+            setState(() => _fontScale = next);
+          },
+        ),
+        const SizedBox(height: 10),
 
         // 分区开关
         Padding(
@@ -186,14 +206,14 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(
                         color: isEnabled
-                            ? const Color(0xFFfb7299).withValues(alpha: 0.3)
+                            ? const Color(0xFF81C784).withValues(alpha: 0.3)
                             : Colors.white.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                           color: focused
                               ? Colors.white
                               : isEnabled
-                              ? const Color(0xFFfb7299)
+                              ? const Color(0xFF81C784)
                               : Colors.transparent,
                           width: focused ? 2 : 1,
                         ),
@@ -241,7 +261,7 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
             _isDragging ? '← → 移动位置，确认键固定' : '确认键选中，← → 移动',
             style: TextStyle(
               color: _isDragging
-                  ? const Color(0xFFfb7299)
+                  ? const Color(0xFF81C784)
                   : Colors.white.withValues(alpha: 0.5),
               fontSize: 12,
             ),
@@ -378,7 +398,7 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
                             padding: const EdgeInsets.symmetric(horizontal: 12),
                             decoration: BoxDecoration(
                               color: _isDragging && isSelected
-                                  ? const Color(0xFFfb7299)
+                                  ? const Color(0xFF81C784)
                                   : focused
                                   ? Colors.white.withValues(alpha: 0.2)
                                   : Colors.white.withValues(alpha: 0.1),
@@ -449,14 +469,14 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(
                         color: isEnabled
-                            ? const Color(0xFFfb7299).withValues(alpha: 0.3)
+                            ? const Color(0xFF81C784).withValues(alpha: 0.3)
                             : Colors.white.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                           color: focused
                               ? Colors.white
                               : isEnabled
-                              ? const Color(0xFFfb7299)
+                              ? const Color(0xFF81C784)
                               : Colors.transparent,
                           width: focused ? 2 : 1,
                         ),
@@ -504,7 +524,7 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
             _isLiveDragging ? '← → 移动位置，确认键固定' : '确认键选中，← → 移动',
             style: TextStyle(
               color: _isLiveDragging
-                  ? const Color(0xFFfb7299)
+                  ? const Color(0xFF81C784)
                   : Colors.white.withValues(alpha: 0.5),
               fontSize: 12,
             ),
@@ -666,7 +686,7 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
                                 ),
                                 decoration: BoxDecoration(
                                   color: _isLiveDragging && isSelected
-                                      ? const Color(0xFFfb7299)
+                                      ? const Color(0xFF81C784)
                                       : focused
                                       ? Colors.white.withValues(alpha: 0.2)
                                       : Colors.white.withValues(alpha: 0.1),
@@ -704,13 +724,13 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFFfb7299).withValues(alpha: 0.2),
+        color: const Color(0xFF81C784).withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.info_outline, color: Color(0xFFfb7299), size: 16),
+          const Icon(Icons.info_outline, color: Color(0xFF81C784), size: 16),
           const SizedBox(width: 4),
           Text(
             '修改后需重启APP生效',

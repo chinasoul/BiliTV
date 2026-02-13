@@ -142,6 +142,8 @@ class DynamicTabState extends State<DynamicTab> {
 
   Future<void> _loadMore() async {
     if (_isLoadingMore || !_hasMore) return;
+    // 到 60 条后停止加载更多，防止内存无限增长
+    if (_videos.length >= 60) return;
     setState(() => _isLoadingMore = true);
     await _loadDynamic(refresh: false);
   }
@@ -215,14 +217,14 @@ class DynamicTabState extends State<DynamicTab> {
                     controller: _scrollController,
                     slivers: [
                       SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(30, 80, 30, 80),
+                        padding: const EdgeInsets.fromLTRB(24, 56, 24, 80),
                         sliver: SliverGrid(
                           gridDelegate:
                               SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: gridColumns,
                                 childAspectRatio: 320 / 280,
                                 crossAxisSpacing: 20,
-                                mainAxisSpacing: 30,
+                                mainAxisSpacing: 10,
                               ),
                           delegate: SliverChildBuilderDelegate((
                             context,
@@ -347,11 +349,11 @@ class DynamicTabState extends State<DynamicTab> {
           right: 0,
           child: Container(
             color: const Color(0xFF121212),
-            padding: const EdgeInsets.fromLTRB(30, 20, 30, 15),
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 10),
             child: const Text(
               '关注动态',
               style: TextStyle(
-                fontSize: 24,
+                fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),
@@ -359,7 +361,7 @@ class DynamicTabState extends State<DynamicTab> {
           ),
         ),
         // 右上角时间
-        const Positioned(top: 20, right: 30, child: TimeDisplay()),
+        const Positioned(top: 10, right: 14, child: TimeDisplay()),
       ],
     );
   }

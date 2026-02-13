@@ -84,9 +84,49 @@ class _BaseTvCardState extends State<BaseTvCard>
     if (focused) {
       widget.onFocus();
       _animController.forward();
+      // 等默认 showOnScreen 完成后，直接测量卡片在视口中的位置
+      // 然后平滑滚动到视口 20% 处，保证上一行底部可见
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _scrollToRevealPreviousRow();
+      });
     } else {
       _animController.reverse();
     }
+  }
+
+  void _scrollToRevealPreviousRow() {
+    final ro = context.findRenderObject() as RenderBox?;
+    if (ro == null || !ro.hasSize) return;
+
+    final scrollableState = Scrollable.maybeOf(context);
+    if (scrollableState == null) return;
+
+    final position = scrollableState.position;
+    final scrollableRO = scrollableState.context.findRenderObject() as RenderBox?;
+    if (scrollableRO == null || !scrollableRO.hasSize) return;
+
+    // 卡片当前在视口中的 y 坐标（相对于 Scrollable widget 的原点）
+    final cardInViewport = ro.localToGlobal(Offset.zero, ancestor: scrollableRO);
+    final viewportHeight = scrollableRO.size.height;
+
+    // 目标：卡片顶端位于视口高度的 20% 处
+    final desiredY = viewportHeight * 0.2;
+    final delta = cardInViewport.dy - desiredY;
+
+    // 差距太小就不滚动（避免无意义微调）
+    if (delta.abs() < 4.0) return;
+
+    final target = (position.pixels + delta).clamp(
+      position.minScrollExtent,
+      position.maxScrollExtent,
+    );
+
+    position.animateTo(
+      target,
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+    );
   }
 
   @override
@@ -127,7 +167,7 @@ class _BaseTvCardState extends State<BaseTvCard>
                             boxShadow: [
                               BoxShadow(
                                 color: const Color(
-                                  0xFFfb7299,
+                                  0xFF81C784,
                                 ).withValues(alpha: 0.4),
                                 blurRadius: 20,
                                 spreadRadius: 2,

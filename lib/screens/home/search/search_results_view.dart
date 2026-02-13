@@ -143,6 +143,8 @@ class _SearchResultsViewState extends State<SearchResultsView> {
 
   Future<void> _loadMore() async {
     if (_isLoadingMore || !_hasMore) return;
+    // 到 60 条后停止加载更多，防止内存无限增长
+    if (_searchResults.length >= 60) return;
     setState(() => _isLoadingMore = true);
     _currentPage++;
     await _searchVideos(reset: false);
@@ -207,7 +209,7 @@ class _SearchResultsViewState extends State<SearchResultsView> {
                   crossAxisCount: gridColumns,
                   childAspectRatio: 360 / 300,
                   crossAxisSpacing: 20,
-                  mainAxisSpacing: 30,
+                  mainAxisSpacing: 10,
                 ),
                 delegate: SliverChildBuilderDelegate((context, index) {
                   final video = _searchResults[index];
@@ -412,7 +414,7 @@ class _SortButtonState extends State<_SortButton> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: widget.isSelected
-              ? const Color(0xFFfb7299)
+              ? const Color(0xFF81C784)
               : _isFocused
               ? Colors.white.withValues(alpha: 0.2)
               : Colors.white.withValues(alpha: 0.1),

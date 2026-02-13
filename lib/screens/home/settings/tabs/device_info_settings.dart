@@ -108,7 +108,7 @@ class _DeviceInfoSettingsState extends State<DeviceInfoSettings> {
                   : Colors.white.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(8),
               border: focused
-                  ? Border.all(color: const Color(0xFFfb7299), width: 2)
+                  ? Border.all(color: const Color(0xFF81C784), width: 2)
                   : null,
             ),
             child: Row(

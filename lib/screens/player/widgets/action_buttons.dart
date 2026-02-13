@@ -224,7 +224,7 @@ class _ActionButtonsState extends State<ActionButtons> {
     bool isActive = false,
   }) {
     final isFocused = widget.isFocused && _focusedIndex == index;
-    final color = isActive ? const Color(0xFFfb7299) : Colors.white;
+    final color = isActive ? const Color(0xFF81C784) : Colors.white;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 150),

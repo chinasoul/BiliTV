@@ -40,6 +40,7 @@ class HomeTabState extends State<HomeTab> {
   final Map<int, bool> _categoryLoading = {};
   final Map<int, int> _categoryPage = {};
   final Map<int, int> _categoryRefreshIdx = {};
+  final Map<int, double> _categoryScrollOffset = {}; // 记忆每个分类的滚动位置
   bool _firstLoadDone = false;
   bool _usedPreloadedData = false; // 标记是否使用了预加载数据
   bool _isRefreshing = false; // 标记是否正在刷新中（用于控制分帧渲染）
@@ -122,6 +123,7 @@ class HomeTabState extends State<HomeTab> {
 
     if (refresh) {
       _categoryPage[categoryIndex] = 1;
+      _categoryScrollOffset.remove(categoryIndex); // 刷新时清除滚动位置记忆
       setState(() {
         _categoryLoading[categoryIndex] = true;
         _categoryVideos[categoryIndex] = [];
@@ -203,6 +205,8 @@ class HomeTabState extends State<HomeTab> {
   // ... (省略 _loadMore, _switchCategory 等辅助方法) ...
   void _loadMore() {
     if (_isLoading) return;
+    // 到 60 条后停止加载更多，防止内存无限增长
+    if ((_categoryVideos[_selectedCategoryIndex] ?? []).length >= 60) return;
     final page = (_categoryPage[_selectedCategoryIndex] ?? 1) + 1;
     _categoryPage[_selectedCategoryIndex] = page;
     _loadVideosForCategory(_selectedCategoryIndex);
@@ -210,10 +214,23 @@ class HomeTabState extends State<HomeTab> {
 
   void _switchCategory(int index) {
     if (_selectedCategoryIndex == index) return;
+    // 保存当前分类的滚动位置
+    if (_scrollController.hasClients) {
+      _categoryScrollOffset[_selectedCategoryIndex] = _scrollController.offset;
+    }
     // 切换分类后不再是初始预加载状态
     _usedPreloadedData = false;
-    if (_scrollController.hasClients) _scrollController.jumpTo(0);
     setState(() => _selectedCategoryIndex = index);
+    // 恢复目标分类的滚动位置（没有记录则回顶部）
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        final savedOffset = _categoryScrollOffset[index] ?? 0.0;
+        _scrollController.jumpTo(savedOffset.clamp(
+          0.0,
+          _scrollController.position.maxScrollExtent,
+        ));
+      }
+    });
     if ((_categoryVideos[index] ?? []).isEmpty) _loadVideosForCategory(index);
   }
 
@@ -280,14 +297,14 @@ class HomeTabState extends State<HomeTab> {
                       controller: _scrollController,
                       slivers: [
                         SliverPadding(
-                          padding: const EdgeInsets.fromLTRB(30, 100, 30, 80),
+                          padding: const EdgeInsets.fromLTRB(24, 70, 24, 80),
                           sliver: SliverGrid(
                             gridDelegate:
                                 SliverGridDelegateWithFixedCrossAxisCount(
                                   crossAxisCount: gridColumns,
                                   childAspectRatio: 320 / 280,
                                   crossAxisSpacing: 20,
-                                  mainAxisSpacing: 30,
+                                  mainAxisSpacing: 10,
                                 ),
                             delegate: SliverChildBuilderDelegate((
                               context,
@@ -412,10 +429,10 @@ class HomeTabState extends State<HomeTab> {
           top: 0,
           left: 0,
           right: 0,
-          height: 80,
+          height: 56,
           child: Container(
             color: const Color(0xFF121212),
-            padding: const EdgeInsets.only(left: 30, right: 30, top: 20),
+            padding: const EdgeInsets.only(left: 20, right: 20, top: 12),
             child: FocusTraversalGroup(
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -438,7 +455,7 @@ class HomeTabState extends State<HomeTab> {
             ),
           ),
         ),
-        const Positioned(top: 20, right: 30, child: TimeDisplay()),
+        const Positioned(top: 10, right: 14, child: TimeDisplay()),
       ],
     );
   }
@@ -481,7 +498,7 @@ class _CategoryTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(right: 20),
+      padding: const EdgeInsets.only(right: 14),
       child: Focus(
         focusNode: focusNode,
         onFocusChange: (f) => f ? onFocus() : null,
@@ -507,10 +524,9 @@ class _CategoryTab extends StatelessWidget {
             return GestureDetector(
               onTap: onTap,
               child: Container(
-                // 紧凑的 padding 确保文字高度位置与普通标题接近
-                padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+                padding: const EdgeInsets.fromLTRB(10, 3, 10, 3),
                 decoration: BoxDecoration(
-                  color: f ? const Color(0xFFfb7299) : Colors.transparent,
+                  color: f ? const Color(0xFF81C784) : Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
                     color: f ? Colors.white : Colors.transparent,
@@ -526,9 +542,9 @@ class _CategoryTab extends StatelessWidget {
                         color: f
                             ? Colors.white
                             : (isSelected
-                                  ? const Color(0xFFfb7299)
+                                  ? const Color(0xFF81C784)
                                   : Colors.grey),
-                        fontSize: 20,
+                        fontSize: 16,
                         fontWeight: f || isSelected
                             ? FontWeight.bold
                             : FontWeight.normal,
@@ -541,7 +557,7 @@ class _CategoryTab extends StatelessWidget {
                       width: 20,
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? const Color(0xFFfb7299)
+                            ? const Color(0xFF81C784)
                             : Colors.transparent,
                         borderRadius: BorderRadius.circular(1.5),
                       ),

@@ -91,7 +91,7 @@ class SettingsViewState extends State<SettingsView> {
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('确认', style: TextStyle(color: Color(0xFFfb7299))),
+            child: const Text('确认', style: TextStyle(color: Color(0xFF81C784))),
           ),
         ],
       ),
@@ -197,7 +197,7 @@ class SettingsViewState extends State<SettingsView> {
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: isFocused ? const Color(0xFFfb7299) : Colors.transparent,
+                color: isFocused ? const Color(0xFF81C784) : Colors.transparent,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: isFocused ? Colors.white : Colors.transparent,
@@ -213,7 +213,7 @@ class SettingsViewState extends State<SettingsView> {
                       color: isFocused
                           ? Colors.white
                           : (isSelected
-                                ? const Color(0xFFfb7299)
+                                ? const Color(0xFF81C784)
                                 : Colors.grey),
                       fontSize: 15,
                       fontWeight: isFocused || isSelected
@@ -227,7 +227,7 @@ class SettingsViewState extends State<SettingsView> {
                     width: 24,
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? const Color(0xFFfb7299)
+                          ? const Color(0xFF81C784)
                           : Colors.transparent,
                       borderRadius: BorderRadius.circular(1.5),
                     ),
@@ -285,7 +285,7 @@ class SettingsViewState extends State<SettingsView> {
                         AuthService.uname ?? '已登录',
                         style: TextStyle(
                           color: AuthService.isVip
-                              ? const Color(0xFFfb7299) // VIP 粉色
+                              ? const Color(0xFF81C784) // VIP 粉色
                               : Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -347,7 +347,7 @@ class SettingsViewState extends State<SettingsView> {
         ),
 
         // 常驻时间显示 (与主界面位置保持一致)
-        const Positioned(top: 20, right: 30, child: TimeDisplay()),
+        const Positioned(top: 10, right: 14, child: TimeDisplay()),
       ],
     );
   }

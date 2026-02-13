@@ -393,7 +393,7 @@ class UpdateService {
             },
             child: const Text(
               '立即更新',
-              style: TextStyle(color: Color(0xFFfb7299)),
+              style: TextStyle(color: Color(0xFF81C784)),
             ),
           ),
         ],

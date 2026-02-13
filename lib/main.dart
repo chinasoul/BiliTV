@@ -8,6 +8,7 @@ import 'package:bili_tv_app/plugins/danmaku_enhance_plugin.dart';
 import 'config/build_flags.dart';
 import 'services/auth_service.dart';
 import 'services/local_server.dart';
+import 'services/settings_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -48,10 +49,20 @@ class BiliTvApp extends StatelessWidget {
       theme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF121212),
-        primaryColor: const Color(0xFFfb7299), // Bilibili 粉色
+        primaryColor: const Color(0xFF81C784), // Bilibili 粉色
         useMaterial3: true,
         focusColor: Colors.white.withValues(alpha: 0.1),
       ),
+      builder: (context, child) {
+        // 应用全局字体缩放
+        final scale = SettingsService.fontScale;
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(scale),
+          ),
+          child: child!,
+        );
+      },
       home: const SplashScreen(),
     );
   }

@@ -437,4 +437,28 @@ class SettingsService {
     }
     await setEnabledLiveCategories(current);
   }
+
+  // App 全局字体大小缩放
+  static const String _fontScaleKey = 'app_font_scale';
+
+  /// 字体缩放比例（0.8 ~ 1.4，默认 1.0）
+  static double get fontScale {
+    return (_prefs?.getDouble(_fontScaleKey) ?? 1.0).clamp(0.8, 1.4);
+  }
+
+  /// 设置字体缩放比例
+  static Future<void> setFontScale(double value) async {
+    await init();
+    await _prefs!.setDouble(_fontScaleKey, value.clamp(0.8, 1.4));
+  }
+
+  /// 字体缩放选项列表
+  static const List<double> fontScaleOptions = [0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4];
+
+  /// 字体缩放选项标签
+  static String fontScaleLabel(double scale) {
+    if (scale == 1.0) return '默认';
+    final pct = ((scale - 1.0) * 100).round();
+    return pct > 0 ? '+$pct%' : '$pct%';
+  }
 }

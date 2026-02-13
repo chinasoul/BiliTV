@@ -152,9 +152,9 @@ class _EpisodeItem extends StatelessWidget {
         border: Border(
           left: BorderSide(
             color: isSelected
-                ? const Color(0xFFfb7299)
+                ? const Color(0xFF81C784)
                 : (isFocused
-                      ? const Color(0xFFfb7299).withValues(alpha: 0.5)
+                      ? const Color(0xFF81C784).withValues(alpha: 0.5)
                       : Colors.transparent),
             width: 4,
           ),
@@ -163,7 +163,7 @@ class _EpisodeItem extends StatelessWidget {
       child: Text(
         title,
         style: TextStyle(
-          color: isSelected ? const Color(0xFFfb7299) : Colors.white,
+          color: isSelected ? const Color(0xFF81C784) : Colors.white,
           fontSize: 16,
           fontWeight: isSelected || isFocused
               ? FontWeight.bold

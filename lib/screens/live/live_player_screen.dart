@@ -39,6 +39,7 @@ class _LivePlayerScreenState extends State<LivePlayerScreen>
   VideoPlayerController? _controller;
   final LiveSocketService _socketService = LiveSocketService();
   DanmakuController? _danmakuController;
+  StreamSubscription<Map<String, dynamic>>? _danmakuSubscription;
 
   bool _isLoading = true;
   String? _errorMessage;
@@ -150,6 +151,7 @@ class _LivePlayerScreenState extends State<LivePlayerScreen>
     WakelockPlus.disable();
     WidgetsBinding.instance.removeObserver(this);
     // _danmakuController is disposed by its widget usually, or doesn't need disposal
+    _danmakuSubscription?.cancel();
     _socketService.dispose();
     _hideTimer?.cancel();
     _popularityTimer?.cancel();
@@ -378,8 +380,9 @@ class _LivePlayerScreenState extends State<LivePlayerScreen>
 
   void _connectDanmaku() {
     debugPrint('Connecting Danmaku to RoomID: $_realRoomId');
+    _danmakuSubscription?.cancel();
     _socketService.connect(_realRoomId);
-    _socketService.messageStream.listen(
+    _danmakuSubscription = _socketService.messageStream.listen(
       (msg) {
         if (!mounted) return;
 
@@ -803,7 +806,7 @@ class _LivePlayerScreenState extends State<LivePlayerScreen>
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           const CircularProgressIndicator(
-                            color: Color(0xFFfb7299),
+                            color: Color(0xFF81C784),
                           ),
                           if (_errorMessage != null) ...[
                             const SizedBox(height: 20),
@@ -1024,10 +1027,10 @@ class _LivePlayerScreenState extends State<LivePlayerScreen>
                     icon: _isFollowed ? Icons.favorite : Icons.favorite_border,
                     label: _isFollowed ? '已关注' : '关注',
                     iconColor: _isFollowed
-                        ? const Color(0xFFfb7299)
+                        ? const Color(0xFF81C784)
                         : Colors.white,
                     textColor: _isFollowed
-                        ? const Color(0xFFfb7299)
+                        ? const Color(0xFF81C784)
                         : Colors.white,
                   ),
                 ],
@@ -1051,11 +1054,11 @@ class _LivePlayerScreenState extends State<LivePlayerScreen>
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
         color: isFocused
-            ? const Color(0xFFfb7299)
+            ? const Color(0xFF81C784)
             : Colors.white.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
         border: isFocused
-            ? Border.all(color: const Color(0xFFfb7299), width: 2)
+            ? Border.all(color: const Color(0xFF81C784), width: 2)
             : null,
       ),
       child: Row(
