@@ -201,6 +201,11 @@ class FollowingTabState extends State<FollowingTab> {
 
   Future<void> _loadFollowingUsers({required bool reset}) async {
     if (reset) {
+      // 释放旧的 FocusNode，防止内存泄漏
+      for (final node in _followingFocusNodes.values) {
+        node.dispose();
+      }
+      _followingFocusNodes.clear();
       setState(() {
         _followingLoading = true;
         _users = [];
@@ -242,6 +247,11 @@ class FollowingTabState extends State<FollowingTab> {
 
   Future<void> _loadFavoriteFoldersAndFirstPage({required bool reset}) async {
     if (reset) {
+      // 释放旧的 FocusNode，防止内存泄漏
+      for (final node in _favoriteVideoFocusNodes.values) {
+        node.dispose();
+      }
+      _favoriteVideoFocusNodes.clear();
       setState(() {
         _favoritesLoading = true;
         _folders = [];
@@ -337,6 +347,11 @@ class FollowingTabState extends State<FollowingTab> {
   }
 
   Future<void> _loadWatchLaterVideos() async {
+    // 释放旧的 FocusNode，防止内存泄漏
+    for (final node in _watchLaterFocusNodes.values) {
+      node.dispose();
+    }
+    _watchLaterFocusNodes.clear();
     setState(() => _watchLaterLoading = true);
     final list = await BilibiliApi.getWatchLaterVideos();
     if (!mounted) return;

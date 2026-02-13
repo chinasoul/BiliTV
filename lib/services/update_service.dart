@@ -97,18 +97,29 @@ class UpdateService {
     return headers;
   }
 
-  /// 获取设备 CPU 架构
-  static String _getDeviceArch() {
-    // Android 设备架构检测
-    // arm64-v8a 对应 64 位 ARM
-    // armeabi-v7a 对应 32 位 ARM
+  /// 获取设备 CPU 架构（通过原生 MethodChannel 获取真实设备架构）
+  static Future<String> _getDeviceArch() async {
+    try {
+      const channel = MethodChannel('com.bili.tv/device_info');
+      final info = await channel.invokeMethod('getDeviceInfo');
+      final abis = (info['supportedAbis'] as List?)?.cast<String>() ?? [];
+      // 优先选择 64 位
+      if (abis.any((abi) => abi.contains('arm64'))) {
+        return 'arm64-v8a';
+      }
+      if (abis.any((abi) => abi.contains('armeabi'))) {
+        return 'armeabi-v7a';
+      }
+      if (abis.isNotEmpty) return abis.first;
+    } catch (_) {
+      // MethodChannel 失败时回退到 Dart VM 检测
+    }
     final arch = Platform.version;
     if (arch.contains('arm64') || arch.contains('aarch64')) {
       return 'arm64-v8a';
     } else if (arch.contains('arm')) {
       return 'armeabi-v7a';
     }
-    // 默认返回 arm64-v8a
     return 'arm64-v8a';
   }
 
@@ -230,7 +241,7 @@ class UpdateService {
         return UpdateCheckResult(hasUpdate: false, updateInfo: null);
       }
 
-      final arch = _getDeviceArch();
+      final arch = await _getDeviceArch();
       final assets = (release['assets'] as List?) ?? const [];
       final apkUrl = _pickApkAssetUrl(assets, arch);
       if (apkUrl == null || apkUrl.isEmpty) {

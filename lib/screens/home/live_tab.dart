@@ -115,6 +115,11 @@ class LiveTabState extends State<LiveTab> {
     final currentPage = _categoryPage[index] ?? 1;
 
     if (refresh) {
+      // 释放旧的 FocusNode，防止内存泄漏
+      for (final node in _roomFocusNodes.values) {
+        node.dispose();
+      }
+      _roomFocusNodes.clear();
       setState(() {
         _categoryLoading[index] = true;
         _categoryRooms[index] = [];

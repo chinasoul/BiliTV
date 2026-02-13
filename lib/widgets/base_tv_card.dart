@@ -55,6 +55,10 @@ class _BaseTvCardState extends State<BaseTvCard>
   late Animation<double> _scaleAnim;
   late Animation<double> _glowAnim;
 
+  // 快速导航节流：记录上次焦点时间，短间隔内用 jumpTo 而非 animateTo
+  DateTime _lastFocusTime = DateTime(0);
+  static const _rapidThreshold = Duration(milliseconds: 150);
+
   @override
   void initState() {
     super.initState();
@@ -84,18 +88,20 @@ class _BaseTvCardState extends State<BaseTvCard>
     if (focused) {
       widget.onFocus();
       _animController.forward();
-      // 等默认 showOnScreen 完成后，直接测量卡片在视口中的位置
-      // 然后平滑滚动到视口 20% 处，保证上一行底部可见
+      final now = DateTime.now();
+      final isRapid = now.difference(_lastFocusTime) < _rapidThreshold;
+      _lastFocusTime = now;
+      // 等默认 showOnScreen 完成后，测量卡片在视口中的位置并调整
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        _scrollToRevealPreviousRow();
+        _scrollToRevealPreviousRow(animate: !isRapid);
       });
     } else {
       _animController.reverse();
     }
   }
 
-  void _scrollToRevealPreviousRow() {
+  void _scrollToRevealPreviousRow({required bool animate}) {
     final ro = context.findRenderObject() as RenderBox?;
     if (ro == null || !ro.hasSize) return;
 
@@ -122,11 +128,17 @@ class _BaseTvCardState extends State<BaseTvCard>
       position.maxScrollExtent,
     );
 
-    position.animateTo(
-      target,
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOut,
-    );
+    if (animate) {
+      // 慢速导航：平滑动画
+      position.animateTo(
+        target,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+      );
+    } else {
+      // 快速导航：直接跳转，避免大量动画对象堆积
+      position.jumpTo(target);
+    }
   }
 
   @override

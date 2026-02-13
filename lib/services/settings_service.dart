@@ -27,8 +27,8 @@ class BiliCacheManager {
     _instance ??= CacheManager(
       Config(
         key,
-        stalePeriod: const Duration(days: 7), // 7天过期
-        maxNrOfCacheObjects: 350, // 最多350个缓存对象 (约200MB)
+        stalePeriod: const Duration(days: 3), // 3天过期
+        maxNrOfCacheObjects: 200, // 最多200个缓存对象，TV内存有限
       ),
     );
     return _instance!;

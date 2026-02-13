@@ -89,39 +89,10 @@ class _HomeScreenState extends State<HomeScreen> {
     _preloadOtherTabs();
   }
 
-  // 后台预加载动态、关注和历史记录
+  // 不再预加载其他 Tab，各 Tab 首次可见时自行加载
+  // TV 内存有限，避免启动时同时加载所有页面的数据和图片
   void _preloadOtherTabs() {
-    // 延迟 500ms 后开始预加载，避免影响首页渲染
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (!mounted) return;
-      // 预加载动态页面（如果用户已登录）
-      if (AuthService.isLoggedIn) {
-        _dynamicTabKey.currentState?.refresh();
-      }
-    });
-
-    // 再延迟 1 秒后预加载关注列表
-    Future.delayed(const Duration(milliseconds: 1500), () {
-      if (!mounted) return;
-      // 预加载关注列表（如果用户已登录）
-      if (AuthService.isLoggedIn) {
-        _followingTabKey.currentState?.refresh();
-      }
-    });
-
-    // 再延迟 2 秒后预加载历史记录
-    Future.delayed(const Duration(milliseconds: 2000), () {
-      if (!mounted) return;
-      if (AuthService.isLoggedIn) {
-        _historyTabKey.currentState?.refresh();
-      }
-    });
-
-    // 预加载直播
-    Future.delayed(const Duration(milliseconds: 2500), () {
-      if (!mounted) return;
-      _liveTabKey.currentState?.refresh();
-    });
+    // 空实现：各 Tab 通过 _hasLoaded + didUpdateWidget 在首次切换时自行加载
   }
 
   @override

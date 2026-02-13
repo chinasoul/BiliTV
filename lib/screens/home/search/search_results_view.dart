@@ -97,6 +97,11 @@ class _SearchResultsViewState extends State<SearchResultsView> {
       if (focusStart) {
         _shouldFocusFirstResult = true;
       }
+      // 释放旧的 FocusNode，防止内存泄漏
+      for (final node in _videoFocusNodes.values) {
+        node.dispose();
+      }
+      _videoFocusNodes.clear();
       setState(() {
         _isLoading = true;
         _isRefreshing = true; // 开始刷新

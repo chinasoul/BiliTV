@@ -124,6 +124,11 @@ class HomeTabState extends State<HomeTab> {
     if (refresh) {
       _categoryPage[categoryIndex] = 1;
       _categoryScrollOffset.remove(categoryIndex); // 刷新时清除滚动位置记忆
+      // 释放旧的 FocusNode，防止内存泄漏
+      for (final node in _videoFocusNodes.values) {
+        node.dispose();
+      }
+      _videoFocusNodes.clear();
       setState(() {
         _categoryLoading[categoryIndex] = true;
         _categoryVideos[categoryIndex] = [];
