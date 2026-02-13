@@ -1,11 +1,6 @@
 package com.bili.tv.bili_tv_app
 
-import android.app.PendingIntent
-import android.content.BroadcastReceiver
-import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
-import android.content.pm.PackageInstaller
 import android.media.MediaCodecList
 import android.os.Build
 import androidx.core.content.FileProvider
@@ -13,7 +8,6 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
-import java.io.FileInputStream
 
 class MainActivity : FlutterActivity() {
     private val UPDATE_CHANNEL = "com.bili.tv/update"
@@ -110,15 +104,6 @@ class MainActivity : FlutterActivity() {
             throw Exception("APK file not found: $path")
         }
 
-        // 优先使用 PackageInstaller Session API（TV 设备更可靠，不依赖安装器 UI）
-        try {
-            installApkViaSession(file)
-            return
-        } catch (e: Exception) {
-            // Session 安装失败，回退到 Intent 方式
-        }
-
-        // 回退：使用 Intent 打开系统安装器
         val intent = Intent(Intent.ACTION_VIEW)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
 
@@ -138,42 +123,6 @@ class MainActivity : FlutterActivity() {
         }
 
         startActivity(intent)
-    }
-
-    /**
-     * 通过 PackageInstaller Session API 安装 APK
-     * 不需要安装器 UI，适合 Android TV 等没有标准安装界面的设备
-     */
-    private fun installApkViaSession(file: File) {
-        val packageInstaller = packageManager.packageInstaller
-        val params = PackageInstaller.SessionParams(
-            PackageInstaller.SessionParams.MODE_FULL_INSTALL
-        )
-        params.setSize(file.length())
-
-        val sessionId = packageInstaller.createSession(params)
-        val session = packageInstaller.openSession(sessionId)
-
-        // 将 APK 写入 session
-        session.openWrite("bilitv_update.apk", 0, file.length()).use { output ->
-            FileInputStream(file).use { input ->
-                input.copyTo(output)
-            }
-            session.fsync(output)
-        }
-
-        // 创建安装结果的 PendingIntent
-        val action = "${packageName}.INSTALL_COMPLETE"
-        val intent = Intent(action)
-        val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
-        } else {
-            PendingIntent.FLAG_UPDATE_CURRENT
-        }
-        val pendingIntent = PendingIntent.getBroadcast(this, sessionId, intent, flags)
-
-        // 提交安装
-        session.commit(pendingIntent.intentSender)
     }
 
     private fun getDeviceInfo(): Map<String, Any> {
