@@ -167,13 +167,14 @@ class UpdateService {
 
     if (apkAssets.isEmpty) return null;
 
-    final archKeywords = arch == 'armeabi-v7a'
-        ? ['armeabi-v7a', 'armv7', 'armeabi']
-        : ['arm64-v8a', 'arm64', 'aarch64'];
+    // 用正则模糊匹配，无需枚举所有命名变体
+    final archPattern = arch == 'armeabi-v7a'
+        ? RegExp(r'v7|armeabi|arm.?32', caseSensitive: false)
+        : RegExp(r'v8|arm64|aarch64', caseSensitive: false);
 
     for (final asset in apkAssets) {
-      final name = (asset['name'] ?? '').toString().toLowerCase();
-      if (archKeywords.any(name.contains)) {
+      final name = (asset['name'] ?? '').toString();
+      if (archPattern.hasMatch(name)) {
         return (asset['browser_download_url'] ?? '').toString();
       }
     }
@@ -480,6 +481,7 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
       ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (_error != null) ...[
             const Icon(Icons.error, color: Colors.red, size: 48),
@@ -500,6 +502,13 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
               style: const TextStyle(color: Colors.white70),
             ),
           ],
+          const SizedBox(height: 12),
+          Text(
+            widget.updateInfo.downloadUrl,
+            style: const TextStyle(color: Colors.white38, fontSize: 11),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
         ],
       ),
       actions: [
