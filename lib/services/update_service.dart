@@ -278,13 +278,8 @@ class UpdateService {
       // 请求存储权限
       final status = await Permission.storage.request();
       if (!status.isGranted) {
-        // 部分 Android 版本 (11+) 不需要 WRITE_EXTERNAL_STORAGE，而是 scoped storage
-        // 但为了兼容旧版本，还是建议请求。如果请求失败，尝试继续（以防是 scoped storage 的情况）
-        // 或者请求 REQUEST_INSTALL_PACKAGES (在安装时会触发)
-
-        // 尝试请求 manageExternalStorage (Android 11+)
         if (await Permission.manageExternalStorage.isGranted == false) {
-          // 简单的兼容处理: 即使 denied 也尝试继续，因为可能是 Scoped Storage
+          // 简单的兼容处理: 即使 denied 也尝试继续（scoped storage 场景）
         }
       }
 
@@ -321,14 +316,12 @@ class UpdateService {
       final apkFile = File('${dir.path}/bilitv_update.apk');
       await apkFile.writeAsBytes(bytes);
 
-      // 通知下载完成
-      onComplete?.call();
-
-      // 稍等一下确保文件写入完成
-      await Future.delayed(const Duration(milliseconds: 500));
-
-      // 调用 Android Intent 安装 APK
+      // 先调用系统安装 Intent，再关闭对话框
+      // 顺序很重要：如果先关对话框，MethodChannel 可能通信失败，错误也无法显示
       await _installApk(apkFile.path);
+
+      // 安装 Intent 已成功发送，关闭下载对话框
+      onComplete?.call();
     } catch (e) {
       onError?.call('下载安装失败: $e');
     }
@@ -439,6 +432,7 @@ class _DownloadProgressDialog extends StatefulWidget {
 class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
   double _progress = 0;
   String? _error;
+  bool _installing = false;
 
   @override
   void initState() {
@@ -456,12 +450,15 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
       },
       onError: (error) {
         if (mounted) {
-          setState(() => _error = error);
+          setState(() {
+            _error = error;
+            _installing = false;
+          });
         }
       },
       onComplete: () {
+        // 安装 Intent 已发送成功，关闭对话框
         if (mounted) {
-          // 下载完成，关闭对话框，系统会弹出安装界面
           Navigator.of(context).pop();
         }
       },
@@ -470,9 +467,17 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
 
   @override
   Widget build(BuildContext context) {
+    // 下载完成(progress >= 1.0)但还没出错 → 正在调起安装
+    if (_progress >= 1.0 && _error == null && !_installing) {
+      _installing = true;
+    }
+
     return AlertDialog(
       backgroundColor: const Color(0xFF2A2A2A),
-      title: const Text('正在下载更新', style: TextStyle(color: Colors.white)),
+      title: Text(
+        _installing ? '正在启动安装...' : '正在下载更新',
+        style: const TextStyle(color: Colors.white),
+      ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -480,6 +485,13 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
             const Icon(Icons.error, color: Colors.red, size: 48),
             const SizedBox(height: 16),
             Text(_error!, style: const TextStyle(color: Colors.red)),
+          ] else if (_installing) ...[
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            const Text(
+              '下载完成，正在调起安装...',
+              style: TextStyle(color: Colors.white70),
+            ),
           ] else ...[
             LinearProgressIndicator(value: _progress),
             const SizedBox(height: 16),

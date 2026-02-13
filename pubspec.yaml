@@ -1,7 +1,7 @@
 name: bili_tv_app
 description: "BiliTV - 哔哩哔哩电视版客户端"
 publish_to: 'none'
-version: 0.3.0+4
+version: 0.3.0+5
 
 environment:
   sdk: ^3.10.3
