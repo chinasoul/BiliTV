@@ -84,6 +84,20 @@ jobs:
           build_variant "android-arm" "app-armeabi-v7a-release.apk" "v7a.apk" "v7a-on"
           build_variant "android-arm64" "app-arm64-v8a-release.apk" "v8a.apk" "v8a-on"
 
+      - name: Upload v7a APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v7a-${{ env.RELEASE_TAG }}
+          path: release-assets/v7a.apk
+          if-no-files-found: error
+
+      - name: Upload v8a APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v8a-${{ env.RELEASE_TAG }}
+          path: release-assets/v8a.apk
+          if-no-files-found: error
+
       - name: Upload Symbols Artifact
         uses: actions/upload-artifact@v4
         with:
