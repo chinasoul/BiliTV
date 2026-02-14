@@ -117,12 +117,15 @@ jobs:
 
       # ============ Gitee 镜像发布（可选，需配置 GITEE_TOKEN 和 GITEE_REPO） ============
       - name: Publish to Gitee
-        if: ${{ secrets.GITEE_TOKEN != '' && vars.GITEE_REPO != '' }}
         shell: bash
         env:
           GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
           GITEE_REPO: ${{ vars.GITEE_REPO }}
         run: |
+          if [[ -z "$GITEE_TOKEN" || -z "$GITEE_REPO" ]]; then
+            echo "Gitee not configured, skipping."
+            exit 0
+          fi
           set -euo pipefail
           API="https://gitee.com/api/v5/repos/${GITEE_REPO}/releases"
           BODY=$(cat "$RELEASE_NOTES_FILE")
