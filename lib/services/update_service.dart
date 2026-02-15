@@ -572,6 +572,7 @@ class UpdateService {
               ),
             ),
           TextButton(
+            autofocus: true,
             onPressed: () {
               Navigator.of(context).pop();
               onUpdate?.call();
@@ -707,6 +708,7 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
       actions: [
         if (_error != null)
           TextButton(
+            autofocus: true,
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('关闭', style: TextStyle(color: Colors.white54)),
           ),

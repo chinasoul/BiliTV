@@ -56,6 +56,7 @@ class ProfileViewState extends State<ProfileView> {
             child: const Text('取消', style: TextStyle(color: Colors.white54)),
           ),
           TextButton(
+            autofocus: true,
             onPressed: () => Navigator.of(context).pop(true),
             child:
                 Text('确认', style: TextStyle(color: SettingsService.themeColor)),

@@ -37,11 +37,12 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: "3.38.9"
           channel: stable
           cache: true
 
       - name: Flutter Pub Get
-        run: flutter pub get
+        run: flutter pub get --enforce-lockfile
 
       - name: Resolve version & release notes from tag
         shell: bash
