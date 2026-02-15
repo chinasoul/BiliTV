@@ -8,6 +8,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../config/env.dart';
+import 'settings_service.dart';
 
 /// 更新信息模型
 class UpdateInfo {
@@ -556,6 +557,8 @@ class UpdateService {
             Text(
               updateInfo.changelog,
               style: const TextStyle(color: Colors.white70),
+              maxLines: 10,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
@@ -577,9 +580,9 @@ class UpdateService {
               Navigator.of(context).pop();
               onUpdate?.call();
             },
-            child: const Text(
+            child: Text(
               '立即更新',
-              style: TextStyle(color: Color(0xFF81C784)),
+              style: TextStyle(color: SettingsService.themeColor),
             ),
           ),
         ],
@@ -679,14 +682,18 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
             const SizedBox(height: 16),
             Text(_error!, style: const TextStyle(color: Colors.red)),
           ] else if (_installing) ...[
-            const CircularProgressIndicator(),
+            CircularProgressIndicator(color: SettingsService.themeColor),
             const SizedBox(height: 16),
             const Text(
               '下载完成，正在调起安装...',
               style: TextStyle(color: Colors.white70),
             ),
           ] else ...[
-            LinearProgressIndicator(value: _progress),
+            LinearProgressIndicator(
+              value: _progress,
+              color: SettingsService.themeColor,
+              backgroundColor: Colors.white12,
+            ),
             const SizedBox(height: 16),
             Text(
               '${(_progress * 100).toStringAsFixed(1)}%',

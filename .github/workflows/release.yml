@@ -164,9 +164,12 @@ jobs:
 
           for apk in release-assets/v7a.apk release-assets/v8a.apk; do
             echo "Uploading $(basename $apk) to Gitee..."
-            curl -s --connect-timeout 15 --max-time 120 -X POST "${API}/${RELEASE_ID}/attach_files" \
-              -H "Content-Type: multipart/form-data" \
+            UPLOAD_RESP=$(curl -sS --connect-timeout 15 --max-time 120 \
+              -X POST "${API}/${RELEASE_ID}/attach_files" \
               -F "access_token=${GITEE_TOKEN}" \
-              -F "file=@${apk}" || echo "::warning::Failed to upload $(basename $apk) to Gitee"
+              -F "file=@${apk}") \
+              && echo "Upload OK: $(basename $apk)" \
+              || echo "::warning::Failed to upload $(basename $apk) to Gitee"
+            echo "Response: $UPLOAD_RESP"
           done
           echo "Gitee publish done."
