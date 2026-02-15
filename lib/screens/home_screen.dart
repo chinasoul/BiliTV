@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -49,6 +51,11 @@ class _HomeScreenState extends State<HomeScreen> {
   static const int _settingsIndex = 7;
 
   late List<FocusNode> _sideBarFocusNodes;
+  Timer? _memoryTimer;
+  bool _showMemoryInfo = false;
+  String _appMem = '';
+  String _availMem = '';
+  String _totalMem = '';
 
   // 用于访问各 Tab 状态
   final GlobalKey<SearchTabState> _searchTabKey = GlobalKey<SearchTabState>();
@@ -72,6 +79,10 @@ class _HomeScreenState extends State<HomeScreen> {
       (index) => FocusNode(),
     );
 
+    _showMemoryInfo = SettingsService.showMemoryInfo;
+    if (_showMemoryInfo) _startMemoryMonitor();
+    SettingsService.onShowMemoryInfoChanged = _syncMemorySetting;
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       FocusManager.instance.highlightStrategy =
           FocusHighlightStrategy.alwaysTraditional;
@@ -93,8 +104,63 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void _syncMemorySetting() {
+    final enabled = SettingsService.showMemoryInfo;
+    if (enabled == _showMemoryInfo) return;
+    _showMemoryInfo = enabled;
+    if (enabled) {
+      _startMemoryMonitor();
+    } else {
+      _memoryTimer?.cancel();
+      _memoryTimer = null;
+      setState(() {
+        _appMem = '';
+        _availMem = '';
+        _totalMem = '';
+      });
+    }
+  }
+
+  void _startMemoryMonitor() {
+    _updateMemory();
+    _memoryTimer = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => _updateMemory(),
+    );
+  }
+
+  void _updateMemory() {
+    try {
+      // App 占用: 从 /proc/self/statm 读取 RSS（第2个字段，单位为页）
+      final statm = File('/proc/self/statm').readAsStringSync();
+      final pages = int.tryParse(statm.split(' ')[1]) ?? 0;
+      final appMb = (pages * 4096 / (1024 * 1024)).toStringAsFixed(0);
+
+      // 系统总内存 / 可用内存: 从 /proc/meminfo 读取
+      final meminfo = File('/proc/meminfo').readAsStringSync();
+      final totalMatch = RegExp(r'MemTotal:\s+(\d+)').firstMatch(meminfo);
+      final availMatch = RegExp(r'MemAvailable:\s+(\d+)').firstMatch(meminfo);
+      final totalKb = int.tryParse(totalMatch?.group(1) ?? '') ?? 0;
+      final availKb = int.tryParse(availMatch?.group(1) ?? '') ?? 0;
+      final totalMb = (totalKb / 1024).toStringAsFixed(0);
+      final availMb = (availKb / 1024).toStringAsFixed(0);
+
+      if (mounted) {
+        setState(() {
+          _appMem = '${appMb}M';
+          _availMem = '${availMb}M';
+          _totalMem = '${totalMb}M';
+        });
+      }
+    } catch (_) {
+      // 非 Linux 系统忽略
+    }
+  }
+
   @override
   void dispose() {
+    SettingsService.onShowMemoryInfoChanged = null;
+    _memoryTimer?.cancel();
     for (var node in _sideBarFocusNodes) {
       node.dispose();
     }
@@ -117,6 +183,9 @@ class _HomeScreenState extends State<HomeScreen> {
       }
       return;
     }
+
+    // 切换 tab 时同步内存显示设置
+    _syncMemorySetting();
 
     // 普通模式 / 聚焦即切换模式 均通过确认键切换 tab
     setState(() => _selectedTabIndex = index);
@@ -254,6 +323,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         isSelected: _selectedTabIndex == index,
                         focusNode: _sideBarFocusNodes[index],
                         onFocus: () {
+                          _syncMemorySetting();
                           // 聚焦即切换：移动焦点立刻切换内容
                           // 普通模式：只高亮图标，不切换内容
                           if (SettingsService.focusSwitchTab) {
@@ -268,6 +338,22 @@ class _HomeScreenState extends State<HomeScreen> {
                     }),
                     // 弹性间距，把设置推到底部
                     const Spacer(),
+                    // 实时内存信息（右对齐，需在设置中开启）
+                    if (_showMemoryInfo && _appMem.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4, right: 6, left: 6),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text('占用 $_appMem',
+                              style: const TextStyle(color: Colors.white38, fontSize: 9)),
+                            Text('可用 $_availMem',
+                              style: const TextStyle(color: Colors.white38, fontSize: 9)),
+                            Text('总共 $_totalMem',
+                              style: const TextStyle(color: Colors.white24, fontSize: 9)),
+                          ],
+                        ),
+                      ),
                     // 设置图标 (底部, index 7)
                     TvFocusableItem(
                       iconPath: _settingsIcon,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import '../../../../services/settings_service.dart';
 import '../widgets/setting_action_row.dart';
+import '../widgets/setting_toggle_row.dart';
 
 class StorageSettings extends StatefulWidget {
   final VoidCallback onMoveUp;
@@ -20,17 +21,21 @@ class StorageSettings extends StatefulWidget {
 class _StorageSettingsState extends State<StorageSettings> {
   double _cacheSizeMB = 0;
   bool _isClearing = false;
+  bool _showMemoryInfo = false;
   final FocusNode _buttonFocusNode = FocusNode();
+  final FocusNode _memoryToggleFocusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
+    _showMemoryInfo = SettingsService.showMemoryInfo;
     _loadCacheSize();
   }
 
   @override
   void dispose() {
     _buttonFocusNode.dispose();
+    _memoryToggleFocusNode.dispose();
     super.dispose();
   }
 
@@ -87,8 +92,9 @@ class _StorageSettingsState extends State<StorageSettings> {
           autofocus: true,
           focusNode: _buttonFocusNode,
           isFirst: true,
-          isLast: true,
+          isLast: false,
           onMoveUp: widget.onMoveUp,
+          onMoveDown: () => _memoryToggleFocusNode.requestFocus(),
           sidebarFocusNode: widget.sidebarFocusNode,
           onTap: _isClearing
               ? null
@@ -99,6 +105,19 @@ class _StorageSettingsState extends State<StorageSettings> {
                   );
                   if (confirmed) _clearCache();
                 },
+        ),
+        SettingToggleRow(
+          label: '显示内存信息',
+          subtitle: '在侧边栏底部显示实时内存占用',
+          value: _showMemoryInfo,
+          focusNode: _memoryToggleFocusNode,
+          isLast: true,
+          onMoveUp: () => _buttonFocusNode.requestFocus(),
+          sidebarFocusNode: widget.sidebarFocusNode,
+          onChanged: (v) {
+            setState(() => _showMemoryInfo = v);
+            SettingsService.setShowMemoryInfo(v);
+          },
         ),
       ],
     );

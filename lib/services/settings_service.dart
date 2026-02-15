@@ -707,6 +707,24 @@ class SettingsService {
     await _prefs!.setBool(_focusSwitchTabKey, value);
   }
 
+  // ==================== 侧边栏内存显示 ====================
+  static const String _showMemoryInfoKey = 'show_memory_info';
+
+  /// 内存显示设置变更回调
+  static VoidCallback? onShowMemoryInfoChanged;
+
+  /// 是否在侧边栏显示内存信息 (默认关闭)
+  static bool get showMemoryInfo {
+    return _prefs?.getBool(_showMemoryInfoKey) ?? false;
+  }
+
+  /// 设置是否显示内存信息
+  static Future<void> setShowMemoryInfo(bool value) async {
+    await init();
+    await _prefs!.setBool(_showMemoryInfoKey, value);
+    onShowMemoryInfoChanged?.call();
+  }
+
   // ==================== 主题色 ====================
   static const String _themeColorKey = 'theme_color';
 

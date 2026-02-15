@@ -132,6 +132,13 @@ class MainActivity : FlutterActivity() {
             .ifEmpty { getSystemProperty("ro.board.platform") }
             .ifEmpty { Build.HARDWARE ?: "unknown" }
 
+        // 运行内存信息
+        val activityManager = getSystemService(ACTIVITY_SERVICE) as android.app.ActivityManager
+        val memInfo = android.app.ActivityManager.MemoryInfo()
+        activityManager.getMemoryInfo(memInfo)
+        val totalRamMb = memInfo.totalMem / (1024 * 1024)
+        val availRamMb = memInfo.availMem / (1024 * 1024)
+
         return mapOf(
             "platform" to "Android",
             "androidVersion" to (Build.VERSION.RELEASE ?: "unknown"),
@@ -148,7 +155,9 @@ class MainActivity : FlutterActivity() {
             "arch" to (System.getProperty("os.arch") ?: "unknown"),
             "kernel" to (System.getProperty("os.version") ?: "unknown"),
             "gpu" to gpuInfo,
-            "glEsVersion" to getGlEsVersion()
+            "glEsVersion" to getGlEsVersion(),
+            "totalRamMb" to totalRamMb,
+            "availRamMb" to availRamMb
         )
     }
 

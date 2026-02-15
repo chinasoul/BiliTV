@@ -27,7 +27,7 @@ class _DeviceInfoSettingsState extends State<DeviceInfoSettings> {
   @override
   void initState() {
     super.initState();
-    _infoFocusNodes = List.generate(15, (_) => FocusNode());
+    _infoFocusNodes = List.generate(16, (_) => FocusNode());
     _loadDeviceInfo();
   }
 
@@ -48,6 +48,15 @@ class _DeviceInfoSettingsState extends State<DeviceInfoSettings> {
       _info = info;
       _isLoading = false;
     });
+  }
+
+  String _buildRamValue() {
+    final totalMb = _info['totalRamMb'];
+    final availMb = _info['availRamMb'];
+    if (totalMb == null) return '未知';
+    final totalGb = (totalMb as int) / 1024;
+    final availGb = (availMb as int) / 1024;
+    return '总共 ${totalGb.toStringAsFixed(1)} GB，可用 ${availGb.toStringAsFixed(1)} GB';
   }
 
   String _valueOf(String key, {String fallback = '未知'}) {
@@ -164,19 +173,20 @@ class _DeviceInfoSettingsState extends State<DeviceInfoSettings> {
           '安卓版本',
           '${_valueOf('androidVersion')} (SDK ${_valueOf('sdkInt')})',
         ),
-        _buildInfoItem(2, '系统架构', _valueOf('arch')),
-        _buildInfoItem(3, 'CPU ABI', _valueOf('cpuAbi')),
-        _buildInfoItem(4, '支持 ABI 列表', _valueOf('supportedAbis')),
-        _buildInfoItem(5, 'GPU', _valueOf('gpu')),
-        _buildInfoItem(6, 'OpenGL ES', _valueOf('glEsVersion')),
-        _buildInfoItem(7, '设备型号', _valueOf('model')),
-        _buildInfoItem(8, '厂商', _valueOf('manufacturer')),
-        _buildInfoItem(9, '品牌', _valueOf('brand')),
-        _buildInfoItem(10, '设备代号', _valueOf('device')),
-        _buildInfoItem(11, '主板', _valueOf('board')),
-        _buildInfoItem(12, '硬件标识', _valueOf('hardware')),
-        _buildInfoItem(13, '产品名', _valueOf('product')),
-        _buildInfoItem(14, '内核版本', _valueOf('kernel')),
+        _buildInfoItem(2, '运行内存', _buildRamValue()),
+        _buildInfoItem(3, '系统架构', _valueOf('arch')),
+        _buildInfoItem(4, 'CPU ABI', _valueOf('cpuAbi')),
+        _buildInfoItem(5, '支持 ABI 列表', _valueOf('supportedAbis')),
+        _buildInfoItem(6, 'GPU', _valueOf('gpu')),
+        _buildInfoItem(7, 'OpenGL ES', _valueOf('glEsVersion')),
+        _buildInfoItem(8, '设备型号', _valueOf('model')),
+        _buildInfoItem(9, '厂商', _valueOf('manufacturer')),
+        _buildInfoItem(10, '品牌', _valueOf('brand')),
+        _buildInfoItem(11, '设备代号', _valueOf('device')),
+        _buildInfoItem(12, '主板', _valueOf('board')),
+        _buildInfoItem(13, '硬件标识', _valueOf('hardware')),
+        _buildInfoItem(14, '产品名', _valueOf('product')),
+        _buildInfoItem(15, '内核版本', _valueOf('kernel')),
       ],
     );
   }

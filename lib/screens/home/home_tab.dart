@@ -284,8 +284,6 @@ class HomeTabState extends State<HomeTab> {
   // ... (省略 _loadMore, _switchCategory 等辅助方法) ...
   void _loadMore() {
     if (_isLoading) return;
-    // 到 40 条后停止加载更多，防止内存无限增长（TV 内存有限）
-    if ((_categoryVideos[_selectedCategoryIndex] ?? []).length >= 40) return;
     final page = (_categoryPage[_selectedCategoryIndex] ?? 1) + 1;
     _categoryPage[_selectedCategoryIndex] = page;
     _loadVideosForCategory(_selectedCategoryIndex);
@@ -463,13 +461,13 @@ class HomeTabState extends State<HomeTab> {
                                       : () =>
                                             _categoryFocusNodes[_selectedCategoryIndex]
                                                 .requestFocus(),
-                                  // 严格按列向下移动
+                                  // 严格按列向下移动，最底行阻止焦点离开内容区
                                   onMoveDown:
                                       (index + gridColumns < _currentVideos.length)
                                       ? () => _getFocusNode(
                                           index + gridColumns,
                                         ).requestFocus()
-                                      : null,
+                                      : () {},
                                   onFocus: () {
                                     if (!_scrollController.hasClients) {
                                       return;
