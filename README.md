@@ -1,8 +1,7 @@
 ## 1) 截图预览
 
-![我的内容页](assets/screenshots/screenshot-my-content.png)
-![本机信息页](assets/screenshots/screenshot-device-info.png)
-![播放器数据监测](assets/screenshots/screenshot-stats-overlay.png)
+![设置页](assets/screenshots/Screenshot_1771143841.png)
+![我的内容页](assets/screenshots/Screenshot_1771144188.png)
 
 ## 2) 更新 / 修改说明
 
