@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import '../../../../services/settings_service.dart';
+import '../../../../config/app_style.dart';
 import '../widgets/setting_action_row.dart';
 import '../widgets/setting_toggle_row.dart';
 
@@ -107,9 +108,10 @@ class _StorageSettingsState extends State<StorageSettings> {
                   if (confirmed) _clearCache();
                 },
         ),
+        const SizedBox(height: AppSpacing.settingItemGap),
         SettingToggleRow(
-          label: '显示内存信息',
-          subtitle: '在侧边栏底部显示实时内存占用',
+          label: '显示CPU/内存信息',
+          subtitle: '在侧边栏底部显示实时CPU/内存占用',
           value: _showMemoryInfo,
           focusNode: _memoryToggleFocusNode,
           isLast: true,

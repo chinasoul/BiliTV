@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../services/settings_service.dart';
+import '../../../../config/app_style.dart';
 import '../widgets/setting_toggle_row.dart';
 import '../widgets/setting_dropdown_row.dart';
 
@@ -58,7 +59,7 @@ class _DanmakuSettingsState extends State<DanmakuSettings> {
             setState(() {});
           },
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: AppSpacing.settingItemGap),
 
         // 弹幕透明度
         SettingDropdownRow<double>(
@@ -75,7 +76,7 @@ class _DanmakuSettingsState extends State<DanmakuSettings> {
             }
           },
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: AppSpacing.settingItemGap),
 
         // 弹幕字体大小
         SettingDropdownRow<double>(
@@ -92,7 +93,7 @@ class _DanmakuSettingsState extends State<DanmakuSettings> {
             }
           },
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: AppSpacing.settingItemGap),
 
         // 弹幕占屏比
         SettingDropdownRow<double>(
@@ -109,7 +110,7 @@ class _DanmakuSettingsState extends State<DanmakuSettings> {
             }
           },
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: AppSpacing.settingItemGap),
 
         // 弹幕速度
         SettingDropdownRow<double>(
@@ -126,7 +127,7 @@ class _DanmakuSettingsState extends State<DanmakuSettings> {
             }
           },
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: AppSpacing.settingItemGap),
 
         // 允许顶部悬停弹幕
         SettingToggleRow(
@@ -139,7 +140,7 @@ class _DanmakuSettingsState extends State<DanmakuSettings> {
             setState(() {});
           },
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: AppSpacing.settingItemGap),
 
         // 允许底部悬停弹幕
         SettingToggleRow(

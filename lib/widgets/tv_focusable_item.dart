@@ -61,10 +61,10 @@ class TvFocusableItem extends StatelessWidget {
           margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
           decoration: BoxDecoration(
             color: f
-                ? SettingsService.themeColor
+                ? SettingsService.themeColor.withValues(alpha: 0.6)
                 : (isSelected ? Colors.white10 : Colors.transparent),
             borderRadius: BorderRadius.circular(12),
-            border: f ? Border.all(color: Colors.white, width: 2) : null,
+            border: null,
           ),
           alignment: Alignment.center,
           child: _buildContent(f),

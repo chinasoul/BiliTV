@@ -159,14 +159,14 @@ class TvVideoCard extends StatelessWidget {
                 const Icon(
                   Icons.person_outline,
                   size: 12,
-                  color: Colors.white38,
+                  color: Colors.white54,
                 ),
                 const SizedBox(width: 4),
                 // UP主名字 - 可省略
                 Expanded(
                   child: Text(
                     video.ownerName,
-                    style: const TextStyle(color: Colors.white38, fontSize: 12),
+                    style: const TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.w500),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -175,7 +175,7 @@ class TvVideoCard extends StatelessWidget {
                 if (video.pubdateFormatted.isNotEmpty)
                   Text(
                     video.pubdateFormatted,
-                    style: const TextStyle(color: Colors.white38, fontSize: 12),
+                    style: const TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.w500),
                   ),
               ],
             ),

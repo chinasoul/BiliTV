@@ -7,6 +7,7 @@ import '../../models/video.dart';
 import '../../services/bilibili_api.dart';
 import '../../services/settings_service.dart';
 import '../../config/build_flags.dart';
+import '../../config/app_style.dart';
 import '../../widgets/tv_video_card.dart';
 import '../../widgets/time_display.dart';
 import '../../core/plugin/plugin_manager.dart';
@@ -41,6 +42,8 @@ class HomeTabState extends State<HomeTab> {
   final Map<int, int> _categoryPage = {};
   final Map<int, int> _categoryRefreshIdx = {};
   final Map<int, double> _categoryScrollOffset = {}; // 记忆每个分类的滚动位置
+  final Map<int, int> _categoryLimit = {}; // 每个分类的当前加载上限
+  final FocusNode _loadMoreFocusNode = FocusNode();
   bool _firstLoadDone = false;
   bool _usedPreloadedData = false; // 标记是否使用了预加载数据
   // 每个分类独立的视频 FocusNode 表，避免跨分类污染
@@ -123,6 +126,7 @@ class HomeTabState extends State<HomeTab> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _loadMoreFocusNode.dispose();
     for (var node in _categoryFocusNodes) {
       node.dispose();
     }
@@ -148,6 +152,10 @@ class HomeTabState extends State<HomeTab> {
   List<Video> get _currentVideos =>
       _categoryVideos[_selectedCategoryIndex] ?? [];
   bool get _isLoading => _categoryLoading[_selectedCategoryIndex] ?? false;
+
+  int get _currentLimit =>
+      _categoryLimit[_selectedCategoryIndex] ?? SettingsService.listMaxItems;
+  bool get _reachedLimit => _currentVideos.length >= _currentLimit;
 
   /// 从本地缓存加载推荐视频
   List<Video>? _loadCachedVideos() {
@@ -185,6 +193,7 @@ class HomeTabState extends State<HomeTab> {
 
     if (refresh) {
       _categoryPage[categoryIndex] = 1;
+      _categoryLimit.remove(categoryIndex); // 重置加载上限
       _categoryScrollOffset.remove(categoryIndex); // 刷新时清除滚动位置记忆
       // 重建 ScrollController，确保刷新后从顶部开始
       // （jumpTo(0) 不够：loading 指示器会替换 ScrollView，
@@ -282,9 +291,20 @@ class HomeTabState extends State<HomeTab> {
   // ... (省略 _loadMore, _switchCategory 等辅助方法) ...
   void _loadMore() {
     if (_isLoading) return;
+    // 达到上限后停止自动加载，等待用户手动触发
+    if (_currentVideos.length >= _currentLimit) return;
     final page = (_categoryPage[_selectedCategoryIndex] ?? 1) + 1;
     _categoryPage[_selectedCategoryIndex] = page;
     _loadVideosForCategory(_selectedCategoryIndex);
+  }
+
+  /// 用户主动点击"加载更多"时，扩展上限并继续加载
+  void _extendLimit() {
+    setState(() {
+      _categoryLimit[_selectedCategoryIndex] =
+          _currentLimit + SettingsService.listMaxItems;
+    });
+    _loadMore();
   }
 
   void _switchCategory(int index) {
@@ -374,6 +394,71 @@ class HomeTabState extends State<HomeTab> {
     _loadVideosForCategory(_selectedCategoryIndex, refresh: true);
   }
 
+  Widget _buildLoadMoreTile() {
+    return Focus(
+      focusNode: _loadMoreFocusNode,
+      onKeyEvent: (node, event) {
+        if (event is! KeyDownEvent) return KeyEventResult.ignored;
+        if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+          final gridColumns = SettingsService.videoGridColumns;
+          final lastRowStart = (_currentVideos.length ~/ gridColumns) * gridColumns;
+          final targetIndex = lastRowStart < _currentVideos.length ? lastRowStart : _currentVideos.length - 1;
+          _getFocusNode(targetIndex).requestFocus();
+          return KeyEventResult.handled;
+        }
+        if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+          return KeyEventResult.handled;
+        }
+        if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+          widget.sidebarFocusNode?.requestFocus();
+          return KeyEventResult.handled;
+        }
+        if (event.logicalKey == LogicalKeyboardKey.enter ||
+            event.logicalKey == LogicalKeyboardKey.select) {
+          _extendLimit();
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
+      child: Builder(
+        builder: (ctx) {
+          final isFocused = Focus.of(ctx).hasFocus;
+          return GestureDetector(
+            onTap: _extendLimit,
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              decoration: BoxDecoration(
+                color: isFocused
+                    ? SettingsService.themeColor.withValues(alpha: 0.6)
+                    : Colors.white.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.expand_more,
+                    color: isFocused ? Colors.white : Colors.white54,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '已加载 ${_currentVideos.length} 条，按确认键加载更多',
+                    style: TextStyle(
+                      color: isFocused ? Colors.white : Colors.white54,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   void _onVideoTap(Video video) {
     Navigator.of(
       context,
@@ -403,7 +488,7 @@ class HomeTabState extends State<HomeTab> {
                       controller: _scrollController,
                       slivers: [
                         SliverPadding(
-                          padding: const EdgeInsets.fromLTRB(24, 70, 24, 80),
+                          padding: TabStyle.contentPadding,
                           sliver: SliverGrid(
                             gridDelegate:
                                 SliverGridDelegateWithFixedCrossAxisCount(
@@ -418,7 +503,8 @@ class HomeTabState extends State<HomeTab> {
                             ) {
                               final video = _currentVideos[index];
 
-                              if (index == _currentVideos.length - gridColumns) {
+                              if (!_reachedLimit &&
+                                  index == _currentVideos.length - gridColumns) {
                                 _loadMore();
                               }
 
@@ -451,13 +537,15 @@ class HomeTabState extends State<HomeTab> {
                                       : () =>
                                             _categoryFocusNodes[_selectedCategoryIndex]
                                                 .requestFocus(),
-                                  // 严格按列向下移动，最底行阻止焦点离开内容区
+                                  // 严格按列向下移动；最后一行：有"加载更多"时跳转到它，否则阻止
                                   onMoveDown:
                                       (index + gridColumns < _currentVideos.length)
                                       ? () => _getFocusNode(
                                           index + gridColumns,
                                         ).requestFocus()
-                                      : () {},
+                                      : _reachedLimit
+                                          ? () => _loadMoreFocusNode.requestFocus()
+                                          : () {},
                                   onFocus: () {
                                     if (!_scrollController.hasClients) {
                                       return;
@@ -500,6 +588,11 @@ class HomeTabState extends State<HomeTab> {
                             }, childCount: _currentVideos.length),
                           ),
                         ),
+                        // 到达上限后显示"加载更多"提示
+                        if (_reachedLimit)
+                          SliverToBoxAdapter(
+                            child: _buildLoadMoreTile(),
+                          ),
                       ],
                     ),
           ),
@@ -510,10 +603,10 @@ class HomeTabState extends State<HomeTab> {
           top: 0,
           left: 0,
           right: 0,
-          height: 56,
+          height: TabStyle.headerHeight,
           child: Container(
-            color: const Color(0xFF121212),
-            padding: const EdgeInsets.only(left: 20, right: 20, top: 12),
+            color: TabStyle.headerBackgroundColor,
+            padding: TabStyle.headerPadding,
             child: FocusTraversalGroup(
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -546,7 +639,7 @@ class HomeTabState extends State<HomeTab> {
             ),
           ),
         ),
-        const Positioned(top: 10, right: 14, child: TimeDisplay()),
+        const Positioned(top: TabStyle.timeDisplayTop, right: TabStyle.timeDisplayRight, child: TimeDisplay()),
       ],
     );
   }
@@ -622,14 +715,10 @@ class _CategoryTab extends StatelessWidget {
             return GestureDetector(
               onTap: onTap,
               child: Container(
-                padding: const EdgeInsets.fromLTRB(10, 3, 10, 3),
+                padding: TabStyle.tabPadding,
                 decoration: BoxDecoration(
-                  color: f ? SettingsService.themeColor : Colors.transparent,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: f ? Colors.white : Colors.transparent,
-                    width: 2,
-                  ),
+                  color: f ? SettingsService.themeColor.withValues(alpha: 0.6) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(TabStyle.tabBorderRadius),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -642,22 +731,22 @@ class _CategoryTab extends StatelessWidget {
                             : (isSelected
                                   ? SettingsService.themeColor
                                   : Colors.grey),
-                        fontSize: 16,
+                        fontSize: TabStyle.tabFontSize,
                         fontWeight: f || isSelected
                             ? FontWeight.bold
                             : FontWeight.normal,
-                        height: 1.2,
+                        height: TabStyle.tabLineHeight,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: TabStyle.tabUnderlineGap),
                     Container(
-                      height: 3,
-                      width: 20,
+                      height: TabStyle.tabUnderlineHeight,
+                      width: TabStyle.tabUnderlineWidth,
                       decoration: BoxDecoration(
                         color: isSelected
                             ? SettingsService.themeColor
                             : Colors.transparent,
-                        borderRadius: BorderRadius.circular(1.5),
+                        borderRadius: BorderRadius.circular(TabStyle.tabUnderlineRadius),
                       ),
                     ),
                   ],

@@ -21,6 +21,7 @@ class _LoginViewState extends State<LoginView> {
   String? _authCode;
   String _status = 'loading';
   Timer? _pollTimer;
+  bool _loginDone = false;
 
   @override
   void initState() {
@@ -35,6 +36,7 @@ class _LoginViewState extends State<LoginView> {
   }
 
   Future<void> _generateQrCode() async {
+    _loginDone = false;
     setState(() => _status = 'loading');
     final result = await BilibiliApi.generateTvQrCode();
     if (!mounted) return;
@@ -58,16 +60,19 @@ class _LoginViewState extends State<LoginView> {
         timer.cancel();
         return;
       }
+      if (_loginDone) return;
+
       final result = await BilibiliApi.pollTvLogin(_authCode!);
       final status = result['status'] as String?;
 
-      if (!mounted) {
+      if (!mounted || _loginDone) {
         timer.cancel();
         return;
       }
 
       switch (status) {
         case 'success':
+          _loginDone = true;
           timer.cancel();
           // 保存登录凭证
           await AuthService.saveLoginCredentials(

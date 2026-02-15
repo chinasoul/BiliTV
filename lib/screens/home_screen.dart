@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -57,6 +58,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   String _appMem = '';
   String _availMem = '';
   String _totalMem = '';
+  String _cpuUsage = '';
+  int _prevProcessJiffies = 0;
+  DateTime? _prevCpuSampleTime;
 
   // 用于访问各 Tab 状态
   final GlobalKey<SearchTabState> _searchTabKey = GlobalKey<SearchTabState>();
@@ -84,6 +88,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _showMemoryInfo = SettingsService.showMemoryInfo;
     if (_showMemoryInfo) _startMemoryMonitor();
     SettingsService.onShowMemoryInfoChanged = _syncMemorySetting;
+
+    // 根据低内存模式配置图片缓存
+    _applyImageCacheConfig();
+    SettingsService.onHighPerformanceModeChanged = _applyImageCacheConfig;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       FocusManager.instance.highlightStrategy =
@@ -119,8 +127,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         _appMem = '';
         _availMem = '';
         _totalMem = '';
+        _cpuUsage = '';
       });
+      _prevProcessJiffies = 0;
+      _prevCpuSampleTime = null;
     }
+  }
+
+  void _applyImageCacheConfig() {
+    PaintingBinding.instance.imageCache.maximumSize =
+        SettingsService.imageCacheMaxSize;
+    PaintingBinding.instance.imageCache.maximumSizeBytes =
+        SettingsService.imageCacheMaxBytes;
+    // 切换模式时清理超出限制的缓存
+    PaintingBinding.instance.imageCache.clear();
   }
 
   void _startMemoryMonitor() {
@@ -147,11 +167,40 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       final totalMb = (totalKb / 1024).toStringAsFixed(0);
       final availMb = (availKb / 1024).toStringAsFixed(0);
 
+      // CPU 占用: 从 /proc/self/stat 读取 utime + stime（单位为 jiffies）
+      String cpuStr = _cpuUsage;
+      try {
+        final stat = File('/proc/self/stat').readAsStringSync();
+        // comm 字段可能含空格，安全解析：找到最后一个 ')' 后再 split
+        final closeParen = stat.lastIndexOf(')');
+        final fields = stat.substring(closeParen + 2).split(' ');
+        // fields[11] = utime, fields[12] = stime（从 state 字段后第 0 位开始）
+        final utime = int.tryParse(fields[11]) ?? 0;
+        final stime = int.tryParse(fields[12]) ?? 0;
+        final currentJiffies = utime + stime;
+
+        final now = DateTime.now();
+        if (_prevCpuSampleTime != null && _prevProcessJiffies > 0) {
+          final elapsedMs = now.difference(_prevCpuSampleTime!).inMilliseconds;
+          if (elapsedMs > 0) {
+            final deltaJiffies = currentJiffies - _prevProcessJiffies;
+            // 每个 jiffy = 1/100 秒（CLK_TCK = 100）
+            final cpuSeconds = deltaJiffies / 100;
+            final elapsedSeconds = elapsedMs / 1000;
+            final cpuPercent = (cpuSeconds / elapsedSeconds * 100);
+            cpuStr = '${cpuPercent.toStringAsFixed(0)}%';
+          }
+        }
+        _prevProcessJiffies = currentJiffies;
+        _prevCpuSampleTime = now;
+      } catch (_) {}
+
       if (mounted) {
         setState(() {
-          _appMem = '${appMb}M';
-          _availMem = '${availMb}M';
-          _totalMem = '${totalMb}M';
+          _appMem = '占${appMb}M';
+          _availMem = '余${availMb}M';
+          _totalMem = '共${totalMb}M';
+          _cpuUsage = cpuStr;
         });
       }
     } catch (_) {
@@ -163,6 +212,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     SettingsService.onShowMemoryInfoChanged = null;
+    SettingsService.onHighPerformanceModeChanged = null;
     _memoryTimer?.cancel();
     for (var node in _sideBarFocusNodes) {
       node.dispose();
@@ -366,17 +416,22 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     // 实时内存信息（右对齐，需在设置中开启）
                     if (_showMemoryInfo && _appMem.isNotEmpty)
                       Padding(
-                        padding: const EdgeInsets.only(bottom: 4, right: 6, left: 6),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text('占用 $_appMem',
-                              style: const TextStyle(color: Colors.white38, fontSize: 9)),
-                            Text('可用 $_availMem',
-                              style: const TextStyle(color: Colors.white38, fontSize: 9)),
-                            Text('总共 $_totalMem',
-                              style: const TextStyle(color: Colors.white24, fontSize: 9)),
-                          ],
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Text(
+                          [
+                            if (_cpuUsage.isNotEmpty) 'CPU$_cpuUsage',
+                            _appMem,
+                            _availMem,
+                            _totalMem,
+                          ].join('\n'),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.white38,
+                            fontSize: 9,
+                            fontFamily: 'monospace',
+                            fontFeatures: [FontFeature.tabularFigures()],
+                            height: 1.5,
+                          ),
                         ),
                       ),
                     // 设置图标 (底部, index 7)

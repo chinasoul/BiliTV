@@ -1,12 +1,14 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import '../../models/video.dart';
 import '../../services/bilibili_api.dart';
 import '../../services/auth_service.dart';
 import '../../services/settings_service.dart';
+import '../../config/app_style.dart';
 import '../../widgets/tv_video_card.dart';
 import '../../widgets/time_display.dart';
 import '../player/player_screen.dart';
@@ -30,8 +32,10 @@ class DynamicTabState extends State<DynamicTab> {
   final ScrollController _scrollController = ScrollController();
   bool _isLoadingMore = false;
   bool _hasLoaded = false;
+  int _currentLimit = SettingsService.listMaxItems; // 当前加载上限（可被用户扩展）
   // 每个视频卡片的 FocusNode
   final Map<int, FocusNode> _videoFocusNodes = {};
+  final FocusNode _loadMoreFocusNode = FocusNode();
 
   @override
   void initState() {
@@ -65,6 +69,7 @@ class DynamicTabState extends State<DynamicTab> {
   void dispose() {
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
+    _loadMoreFocusNode.dispose();
     // 清理所有视频卡片的 FocusNode
     for (final node in _videoFocusNodes.values) {
       node.dispose();
@@ -112,6 +117,7 @@ class DynamicTabState extends State<DynamicTab> {
         node.dispose();
       }
       _videoFocusNodes.clear();
+      _currentLimit = SettingsService.listMaxItems; // 重置上限
       setState(() {
         _isLoading = true;
         _videos = [];
@@ -214,12 +220,88 @@ class DynamicTabState extends State<DynamicTab> {
     }
   }
 
+  bool get _reachedLimit => _videos.length >= _currentLimit && _hasMore;
+
   Future<void> _loadMore() async {
     if (_isLoadingMore || !_hasMore) return;
-    // 到 60 条后停止加载更多，防止内存无限增长
-    if (_videos.length >= 60) return;
+    // 达到上限后停止自动加载，等待用户手动触发
+    if (_videos.length >= _currentLimit) return;
     setState(() => _isLoadingMore = true);
     await _loadDynamic(refresh: false);
+  }
+
+  /// 用户主动点击"加载更多"时，扩展上限并继续加载
+  void _extendLimit() {
+    setState(() {
+      _currentLimit += SettingsService.listMaxItems;
+    });
+    _loadMore();
+  }
+
+  Widget _buildLoadMoreTile() {
+    return Focus(
+      focusNode: _loadMoreFocusNode,
+      onKeyEvent: (node, event) {
+        if (event is! KeyDownEvent) return KeyEventResult.ignored;
+        if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+          // 返回最后一行最左侧卡片
+          final gridColumns = SettingsService.videoGridColumns;
+          final lastRowStart = (_videos.length ~/ gridColumns) * gridColumns;
+          final targetIndex = lastRowStart < _videos.length ? lastRowStart : _videos.length - 1;
+          _getFocusNode(targetIndex).requestFocus();
+          return KeyEventResult.handled;
+        }
+        if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+          return KeyEventResult.handled; // 阻止向下
+        }
+        if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+          widget.sidebarFocusNode?.requestFocus();
+          return KeyEventResult.handled;
+        }
+        if (event.logicalKey == LogicalKeyboardKey.enter ||
+            event.logicalKey == LogicalKeyboardKey.select) {
+          _extendLimit();
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
+      child: Builder(
+        builder: (ctx) {
+          final isFocused = Focus.of(ctx).hasFocus;
+          return GestureDetector(
+            onTap: _extendLimit,
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              decoration: BoxDecoration(
+                color: isFocused
+                    ? SettingsService.themeColor.withValues(alpha: 0.6)
+                    : Colors.white.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.expand_more,
+                    color: isFocused ? Colors.white : Colors.white54,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '已加载 ${_videos.length} 条，按确认键加载更多',
+                    style: TextStyle(
+                      color: isFocused ? Colors.white : Colors.white54,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   void _onVideoTap(Video video) {
@@ -290,7 +372,7 @@ class DynamicTabState extends State<DynamicTab> {
                     controller: _scrollController,
                     slivers: [
                       SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(24, 56, 24, 80),
+                        padding: TabStyle.contentPadding,
                         sliver: SliverGrid(
                           gridDelegate:
                               SliverGridDelegateWithFixedCrossAxisCount(
@@ -308,6 +390,7 @@ class DynamicTabState extends State<DynamicTab> {
                             // 预取下一页：避免大列数时无法通过下移触发滚动加载
                             if (_hasMore &&
                                 !_isLoadingMore &&
+                                !_reachedLimit &&
                                 index >= _videos.length - gridColumns) {
                               _loadMore();
                             }
@@ -338,12 +421,14 @@ class DynamicTabState extends State<DynamicTab> {
                                         index - gridColumns,
                                       ).requestFocus()
                                     : () {}, // 最顶行为无效输入
-                                // 严格按列向下移动；最后一行用空回调阻止焦点逃逸
+                                // 严格按列向下移动；最后一行：有"加载更多"时跳转到它，否则阻止
                                 onMoveDown: (index + gridColumns < _videos.length)
                                     ? () => _getFocusNode(
                                         index + gridColumns,
                                       ).requestFocus()
-                                    : () {},
+                                    : _reachedLimit
+                                        ? () => _loadMoreFocusNode.requestFocus()
+                                        : () {},
                                 onFocus: () {
                                   if (!_scrollController.hasClients) return;
 
@@ -385,6 +470,11 @@ class DynamicTabState extends State<DynamicTab> {
                           }, childCount: _videos.length),
                         ),
                       ),
+                      // 到达上限后显示"加载更多"提示
+                      if (_reachedLimit)
+                        SliverToBoxAdapter(
+                          child: _buildLoadMoreTile(),
+                        ),
                     ],
                   ),
               ),
@@ -396,26 +486,49 @@ class DynamicTabState extends State<DynamicTab> {
             ],
           ),
         ),
-        // 固定标题
+        // 固定标题 — 与其他 tab 页保持一致的 tab 样式
         Positioned(
           top: 0,
           left: 0,
           right: 0,
+          height: TabStyle.headerHeight,
           child: Container(
-            color: const Color(0xFF121212),
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 10),
-            child: const Text(
-              '关注动态',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
+            color: TabStyle.headerBackgroundColor,
+            padding: TabStyle.headerPadding,
+            child: Row(
+              children: [
+                Container(
+                  padding: TabStyle.tabPadding,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '关注动态',
+                        style: TextStyle(
+                          color: SettingsService.themeColor,
+                          fontSize: TabStyle.tabFontSize,
+                          fontWeight: FontWeight.bold,
+                          height: TabStyle.tabLineHeight,
+                        ),
+                      ),
+                      const SizedBox(height: TabStyle.tabUnderlineGap),
+                      Container(
+                        height: TabStyle.tabUnderlineHeight,
+                        width: TabStyle.tabUnderlineWidth,
+                        decoration: BoxDecoration(
+                          color: SettingsService.themeColor,
+                          borderRadius: BorderRadius.circular(TabStyle.tabUnderlineRadius),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ),
         // 右上角时间
-        const Positioned(top: 10, right: 14, child: TimeDisplay()),
+        const Positioned(top: TabStyle.timeDisplayTop, right: TabStyle.timeDisplayRight, child: TimeDisplay()),
       ],
     );
   }

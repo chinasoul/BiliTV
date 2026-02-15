@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/focus/focus_navigation.dart';
 import 'package:bili_tv_app/services/settings_service.dart';
+import 'package:bili_tv_app/config/app_style.dart';
 
 /// 设置页开关行组件
 ///
@@ -51,27 +52,26 @@ class SettingToggleRow extends StatelessWidget {
         builder: (context) {
           final isFocused = Focus.of(context).hasFocus;
           return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            constraints: const BoxConstraints(minHeight: AppSpacing.settingItemMinHeight),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: AppSpacing.settingItemVerticalPadding),
             decoration: BoxDecoration(
               color: isFocused
                   ? Colors.white.withValues(alpha: 0.1)
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(8),
-              border: isFocused
-                  ? Border.all(color: SettingsService.themeColor, width: 2)
-                  : null,
             ),
             child: Row(
               children: [
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
                         label,
                         style: TextStyle(
                           color: isFocused ? Colors.white : Colors.white70,
-                          fontSize: 16,
+                          fontSize: AppFonts.sizeMD,
                         ),
                       ),
                       if (subtitleWidget != null)
@@ -93,18 +93,23 @@ class SettingToggleRow extends StatelessWidget {
                     ],
                   ),
                 ),
-                Switch(
-                  value: value,
-                  onChanged: onChanged,
-                  activeTrackColor: const Color(
-                    0xFF81C784,
-                  ).withValues(alpha: 0.5),
-                  thumbColor: WidgetStateProperty.resolveWith((states) {
-                    if (states.contains(WidgetState.selected)) {
-                      return SettingsService.themeColor;
-                    }
-                    return Colors.grey;
-                  }),
+                SizedBox(
+                  height: AppSpacing.settingItemRightHeight,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Switch(
+                      value: value,
+                      onChanged: onChanged,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      activeTrackColor: SettingsService.themeColor.withValues(alpha: 0.5),
+                      thumbColor: WidgetStateProperty.resolveWith((states) {
+                        if (states.contains(WidgetState.selected)) {
+                          return SettingsService.themeColor;
+                        }
+                        return Colors.grey;
+                      }),
+                    ),
+                  ),
                 ),
               ],
             ),

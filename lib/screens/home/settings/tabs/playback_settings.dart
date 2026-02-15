@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../services/settings_service.dart';
+import '../../../../config/app_style.dart';
 import '../widgets/setting_toggle_row.dart';
 import '../widgets/setting_dropdown_row.dart';
 
@@ -36,7 +37,7 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
             setState(() {});
           },
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: AppSpacing.settingItemGap),
         SettingToggleRow(
           label: '迷你进度条',
           subtitle: '播放时在屏幕底部显示简约进度条',
@@ -47,7 +48,7 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
             setState(() {});
           },
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: AppSpacing.settingItemGap),
         SettingToggleRow(
           label: '默认隐藏控制栏',
           subtitle: '打开视频时不显示控制栏和进度条',
@@ -58,7 +59,7 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
             setState(() {});
           },
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: AppSpacing.settingItemGap),
         SettingToggleRow(
           label: '快进预览模式',
           subtitle: '快进快退时显示预览缩略图，按确定跳转',
@@ -69,7 +70,7 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
             setState(() {});
           },
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: AppSpacing.settingItemGap),
         SettingDropdownRow<VideoCodec>(
           label: '视频解码器',
           subtitle: 'H.264/HEVC/AV1 都可试；卡顿时换一种试试',

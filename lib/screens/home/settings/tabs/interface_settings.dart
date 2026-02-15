@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../services/settings_service.dart';
+import '../../../../config/app_style.dart';
 import '../../../../core/focus/focus_navigation.dart';
 import '../widgets/setting_action_row.dart';
 import '../widgets/setting_toggle_row.dart';
@@ -118,16 +119,16 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
       children: [
         // 聚焦即切换
         SettingToggleRow(
-          label: '聚焦即切换',
+          label: '标签页选中即切换',
           subtitleWidget: Text.rich(
             TextSpan(
               children: [
                 const TextSpan(
-                  text: '开启后移动焦点立刻切换标签页，关闭则需按确认键。',
+                  text: '焦点移动即切换页面，',
                   style: TextStyle(color: Colors.white38, fontSize: 12),
                 ),
                 TextSpan(
-                  text: '开启可能导致低配设备卡顿',
+                  text: '低内存设备建议关闭',
                   style: TextStyle(
                     color: Colors.amber.shade300,
                     fontSize: 12,
@@ -136,6 +137,8 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
                 ),
               ],
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           value: SettingsService.focusSwitchTab,
           autofocus: true,
@@ -147,7 +150,41 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
             setState(() {});
           },
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: AppSpacing.settingItemGap),
+        // 高性能模式
+        SettingToggleRow(
+          label: '高性能模式',
+          subtitleWidget: Text.rich(
+            TextSpan(
+              children: [
+                const TextSpan(
+                  text: '增加缓存和列表容量，',
+                  style: TextStyle(color: Colors.white38, fontSize: 12),
+                ),
+                TextSpan(
+                  text: '低内存设备建议关闭',
+                  style: TextStyle(
+                    color: Colors.amber.shade300,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          value: SettingsService.highPerformanceMode,
+          autofocus: false,
+          isFirst: false,
+          onMoveUp: null,
+          sidebarFocusNode: widget.sidebarFocusNode,
+          onChanged: (value) async {
+            await SettingsService.setHighPerformanceMode(value);
+            setState(() {});
+          },
+        ),
+        const SizedBox(height: AppSpacing.settingItemGap),
         // 启动时自动刷新首页
         SettingToggleRow(
           label: '启动时自动刷新首页',
@@ -162,7 +199,7 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
             setState(() {});
           },
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: AppSpacing.settingItemGap),
         // 每行视频列数
         SettingActionRow(
           label: '每行视频列数',
@@ -180,7 +217,7 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
             setState(() => _videoGridColumns = next);
           },
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: AppSpacing.settingItemGap),
         // 播放器时间显示开关
         SettingToggleRow(
           label: '总是显示时间',
@@ -194,7 +231,7 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
             setState(() {});
           },
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: AppSpacing.settingItemGap),
         // 字体大小
         SettingActionRow(
           label: '字体大小',
@@ -215,12 +252,12 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
             setState(() => _fontScale = next);
           },
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: AppSpacing.settingItemGap),
         // 主题色
         Padding(
-          padding: const EdgeInsets.only(bottom: 8),
+          padding: AppSpacing.settingSectionTitlePadding,
           child: Text(
-            '主题色 (需重启APP完全生效)',
+            '主题色',
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.7),
               fontSize: 14,
@@ -231,6 +268,7 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
           height: 44,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.only(left: 14), // 颜色选项与标题对齐
             itemCount: SettingsService.themeColorOptions.length,
             separatorBuilder: (_, __) => const SizedBox(width: 10),
             itemBuilder: (context, index) {
@@ -297,7 +335,7 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
 
         // 分区开关
         Padding(
-          padding: const EdgeInsets.only(bottom: 8),
+          padding: AppSpacing.settingSectionTitlePadding,
           child: Row(
             children: [
               Text(
@@ -388,7 +426,7 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
         const SizedBox(height: 12),
         // 分区排序标题
         Padding(
-          padding: const EdgeInsets.only(bottom: 8),
+          padding: AppSpacing.settingSectionTitlePadding,
           child: Row(
             children: [
               Text(
@@ -557,9 +595,7 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
                                   ? Colors.white.withValues(alpha: 0.2)
                                   : Colors.white.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(20),
-                              border: focused
-                                  ? Border.all(color: Colors.white, width: 2)
-                                  : null,
+                              border: null,
                             ),
                             child: Text(
                               label,
@@ -581,7 +617,7 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
         // ==================== 直播分区设置 ====================
         // 直播分区开关
         Padding(
-          padding: const EdgeInsets.only(bottom: 8),
+          padding: AppSpacing.settingSectionTitlePadding,
           child: Row(
             children: [
               Text(
@@ -672,7 +708,7 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
         const SizedBox(height: 12),
         // 直播分区排序标题
         Padding(
-          padding: const EdgeInsets.only(bottom: 8),
+          padding: AppSpacing.settingSectionTitlePadding,
           child: Row(
             children: [
               Text(

@@ -142,8 +142,8 @@ class _SearchResultsViewState extends State<SearchResultsView> {
 
   Future<void> _loadMore() async {
     if (_isLoadingMore || !_hasMore) return;
-    // 到 60 条后停止加载更多，防止内存无限增长
-    if (_searchResults.length >= 60) return;
+    // 达到上限后停止加载更多，防止内存无限增长
+    if (_searchResults.length >= SettingsService.listMaxItems) return;
     setState(() => _isLoadingMore = true);
     _currentPage++;
     await _searchVideos(reset: false);

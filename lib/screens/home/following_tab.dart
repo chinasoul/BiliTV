@@ -10,6 +10,7 @@ import '../../models/video.dart';
 import '../../services/auth_service.dart';
 import '../../services/bilibili_api.dart';
 import '../../services/settings_service.dart';
+import '../../config/app_style.dart';
 import '../../widgets/time_display.dart';
 import '../../utils/image_url_utils.dart';
 import '../../widgets/tv_video_card.dart';
@@ -601,22 +602,19 @@ class FollowingTabState extends State<FollowingTab> {
     const labels = ['关注列表', '收藏夹', '稍后再看'];
     return Row(
       children: List.generate(labels.length, (index) {
-        return Padding(
-          padding: const EdgeInsets.only(right: 16),
-          child: _TopTab(
-            label: labels[index],
-            focusNode: _tabFocusNodes[index],
-            isSelected: _selectedTabIndex == index,
-            onFocus: () => _switchTab(index, refreshIfSame: false),
-            onTap: () => _switchTab(index, refreshIfSame: true),
-            onMoveLeft: index == 0
-                ? () => widget.sidebarFocusNode?.requestFocus()
-                : null,
-            // 最后一项向右循环到第一项
-            onMoveRight: index == labels.length - 1
-                ? () => _tabFocusNodes[0].requestFocus()
-                : null,
-          ),
+        return _TopTab(
+          label: labels[index],
+          focusNode: _tabFocusNodes[index],
+          isSelected: _selectedTabIndex == index,
+          onFocus: () => _switchTab(index, refreshIfSame: false),
+          onTap: () => _switchTab(index, refreshIfSame: true),
+          onMoveLeft: index == 0
+              ? () => widget.sidebarFocusNode?.requestFocus()
+              : null,
+          // 最后一项向右循环到第一项
+          onMoveRight: index == labels.length - 1
+              ? () => _tabFocusNodes[0].requestFocus()
+              : null,
         );
       }),
     );
@@ -740,7 +738,7 @@ class FollowingTabState extends State<FollowingTab> {
       controller: _followingScrollController,
       slivers: [
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(24, 60, 24, 80),
+          padding: TabStyle.contentPadding,
           sliver: SliverGrid(
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 4,
@@ -908,18 +906,22 @@ class FollowingTabState extends State<FollowingTab> {
           left: 0,
           right: 0,
           child: Container(
-            color: const Color(0xFF121212),
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+            color: TabStyle.headerBackgroundColor,
+            padding: TabStyle.headerPadding,
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildTopTabs(),
+                SizedBox(
+                  height: TabStyle.headerHeight - 12, // 减去 top padding
+                  child: _buildTopTabs(),
+                ),
                 _buildFolderTabs(),
               ],
             ),
           ),
         ),
-        const Positioned(top: 10, right: 14, child: TimeDisplay()),
+        const Positioned(top: TabStyle.timeDisplayTop, right: TabStyle.timeDisplayRight, child: TimeDisplay()),
       ],
     );
   }
@@ -974,26 +976,39 @@ class _TopTab extends StatelessWidget {
           return GestureDetector(
             onTap: onTap,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              padding: TabStyle.tabPadding,
               decoration: BoxDecoration(
-                color: focused ? SettingsService.themeColor : Colors.transparent,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: focused ? Colors.white : Colors.transparent,
-                  width: 2,
-                ),
+                color: focused ? SettingsService.themeColor.withValues(alpha: 0.6) : Colors.transparent,
+                borderRadius: BorderRadius.circular(TabStyle.tabBorderRadius),
               ),
-              child: Text(
-                label,
-                style: TextStyle(
-                  color: focused
-                      ? Colors.white
-                      : (isSelected ? SettingsService.themeColor : Colors.white70),
-                  fontSize: 16,
-                  fontWeight: focused || isSelected
-                      ? FontWeight.bold
-                      : FontWeight.normal,
-                ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: focused
+                          ? Colors.white
+                          : (isSelected ? SettingsService.themeColor : Colors.white70),
+                      fontSize: TabStyle.tabFontSize,
+                      fontWeight: focused || isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                      height: TabStyle.tabLineHeight,
+                    ),
+                  ),
+                  const SizedBox(height: TabStyle.tabUnderlineGap),
+                  Container(
+                    height: TabStyle.tabUnderlineHeight,
+                    width: TabStyle.tabUnderlineWidth,
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? SettingsService.themeColor
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(TabStyle.tabUnderlineRadius),
+                    ),
+                  ),
+                ],
               ),
             ),
           );
@@ -1061,14 +1076,11 @@ class _FolderTab extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: focused ? SettingsService.themeColor : Colors.white10,
+                color: focused ? SettingsService.themeColor.withValues(alpha: 0.6) : Colors.white10,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: focused
-                      ? Colors.white
-                      : (isSelected ? SettingsService.themeColor : Colors.transparent),
-                  width: focused ? 1.5 : 1,
-                ),
+                border: isSelected && !focused
+                    ? Border.all(color: SettingsService.themeColor, width: 1)
+                    : null,
               ),
               child: Text(
                 label,
@@ -1152,9 +1164,9 @@ class _FollowingUserCard extends StatelessWidget {
             duration: const Duration(milliseconds: 120),
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             decoration: BoxDecoration(
-              color: focused ? SettingsService.themeColor : Colors.white10,
+              color: focused ? SettingsService.themeColor.withValues(alpha: 0.6) : Colors.white10,
               borderRadius: BorderRadius.circular(10),
-              border: focused ? Border.all(color: Colors.white, width: 2) : null,
+              border: null,
             ),
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,

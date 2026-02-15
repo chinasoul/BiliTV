@@ -10,6 +10,7 @@ import 'tabs/about_settings.dart';
 import 'tabs/device_info_settings.dart';
 import '../../../widgets/time_display.dart';
 import 'package:bili_tv_app/services/settings_service.dart';
+import 'package:bili_tv_app/config/app_style.dart';
 
 /// 设置分类枚举
 enum SettingsCategory {
@@ -83,76 +84,70 @@ class SettingsViewState extends State<SettingsView> {
     VoidCallback? onMoveLeft,
     VoidCallback? onMoveRight,
   }) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 16),
-      child: Focus(
-        focusNode: focusNode,
-        onFocusChange: (f) => f ? onTap() : null,
-        onKeyEvent: (node, event) {
-          if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    return Focus(
+      focusNode: focusNode,
+      onFocusChange: (f) => f ? onTap() : null,
+      onKeyEvent: (node, event) {
+        if (event is! KeyDownEvent) return KeyEventResult.ignored;
 
-          if (event.logicalKey == LogicalKeyboardKey.arrowLeft &&
-              onMoveLeft != null) {
-            onMoveLeft();
-            return KeyEventResult.handled;
-          }
-          if (event.logicalKey == LogicalKeyboardKey.arrowRight &&
-              onMoveRight != null) {
-            onMoveRight();
-            return KeyEventResult.handled;
-          }
-          // 设置页顶部，阻止向上导航
-          if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-            return KeyEventResult.handled;
-          }
-          return KeyEventResult.ignored;
-        },
-        child: Builder(
-          builder: (ctx) {
-            final isFocused = Focus.of(ctx).hasFocus;
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: isFocused ? SettingsService.themeColor : Colors.transparent,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: isFocused ? Colors.white : Colors.transparent,
-                  width: 2,
+        if (event.logicalKey == LogicalKeyboardKey.arrowLeft &&
+            onMoveLeft != null) {
+          onMoveLeft();
+          return KeyEventResult.handled;
+        }
+        if (event.logicalKey == LogicalKeyboardKey.arrowRight &&
+            onMoveRight != null) {
+          onMoveRight();
+          return KeyEventResult.handled;
+        }
+        // 设置页顶部，阻止向上导航
+        if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
+      child: Builder(
+        builder: (ctx) {
+          final isFocused = Focus.of(ctx).hasFocus;
+          return Container(
+            padding: TabStyle.tabPadding,
+            decoration: BoxDecoration(
+              color: isFocused ? SettingsService.themeColor.withValues(alpha: 0.6) : Colors.transparent,
+              borderRadius: BorderRadius.circular(TabStyle.tabBorderRadius),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: isFocused
+                        ? Colors.white
+                        : (isSelected
+                              ? SettingsService.themeColor
+                              : Colors.grey),
+                    fontSize: TabStyle.tabFontSize,
+                    fontWeight: isFocused || isSelected
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                    height: TabStyle.tabLineHeight,
+                  ),
                 ),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      color: isFocused
-                          ? Colors.white
-                          : (isSelected
-                                ? SettingsService.themeColor
-                                : Colors.grey),
-                      fontSize: 15,
-                      fontWeight: isFocused || isSelected
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                    ),
+                const SizedBox(height: TabStyle.tabUnderlineGap),
+                Container(
+                  height: TabStyle.tabUnderlineHeight,
+                  width: TabStyle.tabUnderlineWidth,
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? SettingsService.themeColor
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(TabStyle.tabUnderlineRadius),
                   ),
-                  const SizedBox(height: 4),
-                  Container(
-                    height: 3,
-                    width: 24,
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? SettingsService.themeColor
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(1.5),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -166,26 +161,30 @@ class SettingsViewState extends State<SettingsView> {
     }
 
     return Stack(
+      clipBehavior: Clip.none,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 设置标题
-            Container(
-              padding: const EdgeInsets.fromLTRB(40, 30, 40, 20),
-              child: const Text(
-                '设置',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+        // 设置内容区域 - IndexedStack 保持各 tab 状态，避免切换时重复加载
+        Positioned.fill(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 60),
+            child: IndexedStack(
+              index: _selectedCategoryIndex,
+              children: _buildAllContents(moveToCurrentTab),
             ),
+          ),
+        ),
 
-            // 设置分类标签栏
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 40),
+        // 设置分类标签栏（固定高度，与其他 tab 对齐）
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          height: TabStyle.headerHeight,
+          child: Container(
+            color: TabStyle.headerBackgroundColor,
+            padding: TabStyle.headerPadding,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
               child: Row(
                 children: List.generate(_visibleCategories.length, (
                   index,
@@ -208,21 +207,11 @@ class SettingsViewState extends State<SettingsView> {
                 }),
               ),
             ),
-
-            const SizedBox(height: 20),
-
-            // 设置内容区域 - IndexedStack 保持各 tab 状态，避免切换时重复加载
-            Expanded(
-              child: IndexedStack(
-                index: _selectedCategoryIndex,
-                children: _buildAllContents(moveToCurrentTab),
-              ),
-            ),
-          ],
+          ),
         ),
 
         // 常驻时间显示 (与主界面位置保持一致)
-        const Positioned(top: 10, right: 14, child: TimeDisplay()),
+        const Positioned(top: TabStyle.timeDisplayTop, right: TabStyle.timeDisplayRight, child: TimeDisplay()),
       ],
     );
   }
@@ -231,7 +220,7 @@ class SettingsViewState extends State<SettingsView> {
     return _visibleCategories.map((category) {
       final content = _buildContentForCategory(category, moveToCurrentTab);
       return SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 40),
+        padding: AppSpacing.settingContentPadding,
         child: content,
       );
     }).toList();

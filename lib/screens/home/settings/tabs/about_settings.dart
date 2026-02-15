@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import '../../../../services/update_service.dart';
 import '../../../../services/settings_service.dart';
+import '../../../../config/app_style.dart';
 import '../widgets/setting_action_row.dart';
 import '../widgets/setting_dropdown_row.dart';
 
@@ -107,7 +108,7 @@ class _AboutSettingsState extends State<AboutSettings> {
           sidebarFocusNode: widget.sidebarFocusNode,
           onTap: _isCheckingUpdate ? null : _checkForUpdate,
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: AppSpacing.settingItemGap),
         SettingDropdownRow<int>(
           label: '自动检查更新',
           subtitle: _autoCheckInterval > 0

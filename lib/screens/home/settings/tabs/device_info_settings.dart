@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../services/device_info_service.dart';
+import '../../../../config/app_style.dart';
 import '../widgets/setting_action_row.dart';
 import 'package:bili_tv_app/services/settings_service.dart';
 
@@ -110,8 +111,9 @@ class _DeviceInfoSettingsState extends State<DeviceInfoSettings> {
           final focused = Focus.of(ctx).hasFocus;
           return Container(
             width: double.infinity,
-            margin: const EdgeInsets.only(bottom: 10),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            constraints: const BoxConstraints(minHeight: AppSpacing.settingItemMinHeight),
+            margin: const EdgeInsets.only(bottom: AppSpacing.settingItemGap),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: AppSpacing.settingItemVerticalPadding),
             decoration: BoxDecoration(
               color: focused
                   ? Colors.white.withValues(alpha: 0.12)
@@ -166,7 +168,7 @@ class _DeviceInfoSettingsState extends State<DeviceInfoSettings> {
           sidebarFocusNode: widget.sidebarFocusNode,
           onTap: _isLoading ? null : _loadDeviceInfo,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.settingItemGap),
         _buildInfoItem(0, '平台', _valueOf('platform')),
         _buildInfoItem(
           1,

@@ -18,19 +18,25 @@ enum VideoCodec {
   const VideoCodec(this.label, this.prefix);
 }
 
-/// 自定义缓存管理器 - 限制 200MB
+/// 自定义缓存管理器
 class BiliCacheManager {
   static const key = 'biliTvCache';
   static CacheManager? _instance;
+  static int _cachedMaxObjects = 0;
 
   static CacheManager get instance {
-    _instance ??= CacheManager(
-      Config(
-        key,
-        stalePeriod: const Duration(days: 3), // 3天过期
-        maxNrOfCacheObjects: 200, // 最多200个缓存对象，TV内存有限
-      ),
-    );
+    final maxObjects = SettingsService.diskCacheMaxObjects;
+    // 性能模式切换时重建 CacheManager
+    if (_instance == null || _cachedMaxObjects != maxObjects) {
+      _cachedMaxObjects = maxObjects;
+      _instance = CacheManager(
+        Config(
+          key,
+          stalePeriod: const Duration(days: 3),
+          maxNrOfCacheObjects: maxObjects,
+        ),
+      );
+    }
     return _instance!;
   }
 }
@@ -706,6 +712,37 @@ class SettingsService {
     await init();
     await _prefs!.setBool(_focusSwitchTabKey, value);
   }
+
+  // ==================== 高性能模式 ====================
+  static const String _highPerformanceModeKey = 'high_performance_mode';
+
+  /// 高性能模式变更回调（需要重新配置图片缓存等）
+  static VoidCallback? onHighPerformanceModeChanged;
+
+  /// 是否开启高性能模式（默认开启；关闭 = 省内存）
+  static bool get highPerformanceMode {
+    return _prefs?.getBool(_highPerformanceModeKey) ?? true;
+  }
+
+  /// 设置高性能模式
+  static Future<void> setHighPerformanceMode(bool value) async {
+    await init();
+    await _prefs!.setBool(_highPerformanceModeKey, value);
+    onHighPerformanceModeChanged?.call();
+  }
+
+  /// 图片解码缓存：最大张数
+  static int get imageCacheMaxSize => highPerformanceMode ? 60 : 30;
+
+  /// 图片解码缓存：最大字节数
+  static int get imageCacheMaxBytes =>
+      highPerformanceMode ? 30 * 1024 * 1024 : 15 * 1024 * 1024;
+
+  /// 列表加载上限
+  static int get listMaxItems => highPerformanceMode ? 200 : 60;
+
+  /// 磁盘缓存最大对象数
+  static int get diskCacheMaxObjects => highPerformanceMode ? 200 : 100;
 
   // ==================== 侧边栏内存显示 ====================
   static const String _showMemoryInfoKey = 'show_memory_info';
