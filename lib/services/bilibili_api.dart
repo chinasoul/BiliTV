@@ -7,6 +7,7 @@
 /// - video_api.dart: 视频列表、搜索
 /// - playback_api.dart: 播放、弹幕、进度
 /// - interaction_api.dart: 点赞、投币、收藏、关注
+/// - comment_api.dart: 评论区
 library;
 
 // 导出子模块，供外部直接使用
@@ -17,6 +18,8 @@ import 'api/video_api.dart';
 import 'api/playback_api.dart';
 import 'api/interaction_api.dart';
 import 'api/videoshot_api.dart';
+import 'api/comment_api.dart';
+import '../models/comment.dart';
 import 'settings_service.dart' show VideoCodec;
 import '../models/favorite_folder.dart';
 import '../models/video.dart';
@@ -205,4 +208,20 @@ class BilibiliApi {
     int page = 1,
     int pageSize = 30,
   }) => InteractionApi.getFollowingUsers(page: page, pageSize: pageSize);
+
+  // ========== 评论相关 ==========
+
+  /// 获取视频评论
+  static Future<CommentResult> getComments({
+    required int oid,
+    int mode = 3,
+    String? nextOffset,
+  }) => CommentApi.getComments(oid: oid, mode: mode, nextOffset: nextOffset);
+
+  /// 获取评论回复 (楼中楼)
+  static Future<List<Comment>> getReplies({
+    required int oid,
+    required int root,
+    int page = 1,
+  }) => CommentApi.getReplies(oid: oid, root: root, page: page);
 }

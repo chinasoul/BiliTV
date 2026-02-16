@@ -240,6 +240,13 @@ class ControlsOverlay extends StatelessWidget {
                       icon: Icons.thumb_up_outlined,
                       onTap: () {},
                     ),
+                    const SizedBox(width: 24),
+                    // 评论
+                    _buildControlButton(
+                      index: 6,
+                      icon: Icons.comment_outlined,
+                      onTap: () {},
+                    ),
                     const Spacer(),
                     // 在线人数 (纯文字)
                     if (onlineCount != null && onlineCount!.isNotEmpty)

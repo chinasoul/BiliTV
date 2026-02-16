@@ -14,6 +14,7 @@ import 'widgets/pause_indicator.dart';
 import 'widgets/action_buttons.dart';
 import 'widgets/up_panel.dart';
 import 'widgets/related_panel.dart';
+import 'widgets/comment_panel.dart';
 import 'widgets/mini_progress_bar.dart';
 import 'widgets/seek_preview_thumbnail.dart';
 import 'widgets/next_episode_preview.dart';
@@ -371,6 +372,19 @@ class _PlayerScreenState extends State<PlayerScreen>
                   onClose: () {
                     setState(() {
                       showUpPanel = false;
+                      showControls = true;
+                    });
+                    startHideTimer();
+                  },
+                ),
+
+              // 评论面板
+              if (showCommentPanel && aid != null)
+                CommentPanel(
+                  aid: aid!,
+                  onClose: () {
+                    setState(() {
+                      showCommentPanel = false;
                       showControls = true;
                     });
                     startHideTimer();

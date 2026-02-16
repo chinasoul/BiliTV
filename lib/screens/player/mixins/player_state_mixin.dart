@@ -100,6 +100,7 @@ mixin PlayerStateMixin on State<PlayerScreen> {
   bool showUpPanel = false;
   bool showRelatedPanel = false;
   bool showActionButtons = false;
+  bool showCommentPanel = false;
 
   // 进度条聚焦模式
   bool isProgressBarFocused = false;

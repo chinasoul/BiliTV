@@ -61,6 +61,16 @@ mixin PlayerEventMixin on PlayerActionMixin {
       return;
     }
 
+    // 关闭评论面板
+    if (showCommentPanel) {
+      setState(() {
+        showCommentPanel = false;
+        showControls = true;
+      });
+      startHideTimer();
+      return;
+    }
+
     if (showActionButtons) {
       setState(() => showActionButtons = false);
       startHideTimer();
@@ -189,6 +199,20 @@ mixin PlayerEventMixin on PlayerActionMixin {
       return KeyEventResult.ignored;
     }
 
+    // 评论面板返回处理
+    if (showCommentPanel) {
+      if (PlayerFocusHandler.isBackKey(event) && event is KeyDownEvent) {
+        backKeyJustHandled = true;
+        setState(() {
+          showCommentPanel = false;
+          showControls = true;
+        });
+        startHideTimer();
+        return KeyEventResult.handled;
+      }
+      return KeyEventResult.ignored;
+    }
+
     // 点赞/投币/收藏按钮返回处理
     if (showActionButtons) {
       if (PlayerFocusHandler.isBackKey(event) && event is KeyDownEvent) {
@@ -217,7 +241,7 @@ mixin PlayerEventMixin on PlayerActionMixin {
     final nav = PlayerFocusHandler.handleControlsNavigation(
       event,
       currentIndex: focusedButtonIndex,
-      maxIndex: 5,
+      maxIndex: 6,
       onSelect: _activateControlButton,
       onHide: () => setState(() => showControls = false),
     );
@@ -276,6 +300,12 @@ mixin PlayerEventMixin on PlayerActionMixin {
       case 5: // 点赞/投币/收藏
         setState(() {
           showActionButtons = !showActionButtons;
+        });
+        break;
+      case 6: // 评论
+        setState(() {
+          showCommentPanel = true;
+          hideTimer?.cancel();
         });
         break;
     }
