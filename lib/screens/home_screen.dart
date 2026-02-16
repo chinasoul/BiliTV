@@ -1,6 +1,3 @@
-import 'dart:async';
-import 'dart:io';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -35,7 +32,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   DateTime? _lastBackPressed;
   DateTime? _backFromSearchHandled; // 防止搜索键盘返回键重复处理
 
-  // 主导航区图标 (0~6)
+  // 主导航区图标 (0~7)，设置图标移到搜索后面
   static const List<String> _mainTabIcons = [
     'assets/icons/home.svg', // 0: 首页
     'assets/icons/dynamic.svg', // 1: 动态
@@ -44,23 +41,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     'assets/icons/live.svg', // 4: 直播
     'assets/icons/user.svg', // 5: 我
     'assets/icons/search.svg', // 6: 搜索
+    'assets/icons/settings.svg', // 7: 设置
   ];
 
-  // 设置图标 (底部，index 7)
-  static const String _settingsIcon = 'assets/icons/settings.svg';
-
   static const int _totalTabs = 8; // 0~7
-  static const int _settingsIndex = 7;
 
   late List<FocusNode> _sideBarFocusNodes;
-  Timer? _memoryTimer;
-  bool _showMemoryInfo = false;
-  String _appMem = '';
-  String _availMem = '';
-  String _totalMem = '';
-  String _cpuUsage = '';
-  int _prevProcessJiffies = 0;
-  DateTime? _prevCpuSampleTime;
 
   // 用于访问各 Tab 状态
   final GlobalKey<SearchTabState> _searchTabKey = GlobalKey<SearchTabState>();
@@ -81,10 +67,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _sideBarFocusNodes = List.generate(_totalTabs, (index) => FocusNode());
-
-    _showMemoryInfo = SettingsService.showMemoryInfo;
-    if (_showMemoryInfo) _startMemoryMonitor();
-    SettingsService.onShowMemoryInfoChanged = _syncMemorySetting;
 
     // 根据低内存模式配置图片缓存
     _applyImageCacheConfig();
@@ -111,26 +93,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  void _syncMemorySetting() {
-    final enabled = SettingsService.showMemoryInfo;
-    if (enabled == _showMemoryInfo) return;
-    _showMemoryInfo = enabled;
-    if (enabled) {
-      _startMemoryMonitor();
-    } else {
-      _memoryTimer?.cancel();
-      _memoryTimer = null;
-      setState(() {
-        _appMem = '';
-        _availMem = '';
-        _totalMem = '';
-        _cpuUsage = '';
-      });
-      _prevProcessJiffies = 0;
-      _prevCpuSampleTime = null;
-    }
-  }
-
   void _applyImageCacheConfig() {
     PaintingBinding.instance.imageCache.maximumSize =
         SettingsService.imageCacheMaxSize;
@@ -140,77 +102,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     PaintingBinding.instance.imageCache.clear();
   }
 
-  void _startMemoryMonitor() {
-    _updateMemory();
-    _memoryTimer = Timer.periodic(
-      const Duration(seconds: 1),
-      (_) => _updateMemory(),
-    );
-  }
-
-  void _updateMemory() {
-    try {
-      // App 占用: 从 /proc/self/statm 读取 RSS（第2个字段，单位为页）
-      final statm = File('/proc/self/statm').readAsStringSync();
-      final pages = int.tryParse(statm.split(' ')[1]) ?? 0;
-      final appMb = (pages * 4096 / (1024 * 1024)).toStringAsFixed(0);
-
-      // 系统总内存 / 可用内存: 从 /proc/meminfo 读取
-      final meminfo = File('/proc/meminfo').readAsStringSync();
-      final totalMatch = RegExp(r'MemTotal:\s+(\d+)').firstMatch(meminfo);
-      final availMatch = RegExp(r'MemAvailable:\s+(\d+)').firstMatch(meminfo);
-      final totalKb = int.tryParse(totalMatch?.group(1) ?? '') ?? 0;
-      final availKb = int.tryParse(availMatch?.group(1) ?? '') ?? 0;
-      final totalMb = (totalKb / 1024).toStringAsFixed(0);
-      final availMb = (availKb / 1024).toStringAsFixed(0);
-
-      // CPU 占用: 从 /proc/self/stat 读取 utime + stime（单位为 jiffies）
-      String cpuStr = _cpuUsage;
-      try {
-        final stat = File('/proc/self/stat').readAsStringSync();
-        // comm 字段可能含空格，安全解析：找到最后一个 ')' 后再 split
-        final closeParen = stat.lastIndexOf(')');
-        final fields = stat.substring(closeParen + 2).split(' ');
-        // fields[11] = utime, fields[12] = stime（从 state 字段后第 0 位开始）
-        final utime = int.tryParse(fields[11]) ?? 0;
-        final stime = int.tryParse(fields[12]) ?? 0;
-        final currentJiffies = utime + stime;
-
-        final now = DateTime.now();
-        if (_prevCpuSampleTime != null && _prevProcessJiffies > 0) {
-          final elapsedMs = now.difference(_prevCpuSampleTime!).inMilliseconds;
-          if (elapsedMs > 0) {
-            final deltaJiffies = currentJiffies - _prevProcessJiffies;
-            // 每个 jiffy = 1/100 秒（CLK_TCK = 100）
-            final cpuSeconds = deltaJiffies / 100;
-            final elapsedSeconds = elapsedMs / 1000;
-            final cpuPercent = (cpuSeconds / elapsedSeconds * 100);
-            cpuStr = '${cpuPercent.toStringAsFixed(0)}%';
-          }
-        }
-        _prevProcessJiffies = currentJiffies;
-        _prevCpuSampleTime = now;
-      } catch (_) {}
-
-      if (mounted) {
-        setState(() {
-          _appMem = '占${appMb}M';
-          _availMem = '余${availMb}M';
-          _totalMem = '共${totalMb}M';
-          _cpuUsage = cpuStr;
-        });
-      }
-    } catch (_) {
-      // 非 Linux 系统忽略
-    }
-  }
-
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    SettingsService.onShowMemoryInfoChanged = null;
     SettingsService.onHighPerformanceModeChanged = null;
-    _memoryTimer?.cancel();
     for (var node in _sideBarFocusNodes) {
       node.dispose();
     }
@@ -253,9 +148,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       return;
     }
 
-    // 切换 tab 时同步内存显示设置
-    _syncMemorySetting();
-
     // 普通模式 / 聚焦即切换模式 均通过确认键切换 tab
     _visitedTabs.add(index);
     setState(() => _selectedTabIndex = index);
@@ -289,8 +181,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (currentIndex > 0) {
       _sideBarFocusNodes[currentIndex - 1].requestFocus();
     } else {
-      // 从顶部(0)循环到底部(设置)
-      _sideBarFocusNodes[_settingsIndex].requestFocus();
+      // 从顶部(0)循环到底部(设置，index 7)
+      _sideBarFocusNodes[_totalTabs - 1].requestFocus();
     }
   }
 
@@ -321,7 +213,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (index == 5 && AuthService.isLoggedIn) {
       return null; // 个人资料页不需要特殊右键导航
     }
-    if (index == _settingsIndex) {
+    // 设置页 (index 7)
+    if (index == 7) {
       return () => _settingsKey.currentState?.focusFirstCategory();
     }
     return null;
@@ -399,7 +292,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   children: [
                     // 上部区域微调，让首页图标与推荐标签行平齐
                     const SizedBox(height: 2),
-                    // 主导航图标 (0~6)
+                    // 主导航图标 (0~7)，设置按钮已移到搜索后面
                     ...List.generate(_mainTabIcons.length, (index) {
                       final isUserTab = index == 5;
                       final avatarUrl = isUserTab && AuthService.isLoggedIn
@@ -412,7 +305,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         isSelected: _selectedTabIndex == index,
                         focusNode: _sideBarFocusNodes[index],
                         onFocus: () {
-                          _syncMemorySetting();
                           // 聚焦即切换：移动焦点立刻切换内容
                           // 普通模式：只高亮图标，不切换内容
                           if (SettingsService.focusSwitchTab) {
@@ -427,46 +319,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         onMoveRight: _getMoveRightHandler(index),
                       );
                     }),
-                    // 弹性间距，把设置推到底部
                     const Spacer(),
-                    // 实时内存信息（右对齐，需在设置中开启）
-                    if (_showMemoryInfo && _appMem.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: Text(
-                          [
-                            if (_cpuUsage.isNotEmpty) 'CPU$_cpuUsage',
-                            _appMem,
-                            _availMem,
-                            _totalMem,
-                          ].join('\n'),
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Colors.white38,
-                            fontSize: 9,
-                            fontFamily: 'monospace',
-                            fontFeatures: [FontFeature.tabularFigures()],
-                            height: 1.5,
-                          ),
-                        ),
-                      ),
-                    // 设置图标 (底部, index 7)
-                    TvFocusableItem(
-                      iconPath: _settingsIcon,
-                      isSelected: _selectedTabIndex == _settingsIndex,
-                      focusNode: _sideBarFocusNodes[_settingsIndex],
-                      onFocus: () {
-                        if (SettingsService.focusSwitchTab) {
-                          _visitedTabs.add(_settingsIndex);
-                          setState(() => _selectedTabIndex = _settingsIndex);
-                        }
-                      },
-                      onTap: () => _handleSideBarTap(_settingsIndex),
-                      onMoveLeft: () {}, // 侧边栏最左侧，阻止左键导航
-                      onMoveUp: () => _moveUp(_settingsIndex),
-                      onMoveDown: () => _moveDown(_settingsIndex),
-                      onMoveRight: _getMoveRightHandler(_settingsIndex),
-                    ),
                     const SizedBox(height: 16),
                   ],
                 ),
@@ -558,7 +411,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           7,
           () => SettingsView(
             key: _settingsKey,
-            sidebarFocusNode: _sideBarFocusNodes[_settingsIndex],
+            sidebarFocusNode: _sideBarFocusNodes[7],
           ),
         ),
       ],

@@ -110,8 +110,8 @@ class _StorageSettingsState extends State<StorageSettings> {
         ),
         const SizedBox(height: AppSpacing.settingItemGap),
         SettingToggleRow(
-          label: '显示CPU/内存信息',
-          subtitle: '在侧边栏底部显示实时CPU/内存占用',
+          label: '显示CPU/内存信息(调试用)',
+          subtitle: '左下角始终显示',
           value: _showMemoryInfo,
           focusNode: _memoryToggleFocusNode,
           isLast: true,

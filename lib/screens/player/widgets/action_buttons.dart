@@ -93,8 +93,10 @@ class _ActionButtonsState extends State<ActionButtons> {
 
     if (success) {
       setState(() => _isLiked = !_isLiked);
+      Fluttertoast.cancel();
       Fluttertoast.showToast(msg: _isLiked ? '已点赞' : '已取消点赞');
     } else {
+      Fluttertoast.cancel();
       Fluttertoast.showToast(msg: '操作失败');
     }
     setState(() => _isLoading = false);
@@ -103,6 +105,7 @@ class _ActionButtonsState extends State<ActionButtons> {
   Future<void> _onCoin() async {
     if (_isLoading || _coinCount >= 2) {
       if (_coinCount >= 2) {
+        Fluttertoast.cancel();
         Fluttertoast.showToast(msg: '已投满2个硬币');
       }
       return;
@@ -113,11 +116,13 @@ class _ActionButtonsState extends State<ActionButtons> {
 
     if (error == null) {
       setState(() => _coinCount = _coinCount + 1);
+      Fluttertoast.cancel();
       Fluttertoast.showToast(msg: '投币成功 ($_coinCount/2)');
 
       // 触发交互回调，重置隐藏定时器
       widget.onUserInteraction?.call();
     } else {
+      Fluttertoast.cancel();
       Fluttertoast.showToast(msg: error);
     }
     setState(() => _isLoading = false);
@@ -134,8 +139,10 @@ class _ActionButtonsState extends State<ActionButtons> {
 
     if (success) {
       setState(() => _isFavorited = !_isFavorited);
+      Fluttertoast.cancel();
       Fluttertoast.showToast(msg: _isFavorited ? '已收藏' : '已取消收藏');
     } else {
+      Fluttertoast.cancel();
       Fluttertoast.showToast(msg: '操作失败');
     }
     setState(() => _isLoading = false);

@@ -36,6 +36,9 @@ class _UpPanelState extends State<UpPanel> {
   final ScrollController _scrollController = ScrollController();
   final FocusNode _focusNode = FocusNode();
 
+  // 用于获取列表项的 GlobalKey
+  final Map<int, GlobalKey> _itemKeys = {};
+
   @override
   void initState() {
     super.initState();
@@ -99,20 +102,74 @@ class _UpPanelState extends State<UpPanel> {
 
     if (success) {
       setState(() => _isFollowing = !_isFollowing);
+      Fluttertoast.cancel();
       Fluttertoast.showToast(msg: _isFollowing ? '已关注' : '已取消关注');
     } else {
+      Fluttertoast.cancel();
       Fluttertoast.showToast(msg: '操作失败');
     }
   }
 
   void _scrollToFocused() {
     if (_videos.isEmpty || _focusedIndex < 0) return;
-    final itemHeight = 90.0;
-    final offset = _focusedIndex * itemHeight;
-    _scrollController.animateTo(
-      offset,
+    if (!_scrollController.hasClients) return;
+
+    final key = _itemKeys[_focusedIndex];
+    if (key == null) return;
+
+    final itemContext = key.currentContext;
+    if (itemContext == null) return;
+
+    final ro = itemContext.findRenderObject() as RenderBox?;
+    if (ro == null || !ro.hasSize) return;
+
+    final scrollableState = Scrollable.maybeOf(itemContext);
+    if (scrollableState == null) return;
+
+    final position = scrollableState.position;
+    final scrollableRO =
+        scrollableState.context.findRenderObject() as RenderBox?;
+    if (scrollableRO == null || !scrollableRO.hasSize) return;
+
+    final itemInViewport = ro.localToGlobal(
+      Offset.zero,
+      ancestor: scrollableRO,
+    );
+    final viewportHeight = scrollableRO.size.height;
+    final itemHeight = ro.size.height;
+    final itemTop = itemInViewport.dy;
+    final itemBottom = itemTop + itemHeight;
+
+    // 定义安全边界
+    final revealHeight = itemHeight * 0.3;
+    final topBoundary = revealHeight;
+    final bottomBoundary = viewportHeight - revealHeight;
+
+    double? targetScrollOffset;
+
+    if (itemBottom > bottomBoundary) {
+      // 焦点项底部超出底部边界：向下滚动
+      final delta = itemBottom - bottomBoundary;
+      targetScrollOffset = position.pixels + delta;
+    } else if (itemTop < topBoundary) {
+      // 焦点项顶部超出顶部边界：向上滚动
+      final delta = itemTop - topBoundary;
+      targetScrollOffset = position.pixels + delta;
+    }
+
+    if (targetScrollOffset == null) return;
+
+    final target = targetScrollOffset.clamp(
+      position.minScrollExtent,
+      position.maxScrollExtent,
+    );
+
+    if ((position.pixels - target).abs() < 4.0) return;
+
+    position.animateTo(
+      target,
       duration: const Duration(milliseconds: 200),
-      curve: Curves.easeInOut,
+      curve: Curves.easeOut,
     );
   }
 
@@ -169,6 +226,7 @@ class _UpPanelState extends State<UpPanel> {
   Widget build(BuildContext context) {
     final isSortButtonFocused = _focusedIndex == -1;
     final isFollowButtonFocused = _focusedIndex == -2;
+    final panelWidth = SettingsService.getSidePanelWidth(context);
 
     return Focus(
       focusNode: _focusNode,
@@ -176,7 +234,7 @@ class _UpPanelState extends State<UpPanel> {
       child: Align(
         alignment: Alignment.centerRight,
         child: Container(
-          width: 280,
+          width: panelWidth,
           height: double.infinity,
           color: Colors.black.withValues(alpha: 0.9),
           child: Column(
@@ -310,10 +368,14 @@ class _UpPanelState extends State<UpPanel> {
                     : ListView.builder(
                         controller: _scrollController,
                         itemCount: _videos.length,
-                        itemBuilder: (context, index) => _buildVideoItem(
-                          _videos[index],
-                          index == _focusedIndex,
-                        ),
+                        itemBuilder: (context, index) {
+                          _itemKeys[index] ??= GlobalKey();
+                          return _buildVideoItem(
+                            _videos[index],
+                            index == _focusedIndex,
+                            index,
+                          );
+                        },
                       ),
               ),
             ],
@@ -323,8 +385,9 @@ class _UpPanelState extends State<UpPanel> {
     );
   }
 
-  Widget _buildVideoItem(Video video, bool isFocused) {
+  Widget _buildVideoItem(Video video, bool isFocused, int index) {
     return Container(
+      key: _itemKeys[index],
       height: 70,
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(

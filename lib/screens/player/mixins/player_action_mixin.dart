@@ -196,7 +196,9 @@ mixin PlayerActionMixin on PlayerStateMixin {
             if (qualities.isNotEmpty) {
               // 获取该视频支持的最高画质
               // qualities 是 List<Map<String, dynamic>>, 需提取 qn 并排序
-              final supportedQns = qualities.map((e) => e['qn'] as int).toList();
+              final supportedQns = qualities
+                  .map((e) => e['qn'] as int)
+                  .toList();
               if (supportedQns.isNotEmpty) {
                 final maxQn = supportedQns.reduce(
                   (curr, next) => curr > next ? curr : next,
@@ -227,13 +229,15 @@ mixin PlayerActionMixin on PlayerStateMixin {
           }
 
           if (playInfo == null) {
-            lastError = '解析播放地址失败(codec=${tryCodec?.name ?? 'auto'}, qn=$tryQn)';
+            lastError =
+                '解析播放地址失败(codec=${tryCodec?.name ?? 'auto'}, qn=$tryQn)';
             continue qualityLoop;
           }
 
           // 检查是否返回了错误信息
           if (playInfo['error'] != null) {
-            lastError = '${playInfo['error']} (codec=${tryCodec?.name ?? 'auto'}, qn=$tryQn)';
+            lastError =
+                '${playInfo['error']} (codec=${tryCodec?.name ?? 'auto'}, qn=$tryQn)';
             continue qualityLoop;
           }
 
@@ -249,7 +253,8 @@ mixin PlayerActionMixin on PlayerStateMixin {
           videoFrameRate =
               double.tryParse(playInfo['frameRate']?.toString() ?? '') ?? 0.0;
           videoDataRateKbps =
-              ((int.tryParse(playInfo['videoBandwidth']?.toString() ?? '') ?? 0) /
+              ((int.tryParse(playInfo['videoBandwidth']?.toString() ?? '') ??
+                          0) /
                       1000)
                   .round();
 
@@ -257,7 +262,9 @@ mixin PlayerActionMixin on PlayerStateMixin {
 
           // 如果有 DASH 数据，生成 MPD 并使用全局服务器
           if (playInfo['dashData'] != null) {
-            final mpdContent = await MpdGenerator.generate(playInfo['dashData']);
+            final mpdContent = await MpdGenerator.generate(
+              playInfo['dashData'],
+            );
 
             // 使用全局 LocalServer 提供 MPD 内容 (纯内存)
             LocalServer.instance.setMpdContent(mpdContent);
@@ -350,11 +357,13 @@ mixin PlayerActionMixin on PlayerStateMixin {
             isLoading = false;
           });
 
-          debugPrint('🎬 [Init] Player ready: initialized=${videoController!.value.isInitialized}, '
-              'size=${videoController!.value.size}, '
-              'duration=${videoController!.value.duration.inMilliseconds}ms, '
-              'episodes=${episodes.length}, isUgcSeason=$isUgcSeason, '
-              'bvid=${widget.video.bvid}, cid=$cid');
+          debugPrint(
+            '🎬 [Init] Player ready: initialized=${videoController!.value.isInitialized}, '
+            'size=${videoController!.value.size}, '
+            'duration=${videoController!.value.duration.inMilliseconds}ms, '
+            'episodes=${episodes.length}, isUgcSeason=$isUgcSeason, '
+            'bvid=${widget.video.bvid}, cid=$cid',
+          );
 
           // 自动续播:
           // 1. 如果 API 返回了历史记录，无条件使用历史记录的进度 (解决多端同步和本地列表过期问题)
@@ -431,7 +440,9 @@ mixin PlayerActionMixin on PlayerStateMixin {
       } // codecLoop 结束
 
       // ── 最终兜底：用非 DASH(durl/mp4/flv) 再试一次 ──
-      debugPrint('🎬 [CompatFallback] All DASH codecs failed, trying durl compat...');
+      debugPrint(
+        '🎬 [CompatFallback] All DASH codecs failed, trying durl compat...',
+      );
       final compatInfo = await BilibiliApi.getVideoPlayUrlCompat(
         bvid: widget.video.bvid,
         cid: cid!,
@@ -453,7 +464,8 @@ mixin PlayerActionMixin on PlayerStateMixin {
         videoFrameRate =
             double.tryParse(compatInfo['frameRate']?.toString() ?? '') ?? 0.0;
         videoDataRateKbps =
-            ((int.tryParse(compatInfo['videoBandwidth']?.toString() ?? '') ?? 0) /
+            ((int.tryParse(compatInfo['videoBandwidth']?.toString() ?? '') ??
+                        0) /
                     1000)
                 .round();
 
@@ -548,10 +560,12 @@ mixin PlayerActionMixin on PlayerStateMixin {
     // 前几次状态变化时记录详细日志，帮助定位白屏问题
     _stateChangeCount++;
     if (_stateChangeCount <= 5) {
-      debugPrint('🎬 [State#$_stateChangeCount] pos=${value.position.inMilliseconds}ms, '
-          'dur=${value.duration.inMilliseconds}ms, playing=${value.isPlaying}, '
-          'init=${value.isInitialized}, size=${value.size}, '
-          'hasError=${value.hasError}');
+      debugPrint(
+        '🎬 [State#$_stateChangeCount] pos=${value.position.inMilliseconds}ms, '
+        'dur=${value.duration.inMilliseconds}ms, playing=${value.isPlaying}, '
+        'init=${value.isInitialized}, size=${value.size}, '
+        'hasError=${value.hasError}',
+      );
     }
 
     // 同步弹幕
@@ -572,9 +586,10 @@ mixin PlayerActionMixin on PlayerStateMixin {
     // duration 短暂报告为极小值导致误触发 onVideoComplete
     if (value.duration.inSeconds >= 1 &&
         value.position.inSeconds >= 1 &&
-        value.position.inMilliseconds >=
-            value.duration.inMilliseconds - 200) {
-      debugPrint('🎬 [Complete] Triggered: pos=${value.position.inMilliseconds}ms, dur=${value.duration.inMilliseconds}ms, playing=${value.isPlaying}');
+        value.position.inMilliseconds >= value.duration.inMilliseconds - 200) {
+      debugPrint(
+        '🎬 [Complete] Triggered: pos=${value.position.inMilliseconds}ms, dur=${value.duration.inMilliseconds}ms, playing=${value.isPlaying}',
+      );
       onVideoComplete();
     }
 
@@ -594,7 +609,9 @@ mixin PlayerActionMixin on PlayerStateMixin {
 
   /// 更新下一集预览倒计时
   void _updateNextEpisodePreview(VideoPlayerValue value) {
-    if (!SettingsService.autoPlay || hasHandledVideoComplete || !hasMultipleEpisodes) {
+    if (!SettingsService.autoPlay ||
+        hasHandledVideoComplete ||
+        !hasMultipleEpisodes) {
       if (showNextEpisodePreview) {
         showNextEpisodePreview = false;
       }
@@ -608,7 +625,8 @@ mixin PlayerActionMixin on PlayerStateMixin {
       return;
     }
 
-    final remainingMs = value.duration.inMilliseconds - value.position.inMilliseconds;
+    final remainingMs =
+        value.duration.inMilliseconds - value.position.inMilliseconds;
     final remainingSec = (remainingMs / 1000).ceil();
 
     // 距离结束 15 秒以内时显示预览
@@ -759,9 +777,13 @@ mixin PlayerActionMixin on PlayerStateMixin {
                   'bvid': ep['bvid'] ?? '',
                   'cid': ep['cid'] ?? 0,
                   'aid': ep['aid'] ?? 0,
-                  'title': ep['title'] ?? (ep['arc'] is Map ? ep['arc']['title'] : null) ?? '',
+                  'title':
+                      ep['title'] ??
+                      (ep['arc'] is Map ? ep['arc']['title'] : null) ??
+                      '',
                   'pic': (ep['arc'] is Map ? ep['arc']['pic'] : null) ?? '',
-                  'duration': (ep['arc'] is Map ? ep['arc']['duration'] : null) ?? 0,
+                  'duration':
+                      (ep['arc'] is Map ? ep['arc']['duration'] : null) ?? 0,
                 };
                 break; // 找到下一集即可退出
               }
@@ -776,11 +798,17 @@ mixin PlayerActionMixin on PlayerStateMixin {
           if (totalCount > 1) {
             isUgcSeason = true;
             hasMultipleEpisodes = true;
-            currentEpisodeTitle = currentEpRaw?['title'] ??
-                (currentEpRaw?['arc'] is Map ? currentEpRaw['arc']['title'] : null) ?? '';
+            currentEpisodeTitle =
+                currentEpRaw?['title'] ??
+                (currentEpRaw?['arc'] is Map
+                    ? currentEpRaw['arc']['title']
+                    : null) ??
+                '';
             precomputedNextEpisode = nextEp;
-            debugPrint('🎬 [Init] UGC Season: $totalCount eps, '
-                'current=$currentEpisodeTitle, hasNext=${nextEp != null}');
+            debugPrint(
+              '🎬 [Init] UGC Season: $totalCount eps, '
+              'current=$currentEpisodeTitle, hasNext=${nextEp != null}',
+            );
             return;
           }
         }
@@ -809,7 +837,9 @@ mixin PlayerActionMixin on PlayerStateMixin {
           break;
         }
       }
-      debugPrint('🎬 [Init] Multi-P: ${pages.length} pages, hasNext=${precomputedNextEpisode != null}');
+      debugPrint(
+        '🎬 [Init] Multi-P: ${pages.length} pages, hasNext=${precomputedNextEpisode != null}',
+      );
     }
   }
 
@@ -833,10 +863,19 @@ mixin PlayerActionMixin on PlayerStateMixin {
               if (ep is! Map) continue;
               ugcEpisodes.add({
                 'bvid': ep['bvid'] ?? '',
-                'cid': ep['cid'] ?? (ep['page'] is Map ? ep['page']['cid'] : null) ?? 0,
+                'cid':
+                    ep['cid'] ??
+                    (ep['page'] is Map ? ep['page']['cid'] : null) ??
+                    0,
                 'aid': ep['aid'] ?? 0,
-                'title': ep['title'] ?? (ep['arc'] is Map ? ep['arc']['title'] : null) ?? '',
-                'duration': (ep['arc'] is Map ? ep['arc']['duration'] : null) ?? (ep['page'] is Map ? ep['page']['duration'] : null) ?? 0,
+                'title':
+                    ep['title'] ??
+                    (ep['arc'] is Map ? ep['arc']['title'] : null) ??
+                    '',
+                'duration':
+                    (ep['arc'] is Map ? ep['arc']['duration'] : null) ??
+                    (ep['page'] is Map ? ep['page']['duration'] : null) ??
+                    0,
                 'pic': (ep['arc'] is Map ? ep['arc']['pic'] : null) ?? '',
               });
             }
@@ -847,7 +886,9 @@ mixin PlayerActionMixin on PlayerStateMixin {
               isUgcSeason = true;
             });
             // 设置焦点索引到当前集
-            final idx = episodes.indexWhere((e) => e['bvid'] == widget.video.bvid);
+            final idx = episodes.indexWhere(
+              (e) => e['bvid'] == widget.video.bvid,
+            );
             if (idx != -1) focusedEpisodeIndex = idx;
             debugPrint('🎬 [LazyLoad] UGC episodes loaded: ${episodes.length}');
           }
@@ -879,7 +920,9 @@ mixin PlayerActionMixin on PlayerStateMixin {
     var displayTitle = info['title'] ?? widget.video.title;
 
     // 使用预计算的当前集标题（O(1)，不遍历列表）
-    if (hasMultipleEpisodes && currentEpisodeTitle != null && currentEpisodeTitle!.isNotEmpty) {
+    if (hasMultipleEpisodes &&
+        currentEpisodeTitle != null &&
+        currentEpisodeTitle!.isNotEmpty) {
       displayTitle = '$displayTitle - $currentEpisodeTitle';
     }
 
@@ -905,7 +948,9 @@ mixin PlayerActionMixin on PlayerStateMixin {
     // 防止重复触发
     if (hasHandledVideoComplete) return;
     hasHandledVideoComplete = true;
-    debugPrint('🎬 [Complete] onVideoComplete fired. episodes=${episodes.length}, isUgcSeason=$isUgcSeason, autoPlay=${SettingsService.autoPlay}');
+    debugPrint(
+      '🎬 [Complete] onVideoComplete fired. episodes=${episodes.length}, isUgcSeason=$isUgcSeason, autoPlay=${SettingsService.autoPlay}',
+    );
 
     // 隐藏下一集预览
     showNextEpisodePreview = false;
@@ -1083,6 +1128,28 @@ mixin PlayerActionMixin on PlayerStateMixin {
     lastDanmakuIndex = index;
   }
 
+  /// 获取进度条显示位置
+  /// 优先级：pendingSeekTarget > lastCommittedSeekTarget（2秒内）> 播放器实际位置
+  Duration getDisplayPosition() {
+    if (videoController == null) return Duration.zero;
+
+    // 正在快进中，使用累积目标位置
+    if (pendingSeekTarget != null) {
+      return pendingSeekTarget!;
+    }
+
+    // 刚提交过快进（2秒内），使用上次提交的位置，避免 seekTo 延迟导致的回退
+    if (lastCommittedSeekTarget != null && lastSeekCommitTime != null) {
+      final elapsed = DateTime.now().difference(lastSeekCommitTime!);
+      if (elapsed.inMilliseconds < 2000) {
+        return lastCommittedSeekTarget!;
+      }
+    }
+
+    // 正常播放，使用播放器实际位置
+    return videoController!.value.position;
+  }
+
   void toggleControls() {
     setState(() => showControls = true);
     if (!showSettingsPanel) {
@@ -1195,18 +1262,27 @@ mixin PlayerActionMixin on PlayerStateMixin {
     if (videoController == null) return;
     final total = videoController!.value.duration;
 
-    // 首次快进：暂停视频，记录播放状态
+    // 首次快进：暂停视频，记录播放状态，确定起点
     if (seekRepeatCount == 0) {
       wasPlayingBeforeSeek = videoController!.value.isPlaying;
       if (wasPlayingBeforeSeek) {
         videoController!.pause();
       }
-      pendingSeekTarget = videoController!.value.position;
+
+      // 使用上次提交的位置作为起点（如果在 2 秒内），避免 seekTo 延迟导致的回退
+      final now = DateTime.now();
+      if (lastCommittedSeekTarget != null &&
+          lastSeekCommitTime != null &&
+          now.difference(lastSeekCommitTime!).inMilliseconds < 2000) {
+        pendingSeekTarget = lastCommittedSeekTarget;
+      } else {
+        pendingSeekTarget = videoController!.value.position;
+      }
     }
 
     seekRepeatCount++;
     final step = _getSeekStep();
-    final current = pendingSeekTarget ?? videoController!.value.position;
+    final current = pendingSeekTarget!;
 
     if (forward) {
       final newPos = current + step;
@@ -1222,9 +1298,10 @@ mixin PlayerActionMixin on PlayerStateMixin {
       previewPosition = pendingSeekTarget;
     });
 
-    // 重置提交定时器（松手后 800ms 自动提交）
+    // 重置提交定时器（停止操作后 400ms 自动提交）
+    // 时间较短以保证单次点击的响应速度，同时避免连续点击时频繁 seek
     seekCommitTimer?.cancel();
-    seekCommitTimer = Timer(const Duration(milliseconds: 800), () {
+    seekCommitTimer = Timer(const Duration(milliseconds: 400), () {
       if (mounted) commitSeek();
     });
   }
@@ -1239,6 +1316,11 @@ mixin PlayerActionMixin on PlayerStateMixin {
     }
 
     final target = pendingSeekTarget!;
+
+    // 记录提交的位置和时间，用于连续快进时避免回退
+    lastCommittedSeekTarget = target;
+    lastSeekCommitTime = DateTime.now();
+
     videoController!.seekTo(target);
     resetDanmakuIndex(target);
 
@@ -1246,7 +1328,7 @@ mixin PlayerActionMixin on PlayerStateMixin {
       videoController!.play();
     }
 
-    // 清除预览位置（进度条回到实际位置），但保留指示器 2 秒
+    // 清除预览位置，但保留指示器 2 秒
     // 短暂隐藏缓冲条，等待播放器更新到新位置的缓冲数据
     setState(() {
       previewPosition = null;
@@ -1475,6 +1557,7 @@ mixin PlayerActionMixin on PlayerStateMixin {
     setState(() {
       danmakuEnabled = !danmakuEnabled;
     });
+    Fluttertoast.cancel();
     Fluttertoast.showToast(msg: danmakuEnabled ? '弹幕已开启' : '弹幕已关闭');
     toggleControls();
   }
@@ -1504,9 +1587,19 @@ mixin PlayerActionMixin on PlayerStateMixin {
         lastStatsTime = null;
       }
     });
+    Fluttertoast.cancel();
     Fluttertoast.showToast(
       msg: showStatsForNerds ? '视频数据实时监测已开启' : '视频数据实时监测已关闭',
     );
+  }
+
+  void toggleLoopMode() {
+    setState(() {
+      isLoopMode = !isLoopMode;
+      videoController?.setLooping(isLoopMode);
+    });
+    Fluttertoast.cancel();
+    Fluttertoast.showToast(msg: isLoopMode ? '循环播放已开启' : '循环播放已关闭');
   }
 
   void _startStatsTimer() {
@@ -1759,6 +1852,7 @@ mixin PlayerActionMixin on PlayerStateMixin {
       final speed = availableSpeeds[focusedSettingIndex];
       setState(() => playbackSpeed = speed);
       videoController?.setPlaybackSpeed(speed);
+      Fluttertoast.cancel();
       Fluttertoast.showToast(msg: '倍速已设置为 ${speed}x');
     }
   }

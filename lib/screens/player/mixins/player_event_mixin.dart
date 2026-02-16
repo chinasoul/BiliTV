@@ -109,18 +109,18 @@ mixin PlayerEventMixin on PlayerActionMixin {
   }
 
   KeyEventResult handleGlobalKeyEvent(FocusNode node, KeyEvent event) {
-    // 处理 KeyUpEvent - 松开左右键时提交
+    // 处理 KeyUpEvent - 松开左右键时提交进度条调整
     if (event is KeyUpEvent) {
       if (event.logicalKey == LogicalKeyboardKey.arrowLeft ||
           event.logicalKey == LogicalKeyboardKey.arrowRight) {
-        // 进度条模式
+        // 进度条模式：松手立即提交
         if (isProgressBarFocused && previewPosition != null) {
           commitProgress();
           return KeyEventResult.handled;
         }
-        // 批量快进模式：松手立即提交
+        // 批量快进模式：不在 KeyUp 时提交，依赖定时器
+        // 这样连续点击时不会每次都 seek，只有停止点击后才提交
         if (seekRepeatCount > 0) {
-          commitSeek();
           return KeyEventResult.handled;
         }
       }
@@ -241,7 +241,7 @@ mixin PlayerEventMixin on PlayerActionMixin {
     final nav = PlayerFocusHandler.handleControlsNavigation(
       event,
       currentIndex: focusedButtonIndex,
-      maxIndex: 6,
+      maxIndex: 9,
       onSelect: _activateControlButton,
       onHide: () => setState(() => showControls = false),
     );
@@ -269,44 +269,53 @@ mixin PlayerEventMixin on PlayerActionMixin {
   /// 激活控制栏按钮
   void _activateControlButton(int index) {
     switch (index) {
-      case 0: // 选集
+      case 0: // 播放/暂停
+        togglePlayPause();
+        break;
+      case 1: // 评论
+        setState(() {
+          showCommentPanel = true;
+          hideTimer?.cancel();
+        });
+        break;
+      case 2: // 选集
         ensureEpisodesLoaded(); // 按需加载完整集数列表
         setState(() {
           showEpisodePanel = true;
           hideTimer?.cancel();
         });
         break;
-      case 1: // UP主
+      case 3: // UP主
         setState(() {
           showUpPanel = true;
           hideTimer?.cancel();
         });
         break;
-      case 2: // 更多视频
+      case 4: // 更多视频
         setState(() {
           showRelatedPanel = true;
           hideTimer?.cancel();
         });
         break;
-      case 3: // 设置
+      case 5: // 设置
         setState(() {
           showSettingsPanel = true;
           hideTimer?.cancel();
         });
         break;
-      case 4: // 视频数据实时监测
+      case 6: // 视频数据实时监测
         toggleStatsForNerds();
         break;
-      case 5: // 点赞/投币/收藏
+      case 7: // 点赞/投币/收藏
         setState(() {
           showActionButtons = !showActionButtons;
         });
         break;
-      case 6: // 评论
-        setState(() {
-          showCommentPanel = true;
-          hideTimer?.cancel();
-        });
+      case 8: // 循环播放
+        toggleLoopMode();
+        break;
+      case 9: // 关闭视频
+        Navigator.of(context).pop();
         break;
     }
   }

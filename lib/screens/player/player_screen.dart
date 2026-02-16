@@ -111,7 +111,10 @@ class _PlayerScreenState extends State<PlayerScreen>
 
               // 暂停指示器
               if (!isLoading && videoController != null)
-                PauseIndicator(controller: videoController),
+                PauseIndicator(
+                  controller: videoController,
+                  isSeeking: pendingSeekTarget != null || isSeekPreviewMode,
+                ),
 
               // 迷你进度条 (控制栏隐藏时显示)
               if (!isLoading &&
@@ -119,11 +122,12 @@ class _PlayerScreenState extends State<PlayerScreen>
                   !showControls &&
                   SettingsService.showMiniProgress)
                 MiniProgressBar(
-                  // 批量快进时使用累积目标位置，否则使用实际播放位置
-                  position: pendingSeekTarget ?? videoController!.value.position,
+                  // 批量快进时使用累积目标位置，刚提交后使用上次提交位置，否则使用实际播放位置
+                  position: getDisplayPosition(),
                   duration: videoController!.value.duration,
                   // 快进中或刚提交后短暂隐藏缓冲条，防止旧数据闪烁
-                  bufferedRanges: (pendingSeekTarget != null || hideBufferAfterSeek)
+                  bufferedRanges:
+                      (pendingSeekTarget != null || hideBufferAfterSeek)
                       ? const []
                       : videoController!.value.buffered,
                 ),
@@ -222,7 +226,9 @@ class _PlayerScreenState extends State<PlayerScreen>
                     danmakuCount: danmakuList.length,
                     showStatsForNerds: showStatsForNerds,
                     onToggleStatsForNerds: toggleStatsForNerds,
-                    // showAutoPlayHint 已移除，排查白屏问题
+                    isLoopMode: isLoopMode,
+                    onToggleLoop: toggleLoopMode,
+                    onClose: () => Navigator.of(context).pop(),
                   ),
                 ),
 
@@ -269,11 +275,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                   showStatsForNerds &&
                   !showSettingsPanel &&
                   !showEpisodePanel)
-                Positioned(
-                  top: 20,
-                  left: 30,
-                  child: _buildStatsForNerds(),
-                ),
+                Positioned(top: 20, left: 30, child: _buildStatsForNerds()),
 
               // 点赞/投币/收藏按钮
               if (showActionButtons && !isLoading && videoController != null)
@@ -492,9 +494,12 @@ class _PlayerScreenState extends State<PlayerScreen>
         : (currentCodec.startsWith('avc') ? 'H.264' : '未知');
 
     final resolutionText = '$width x $height@${fps.toStringAsFixed(3)}';
-    final dataRateText = '${videoDataRateKbps <= 0 ? 0 : videoDataRateKbps} Kbps';
-    final speedText = '${videoSpeedKbps <= 0 ? '0.0' : videoSpeedKbps.toStringAsFixed(1)} Kbps';
-    final networkText = '${networkActivityKb <= 0 ? '0.00' : networkActivityKb.toStringAsFixed(2)} KB';
+    final dataRateText =
+        '${videoDataRateKbps <= 0 ? 0 : videoDataRateKbps} Kbps';
+    final speedText =
+        '${videoSpeedKbps <= 0 ? '0.0' : videoSpeedKbps.toStringAsFixed(1)} Kbps';
+    final networkText =
+        '${networkActivityKb <= 0 ? '0.00' : networkActivityKb.toStringAsFixed(2)} KB';
 
     TextStyle labelStyle = const TextStyle(
       color: Colors.white70,
@@ -552,14 +557,18 @@ class _PlayerScreenState extends State<PlayerScreen>
     );
   }
 
-  Widget _buildDecodeHintRow(String codecLabel, TextStyle labelStyle, TextStyle valueStyle) {
+  Widget _buildDecodeHintRow(
+    String codecLabel,
+    TextStyle labelStyle,
+    TextStyle valueStyle,
+  ) {
     final codecKey = codecLabel == 'AV1'
         ? 'av1'
         : codecLabel == 'H.265'
-            ? 'hevc'
-            : codecLabel == 'H.264'
-                ? 'avc'
-                : null;
+        ? 'hevc'
+        : codecLabel == 'H.264'
+        ? 'avc'
+        : null;
     if (codecKey == null) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 1),

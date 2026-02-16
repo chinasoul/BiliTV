@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../services/bilibili_api.dart';
+import '../../../services/settings_service.dart';
 import '../../../models/video.dart';
 
 /// Related Videos Panel
@@ -101,13 +102,15 @@ class _RelatedPanelState extends State<RelatedPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final panelWidth = SettingsService.getSidePanelWidth(context);
+
     return Focus(
       focusNode: _focusNode,
       onKeyEvent: _handleKeyEvent,
       child: Align(
         alignment: Alignment.centerRight,
         child: Container(
-          width: 280,
+          width: panelWidth,
           height: double.infinity,
           color: Colors.black.withValues(alpha: 0.9),
           child: Column(

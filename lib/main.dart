@@ -9,6 +9,7 @@ import 'config/build_flags.dart';
 import 'services/auth_service.dart';
 import 'services/local_server.dart';
 import 'services/settings_service.dart';
+import 'widgets/global_memory_overlay.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -58,10 +59,11 @@ class BiliTvApp extends StatelessWidget {
         // 应用全局字体缩放
         final scale = SettingsService.fontScale;
         return MediaQuery(
-          data: MediaQuery.of(context).copyWith(
-            textScaler: TextScaler.linear(scale),
-          ),
-          child: child!,
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: TextScaler.linear(scale)),
+          // 全局内存监控覆盖层，始终显示在最上层
+          child: GlobalMemoryOverlay(child: child!),
         );
       },
       home: const SplashScreen(),

@@ -77,11 +77,13 @@ class _EpisodePanelState extends State<EpisodePanel> {
 
   @override
   Widget build(BuildContext context) {
+    final panelWidth = SettingsService.getSidePanelWidth(context);
+
     return Positioned(
       top: 0,
       right: 0,
       bottom: 0,
-      width: 250,
+      width: panelWidth,
       child: Container(
         color: const Color(0xFF1F1F1F).withValues(alpha: 0.95),
         child: Column(
@@ -131,7 +133,8 @@ class _EpisodePanelState extends State<EpisodePanel> {
                   } else {
                     // 分P：按 cid 判断当前集
                     isCurrent = episode['cid'] == widget.currentCid;
-                    final partName = episode['part'] ?? episode['page_part'] ?? '';
+                    final partName =
+                        episode['part'] ?? episode['page_part'] ?? '';
                     title = 'P${index + 1} $partName';
                     onTap = () => widget.onEpisodeSave(episode['cid']);
                   }

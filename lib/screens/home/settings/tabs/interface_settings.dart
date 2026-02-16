@@ -24,6 +24,7 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
   int _videoGridColumns = SettingsService.videoGridColumns;
   double _fontScale = SettingsService.fontScale;
   int _themeColorValue = SettingsService.themeColorValue;
+  double _sidePanelWidthRatio = SettingsService.sidePanelWidthRatio;
 
   // 分区排序相关
   List<String> _categoryOrder = [];
@@ -218,6 +219,25 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
           },
         ),
         const SizedBox(height: AppSpacing.settingItemGap),
+        // 右侧栏宽度
+        SettingActionRow(
+          label: '播放页侧栏宽度',
+          value:
+              '当前: ${SettingsService.sidePanelWidthLabel(_sidePanelWidthRatio)}',
+          buttonLabel:
+              '切换：${SettingsService.sidePanelWidthLabel(_sidePanelWidthRatio)}',
+          autofocus: false,
+          onMoveUp: null,
+          sidebarFocusNode: widget.sidebarFocusNode,
+          onTap: () async {
+            final options = SettingsService.sidePanelWidthOptions;
+            final idx = options.indexOf(_sidePanelWidthRatio);
+            final next = options[(idx + 1) % options.length];
+            await SettingsService.setSidePanelWidthRatio(next);
+            setState(() => _sidePanelWidthRatio = next);
+          },
+        ),
+        const SizedBox(height: AppSpacing.settingItemGap),
         // 播放器时间显示开关
         SettingToggleRow(
           label: '总是显示时间',
@@ -272,7 +292,9 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
             itemCount: SettingsService.themeColorOptions.length,
             separatorBuilder: (_, __) => const SizedBox(width: 10),
             itemBuilder: (context, index) {
-              final entry = SettingsService.themeColorOptions.entries.elementAt(index);
+              final entry = SettingsService.themeColorOptions.entries.elementAt(
+                index,
+              );
               final colorValue = entry.key;
               final label = entry.value;
               final isSelected = _themeColorValue == colorValue;
@@ -306,12 +328,20 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
                               color: Color(colorValue),
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: focused ? Colors.white : (isSelected ? Colors.white70 : Colors.transparent),
+                                color: focused
+                                    ? Colors.white
+                                    : (isSelected
+                                          ? Colors.white70
+                                          : Colors.transparent),
                                 width: focused ? 3 : (isSelected ? 2 : 0),
                               ),
                             ),
                             child: isSelected
-                                ? const Icon(Icons.check, color: Colors.white, size: 16)
+                                ? const Icon(
+                                    Icons.check,
+                                    color: Colors.white,
+                                    size: 16,
+                                  )
                                 : null,
                           ),
                           const SizedBox(height: 2),

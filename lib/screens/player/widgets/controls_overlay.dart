@@ -24,6 +24,9 @@ class ControlsOverlay extends StatelessWidget {
   final String? onlineCount; // 在线观看人数
   final int danmakuCount; // 弹幕总数
   final bool showStatsForNerds;
+  final bool isLoopMode; // 循环播放模式
+  final VoidCallback onToggleLoop; // 切换循环播放
+  final VoidCallback onClose; // 关闭视频
 
   const ControlsOverlay({
     super.key,
@@ -45,6 +48,9 @@ class ControlsOverlay extends StatelessWidget {
     this.onlineCount,
     this.danmakuCount = 0,
     this.showStatsForNerds = false,
+    this.isLoopMode = false,
+    required this.onToggleLoop,
+    required this.onClose,
   });
 
   final bool alwaysShowPlayerTime;
@@ -197,88 +203,78 @@ class ControlsOverlay extends StatelessWidget {
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    // 选集 (原 index 1 → 现 index 0)
+                    // 播放/暂停 (index 0)
                     _buildControlButton(
                       index: 0,
+                      icon: controller.value.isPlaying
+                          ? Icons.pause
+                          : Icons.play_arrow,
+                      onTap: onPlayPause,
+                    ),
+                    const SizedBox(width: 24),
+                    // 评论 (index 1)
+                    _buildControlButton(
+                      index: 1,
+                      icon: Icons.comment_outlined,
+                      onTap: () {},
+                    ),
+                    const SizedBox(width: 24),
+                    // 选集 (index 2)
+                    _buildControlButton(
+                      index: 2,
                       icon: Icons.playlist_play,
                       onTap: onEpisodes,
                     ),
                     const SizedBox(width: 24),
-                    // UP主 (原 index 2 → 现 index 1)
+                    // UP主 (index 3)
                     _buildControlButton(
-                      index: 1,
+                      index: 3,
                       icon: Icons.person,
                       onTap: () {},
                     ),
                     const SizedBox(width: 24),
-                    // 更多视频 (原 index 3 → 现 index 2)
+                    // 更多视频 (index 4)
                     _buildControlButton(
-                      index: 2,
+                      index: 4,
                       icon: Icons.expand_more,
                       onTap: () {},
                     ),
                     const SizedBox(width: 24),
-                    // 设置 (原 index 4 → 现 index 3)
+                    // 设置 (index 5)
                     _buildControlButton(
-                      index: 3,
+                      index: 5,
                       icon: Icons.tune,
                       onTap: onSettings,
                     ),
                     const SizedBox(width: 24),
-                    // 视频数据实时监测开关
+                    // 视频数据实时监测开关 (index 6)
                     _buildControlButton(
-                      index: 4,
+                      index: 6,
                       icon: showStatsForNerds
                           ? Icons.monitor_heart
                           : Icons.monitor_heart_outlined,
                       onTap: onToggleStatsForNerds,
                     ),
                     const SizedBox(width: 24),
-                    // 点赞/投币/收藏
+                    // 点赞/投币/收藏 (index 7)
                     _buildControlButton(
-                      index: 5,
+                      index: 7,
                       icon: Icons.thumb_up_outlined,
                       onTap: () {},
                     ),
                     const SizedBox(width: 24),
-                    // 评论
+                    // 循环播放 (index 8)
                     _buildControlButton(
-                      index: 6,
-                      icon: Icons.comment_outlined,
-                      onTap: () {},
+                      index: 8,
+                      icon: isLoopMode ? Icons.repeat_one : Icons.repeat,
+                      onTap: onToggleLoop,
                     ),
-                    const Spacer(),
-                    // 在线人数 (纯文字)
-                    if (onlineCount != null && onlineCount!.isNotEmpty)
-                      Text(
-                        '在看:$onlineCount',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.8),
-                          fontSize: 14,
-                        ),
-                      ),
-                    if (onlineCount != null && onlineCount!.isNotEmpty)
-                      const SizedBox(width: 16),
-                    // 弹幕数 (纯文字)
-                    Text(
-                      isDanmakuEnabled && danmakuCount > 0
-                          ? '弹幕:${_formatDanmakuCount(danmakuCount)}'
-                          : (isDanmakuEnabled ? '弹幕' : '弹幕关'),
-                      style: TextStyle(
-                        color: isDanmakuEnabled
-                            ? Colors.white.withValues(alpha: 0.8)
-                            : Colors.white.withValues(alpha: 0.5),
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    // 画质 (纯文字)
-                    Text(
-                      currentQuality,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.8),
-                        fontSize: 14,
-                      ),
+                    const SizedBox(width: 24),
+                    // 关闭视频 (index 9)
+                    _buildControlButton(
+                      index: 9,
+                      icon: Icons.close,
+                      onTap: onClose,
                     ),
                   ],
                 ),

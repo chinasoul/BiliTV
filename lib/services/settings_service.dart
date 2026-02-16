@@ -49,6 +49,8 @@ class SettingsService {
   /// 初始化
   static Future<void> init() async {
     _prefs ??= await SharedPreferences.getInstance();
+    // 初始化完成后通知监听者
+    onShowMemoryInfoChanged?.call();
   }
 
   /// 显示 Toast 提示
@@ -367,6 +369,7 @@ class SettingsService {
   static double get danmakuOpacity {
     return (_prefs?.getDouble(_danmakuOpacityKey) ?? 0.6).clamp(0.1, 1.0);
   }
+
   static Future<void> setDanmakuOpacity(double value) async {
     await init();
     await _prefs!.setDouble(_danmakuOpacityKey, value.clamp(0.1, 1.0));
@@ -376,6 +379,7 @@ class SettingsService {
   static double get danmakuFontSize {
     return (_prefs?.getDouble(_danmakuFontSizeKey) ?? 17.0).clamp(10.0, 50.0);
   }
+
   static Future<void> setDanmakuFontSize(double value) async {
     await init();
     await _prefs!.setDouble(_danmakuFontSizeKey, value.clamp(10.0, 50.0));
@@ -383,17 +387,26 @@ class SettingsService {
 
   /// 弹幕占屏比 (默认 0.25 即 1/4)
   static const List<double> danmakuAreaOptions = [0.125, 0.25, 0.5, 0.75, 1.0];
-  static const List<String> danmakuAreaLabels = ['1/8', '1/4', '1/2', '3/4', '全屏'];
+  static const List<String> danmakuAreaLabels = [
+    '1/8',
+    '1/4',
+    '1/2',
+    '3/4',
+    '全屏',
+  ];
   static double get danmakuArea {
     final raw = _prefs?.getDouble(_danmakuAreaKey) ?? 0.25;
     // 找到最近的有效选项
-    return danmakuAreaOptions.reduce((a, b) =>
-        (a - raw).abs() < (b - raw).abs() ? a : b);
+    return danmakuAreaOptions.reduce(
+      (a, b) => (a - raw).abs() < (b - raw).abs() ? a : b,
+    );
   }
+
   static Future<void> setDanmakuArea(double value) async {
     await init();
     await _prefs!.setDouble(_danmakuAreaKey, value);
   }
+
   static String danmakuAreaLabel(double area) {
     final idx = danmakuAreaOptions.indexOf(area);
     return idx >= 0 ? danmakuAreaLabels[idx] : '${(area * 100).toInt()}%';
@@ -403,20 +416,23 @@ class SettingsService {
   static double get danmakuSpeed {
     return (_prefs?.getDouble(_danmakuSpeedKey) ?? 10.0).clamp(4.0, 20.0);
   }
+
   static Future<void> setDanmakuSpeed(double value) async {
     await init();
     await _prefs!.setDouble(_danmakuSpeedKey, value.clamp(4.0, 20.0));
   }
 
   /// 隐藏顶部悬停弹幕 (默认不隐藏)
-  static bool get hideTopDanmaku => _prefs?.getBool(_hideTopDanmakuKey) ?? false;
+  static bool get hideTopDanmaku =>
+      _prefs?.getBool(_hideTopDanmakuKey) ?? false;
   static Future<void> setHideTopDanmaku(bool value) async {
     await init();
     await _prefs!.setBool(_hideTopDanmakuKey, value);
   }
 
   /// 隐藏底部悬停弹幕 (默认不隐藏)
-  static bool get hideBottomDanmaku => _prefs?.getBool(_hideBottomDanmakuKey) ?? false;
+  static bool get hideBottomDanmaku =>
+      _prefs?.getBool(_hideBottomDanmakuKey) ?? false;
   static Future<void> setHideBottomDanmaku(bool value) async {
     await init();
     await _prefs!.setBool(_hideBottomDanmakuKey, value);
@@ -588,16 +604,19 @@ class SettingsService {
 
   static const String _cachedFollowingKey = 'cached_following_users';
   static const String _cachedFavoriteFoldersKey = 'cached_favorite_folders';
-  static const String _cachedFavoriteVideosKey = 'cached_favorite_videos'; // 默认收藏夹视频
+  static const String _cachedFavoriteVideosKey =
+      'cached_favorite_videos'; // 默认收藏夹视频
   static const String _cachedWatchLaterKey = 'cached_watch_later';
-  static const String _lastFollowingRefreshTimeKey = 'last_following_refresh_time';
+  static const String _lastFollowingRefreshTimeKey =
+      'last_following_refresh_time';
 
   /// 关注列表上次刷新时间戳
   static int get lastFollowingRefreshTime =>
       _prefs?.getInt(_lastFollowingRefreshTimeKey) ?? 0;
 
   /// 关注列表缓存
-  static String? get cachedFollowingJson => _prefs?.getString(_cachedFollowingKey);
+  static String? get cachedFollowingJson =>
+      _prefs?.getString(_cachedFollowingKey);
   static Future<void> setCachedFollowingJson(String json) async {
     await init();
     await _prefs!.setString(_cachedFollowingKey, json);
@@ -608,21 +627,24 @@ class SettingsService {
   }
 
   /// 收藏夹列表缓存
-  static String? get cachedFavoriteFoldersJson => _prefs?.getString(_cachedFavoriteFoldersKey);
+  static String? get cachedFavoriteFoldersJson =>
+      _prefs?.getString(_cachedFavoriteFoldersKey);
   static Future<void> setCachedFavoriteFoldersJson(String json) async {
     await init();
     await _prefs!.setString(_cachedFavoriteFoldersKey, json);
   }
 
   /// 默认收藏夹视频缓存
-  static String? get cachedFavoriteVideosJson => _prefs?.getString(_cachedFavoriteVideosKey);
+  static String? get cachedFavoriteVideosJson =>
+      _prefs?.getString(_cachedFavoriteVideosKey);
   static Future<void> setCachedFavoriteVideosJson(String json) async {
     await init();
     await _prefs!.setString(_cachedFavoriteVideosKey, json);
   }
 
   /// 稍后再看缓存
-  static String? get cachedWatchLaterJson => _prefs?.getString(_cachedWatchLaterKey);
+  static String? get cachedWatchLaterJson =>
+      _prefs?.getString(_cachedWatchLaterKey);
   static Future<void> setCachedWatchLaterJson(String json) async {
     await init();
     await _prefs!.setString(_cachedWatchLaterKey, json);
@@ -690,7 +712,15 @@ class SettingsService {
   }
 
   /// 字体缩放选项列表
-  static const List<double> fontScaleOptions = [0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4];
+  static const List<double> fontScaleOptions = [
+    0.8,
+    0.9,
+    1.0,
+    1.1,
+    1.2,
+    1.3,
+    1.4,
+  ];
 
   /// 字体缩放选项标签
   static String fontScaleLabel(double scale) {
@@ -786,7 +816,8 @@ class SettingsService {
   }
 
   /// 当前主题色的 int 值
-  static int get themeColorValue => _prefs?.getInt(_themeColorKey) ?? 0xFF81C784;
+  static int get themeColorValue =>
+      _prefs?.getInt(_themeColorKey) ?? 0xFF81C784;
 
   /// 设置主题色
   static Future<void> setThemeColor(int colorValue) async {
@@ -797,4 +828,38 @@ class SettingsService {
   /// 当前主题色标签
   static String get themeColorLabel =>
       themeColorOptions[themeColorValue] ?? '自定义';
+
+  // ==================== 右侧栏宽度设置 ====================
+  static const String _sidePanelWidthKey = 'side_panel_width';
+
+  /// 右侧栏宽度选项：屏幕宽度的比例
+  static const List<double> sidePanelWidthOptions = [0.2, 0.25, 0.33];
+  static const List<String> sidePanelWidthLabels = ['1/5', '1/4', '1/3'];
+
+  /// 获取右侧栏宽度比例 (默认 1/4)
+  static double get sidePanelWidthRatio {
+    final raw = _prefs?.getDouble(_sidePanelWidthKey) ?? 0.25;
+    // 找到最近的有效选项
+    return sidePanelWidthOptions.reduce(
+      (a, b) => (a - raw).abs() < (b - raw).abs() ? a : b,
+    );
+  }
+
+  /// 设置右侧栏宽度比例
+  static Future<void> setSidePanelWidthRatio(double value) async {
+    await init();
+    await _prefs!.setDouble(_sidePanelWidthKey, value);
+  }
+
+  /// 获取右侧栏宽度标签
+  static String sidePanelWidthLabel(double ratio) {
+    final idx = sidePanelWidthOptions.indexOf(ratio);
+    return idx >= 0 ? sidePanelWidthLabels[idx] : '${(ratio * 100).toInt()}%';
+  }
+
+  /// 根据屏幕宽度计算右侧栏实际宽度
+  static double getSidePanelWidth(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    return screenWidth * sidePanelWidthRatio;
+  }
 }

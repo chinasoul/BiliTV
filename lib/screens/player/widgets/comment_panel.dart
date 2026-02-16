@@ -11,11 +11,7 @@ class CommentPanel extends StatefulWidget {
   final int aid;
   final VoidCallback onClose;
 
-  const CommentPanel({
-    super.key,
-    required this.aid,
-    required this.onClose,
-  });
+  const CommentPanel({super.key, required this.aid, required this.onClose});
 
   @override
   State<CommentPanel> createState() => _CommentPanelState();
@@ -30,6 +26,12 @@ class _CommentPanelState extends State<CommentPanel> {
   bool _hasMore = true;
   int _sortMode = 3; // 3=热度, 2=时间
 
+  // 排序缓存：sortMode → {comments, totalCount, nextOffset, hasMore}
+  final Map<int, List<Comment>> _cachedComments = {};
+  final Map<int, int> _cachedTotalCount = {};
+  final Map<int, String?> _cachedNextOffset = {};
+  final Map<int, bool> _cachedHasMore = {};
+
   // 展开回复的评论 rpid → 回复列表
   final Map<int, List<Comment>> _expandedReplies = {};
   final Map<int, int> _replyPages = {};
@@ -39,6 +41,9 @@ class _CommentPanelState extends State<CommentPanel> {
   int _focusedIndex = 0; // 0+ = comment items, -1 = sort热度, -2 = sort时间
   final FocusNode _focusNode = FocusNode();
   final ScrollController _scrollController = ScrollController();
+
+  // 用于获取列表项的 GlobalKey
+  final Map<int, GlobalKey> _itemKeys = {};
 
   @override
   void initState() {
@@ -134,43 +139,136 @@ class _CommentPanelState extends State<CommentPanel> {
 
   void _switchSort(int mode) {
     if (_sortMode == mode) return;
-    setState(() {
-      _sortMode = mode;
-      // 焦点保持在当前排序按钮上
-    });
+
+    // 保存当前排序的数据到缓存
+    if (_comments.isNotEmpty) {
+      _cachedComments[_sortMode] = List.from(_comments);
+      _cachedTotalCount[_sortMode] = _totalCount;
+      _cachedNextOffset[_sortMode] = _nextOffset;
+      _cachedHasMore[_sortMode] = _hasMore;
+    }
+
+    _sortMode = mode;
+    // 切换排序时重置滚动位置和焦点
+    _itemKeys.clear();
+    _expandedReplies.clear();
+    _replyPages.clear();
+    _replyHasMore.clear();
+    if (_scrollController.hasClients) {
+      _scrollController.jumpTo(0);
+    }
+
+    // 尝试从缓存恢复
+    if (_cachedComments.containsKey(mode)) {
+      setState(() {
+        _comments.clear();
+        _comments.addAll(_cachedComments[mode]!);
+        _totalCount = _cachedTotalCount[mode] ?? 0;
+        _nextOffset = _cachedNextOffset[mode];
+        _hasMore = _cachedHasMore[mode] ?? true;
+        _isLoading = false;
+      });
+      return;
+    }
+
+    // 缓存中没有，需要加载
     _loadComments();
   }
 
   void _scrollToFocused() {
     if (_comments.isEmpty || _focusedIndex < 0) return;
-    // 估算每条评论高度约 100
-    final offset = _focusedIndex * 100.0;
-    final maxScroll = _scrollController.position.maxScrollExtent;
-    _scrollController.animateTo(
-      offset.clamp(0.0, maxScroll),
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeInOut,
+    if (!_scrollController.hasClients) return;
+
+    // 第一条评论特殊处理：直接滚动到顶部
+    if (_focusedIndex == 0) {
+      if (_scrollController.offset > 0) {
+        _scrollController.jumpTo(0);
+      }
+      return;
+    }
+
+    final key = _itemKeys[_focusedIndex];
+    if (key == null) return;
+
+    final itemContext = key.currentContext;
+    if (itemContext == null) return;
+
+    final ro = itemContext.findRenderObject() as RenderBox?;
+    if (ro == null || !ro.hasSize) return;
+
+    final scrollableState = Scrollable.maybeOf(itemContext);
+    if (scrollableState == null) return;
+
+    final position = scrollableState.position;
+    final scrollableRO =
+        scrollableState.context.findRenderObject() as RenderBox?;
+    if (scrollableRO == null || !scrollableRO.hasSize) return;
+
+    final itemInViewport = ro.localToGlobal(
+      Offset.zero,
+      ancestor: scrollableRO,
     );
+    final viewportHeight = scrollableRO.size.height;
+    final itemHeight = ro.size.height;
+    final itemTop = itemInViewport.dy;
+    final itemBottom = itemTop + itemHeight;
+
+    // 定义安全边界
+    final revealHeight = itemHeight * 0.5;
+    final topBoundary = revealHeight;
+    final bottomBoundary = viewportHeight - revealHeight;
+
+    double? targetScrollOffset;
+
+    if (itemBottom > bottomBoundary) {
+      // 焦点项底部超出底部边界：向下滚动
+      final delta = itemBottom - bottomBoundary;
+      targetScrollOffset = position.pixels + delta;
+    } else if (itemTop < topBoundary) {
+      // 焦点项顶部超出顶部边界：向上滚动
+      final delta = itemTop - topBoundary;
+      targetScrollOffset = position.pixels + delta;
+    }
+
+    if (targetScrollOffset == null) return;
+
+    final target = targetScrollOffset.clamp(
+      position.minScrollExtent,
+      position.maxScrollExtent,
+    );
+
+    if ((position.pixels - target).abs() < 4.0) return;
+
+    // 使用 jumpTo 避免长按时动画冲突
+    _scrollController.jumpTo(target);
   }
 
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    // 支持长按滚动：KeyDownEvent 和 KeyRepeatEvent
+    final isKeyDown = event is KeyDownEvent;
+    final isKeyRepeat = event is KeyRepeatEvent;
+    if (!isKeyDown && !isKeyRepeat) return KeyEventResult.ignored;
 
     final key = event.logicalKey;
 
-    // Back / Escape
-    if (key == LogicalKeyboardKey.goBack ||
-        key == LogicalKeyboardKey.escape ||
-        key == LogicalKeyboardKey.browserBack) {
+    // Back / Escape (仅响应 KeyDown，不响应长按)
+    if (isKeyDown &&
+        (key == LogicalKeyboardKey.goBack ||
+            key == LogicalKeyboardKey.escape ||
+            key == LogicalKeyboardKey.browserBack)) {
       widget.onClose();
       return KeyEventResult.handled;
     }
 
-    // 排序按钮区域 (_focusedIndex < 0)
-    if (_focusedIndex < 0) {
+    // 排序按钮区域 (_focusedIndex < 0) - 仅响应 KeyDown
+    if (_focusedIndex < 0 && isKeyDown) {
       if (key == LogicalKeyboardKey.arrowLeft) {
         if (_focusedIndex == -2) {
           setState(() => _focusedIndex = -1);
+          // 聚焦即切换模式：移动焦点立刻切换排序
+          if (SettingsService.focusSwitchTab) {
+            _switchSort(3); // 最热
+          }
         } else {
           widget.onClose();
         }
@@ -179,6 +277,10 @@ class _CommentPanelState extends State<CommentPanel> {
       if (key == LogicalKeyboardKey.arrowRight) {
         if (_focusedIndex == -1) {
           setState(() => _focusedIndex = -2);
+          // 聚焦即切换模式：移动焦点立刻切换排序
+          if (SettingsService.focusSwitchTab) {
+            _switchSort(2); // 最新
+          }
         }
         return KeyEventResult.handled;
       }
@@ -189,21 +291,21 @@ class _CommentPanelState extends State<CommentPanel> {
         }
         return KeyEventResult.handled;
       }
-      if (key == LogicalKeyboardKey.select ||
-          key == LogicalKeyboardKey.enter) {
+      if (key == LogicalKeyboardKey.select || key == LogicalKeyboardKey.enter) {
         _switchSort(_focusedIndex == -1 ? 3 : 2);
         return KeyEventResult.handled;
       }
       return KeyEventResult.handled;
     }
 
-    // 评论列表区域
+    // 评论列表区域 - 上下键支持长按
     if (key == LogicalKeyboardKey.arrowUp) {
       if (_focusedIndex > 0) {
         setState(() => _focusedIndex--);
         _scrollToFocused();
-      } else {
-        setState(() => _focusedIndex = -1);
+      } else if (isKeyDown) {
+        // 只有首次按下才跳到排序按钮，跳到当前排序对应的按钮
+        setState(() => _focusedIndex = _sortMode == 3 ? -1 : -2);
       }
       return KeyEventResult.handled;
     }
@@ -218,12 +320,15 @@ class _CommentPanelState extends State<CommentPanel> {
       }
       return KeyEventResult.handled;
     }
+
+    // 以下仅响应 KeyDown
+    if (!isKeyDown) return KeyEventResult.ignored;
+
     if (key == LogicalKeyboardKey.arrowLeft) {
       widget.onClose();
       return KeyEventResult.handled;
     }
-    if (key == LogicalKeyboardKey.select ||
-        key == LogicalKeyboardKey.enter) {
+    if (key == LogicalKeyboardKey.select || key == LogicalKeyboardKey.enter) {
       // 展开/折叠回复
       if (_focusedIndex >= 0 && _focusedIndex < _comments.length) {
         _toggleReplies(_focusedIndex);
@@ -236,13 +341,15 @@ class _CommentPanelState extends State<CommentPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final panelWidth = SettingsService.getSidePanelWidth(context);
+
     return Focus(
       focusNode: _focusNode,
       onKeyEvent: _handleKeyEvent,
       child: Align(
         alignment: Alignment.centerRight,
         child: Container(
-          width: 420,
+          width: panelWidth,
           height: double.infinity,
           color: Colors.black.withValues(alpha: 0.92),
           child: Column(
@@ -262,8 +369,9 @@ class _CommentPanelState extends State<CommentPanel> {
   Widget _buildHeader() {
     final themeColor = SettingsService.themeColor;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+    return Container(
+      height: 48, // 固定高度避免抖动
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
           const Icon(Icons.comment_outlined, color: Colors.white, size: 20),
@@ -301,8 +409,8 @@ class _CommentPanelState extends State<CommentPanel> {
           color: isFocused
               ? themeColor.withValues(alpha: 0.6)
               : isActive
-                  ? Colors.white.withValues(alpha: 0.12)
-                  : Colors.transparent,
+              ? Colors.white.withValues(alpha: 0.12)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(4),
           border: isActive && !isFocused
               ? Border.all(color: Colors.white24, width: 0.5)
@@ -314,8 +422,8 @@ class _CommentPanelState extends State<CommentPanel> {
             color: isFocused
                 ? Colors.white
                 : isActive
-                    ? Colors.white
-                    : Colors.white54,
+                ? Colors.white
+                : Colors.white54,
             fontSize: 13,
             fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
           ),
@@ -326,9 +434,7 @@ class _CommentPanelState extends State<CommentPanel> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(strokeWidth: 2),
-      );
+      return const Center(child: CircularProgressIndicator(strokeWidth: 2));
     }
 
     if (_comments.isEmpty) {
@@ -342,7 +448,7 @@ class _CommentPanelState extends State<CommentPanel> {
 
     return ListView.builder(
       controller: _scrollController,
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: EdgeInsets.zero,
       itemCount: _comments.length + (_isLoadingMore ? 1 : 0),
       itemBuilder: (context, index) {
         if (index >= _comments.length) {
@@ -357,6 +463,7 @@ class _CommentPanelState extends State<CommentPanel> {
             ),
           );
         }
+        _itemKeys[index] ??= GlobalKey();
         final comment = _comments[index];
         final isFocused = _focusedIndex == index;
         return _buildCommentItem(comment, isFocused, index);
@@ -371,6 +478,7 @@ class _CommentPanelState extends State<CommentPanel> {
     final replies = _expandedReplies[comment.rpid] ?? [];
 
     return Container(
+      key: _itemKeys[index],
       margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
       decoration: BoxDecoration(
         color: isFocused
@@ -399,11 +507,8 @@ class _CommentPanelState extends State<CommentPanel> {
                     memCacheWidth: 64,
                     memCacheHeight: 64,
                     fit: BoxFit.cover,
-                    placeholder: (_, _) => Container(
-                      width: 32,
-                      height: 32,
-                      color: Colors.white12,
-                    ),
+                    placeholder: (_, _) =>
+                        Container(width: 32, height: 32, color: Colors.white12),
                     errorWidget: (_, _, _) => Container(
                       width: 32,
                       height: 32,
@@ -429,9 +534,7 @@ class _CommentPanelState extends State<CommentPanel> {
                             child: Text(
                               comment.uname,
                               style: TextStyle(
-                                color: isFocused
-                                    ? themeColor
-                                    : Colors.white60,
+                                color: isFocused ? themeColor : Colors.white60,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -484,20 +587,14 @@ class _CommentPanelState extends State<CommentPanel> {
                               isExpanded
                                   ? Icons.expand_less
                                   : Icons.expand_more,
-                              color: isFocused
-                                  ? themeColor
-                                  : Colors.white38,
+                              color: isFocused ? themeColor : Colors.white38,
                               size: 15,
                             ),
                             const SizedBox(width: 2),
                             Text(
-                              isExpanded
-                                  ? '收起回复'
-                                  : '${comment.rcount}条回复',
+                              isExpanded ? '收起回复' : '${comment.rcount}条回复',
                               style: TextStyle(
-                                color: isFocused
-                                    ? themeColor
-                                    : Colors.white38,
+                                color: isFocused ? themeColor : Colors.white38,
                                 fontSize: 11,
                               ),
                             ),
@@ -522,8 +619,7 @@ class _CommentPanelState extends State<CommentPanel> {
               ),
               child: Column(
                 children: [
-                  for (final reply in replies)
-                    _buildReplyItem(reply),
+                  for (final reply in replies) _buildReplyItem(reply),
                   if (_replyHasMore[comment.rpid] == true)
                     GestureDetector(
                       onTap: () => _loadMoreReplies(comment.rpid),
@@ -531,10 +627,7 @@ class _CommentPanelState extends State<CommentPanel> {
                         padding: const EdgeInsets.only(top: 6),
                         child: Text(
                           '查看更多回复',
-                          style: TextStyle(
-                            color: themeColor,
-                            fontSize: 12,
-                          ),
+                          style: TextStyle(color: themeColor, fontSize: 12),
                         ),
                       ),
                     ),
@@ -554,25 +647,16 @@ class _CommentPanelState extends State<CommentPanel> {
         children: [
           ClipOval(
             child: CachedNetworkImage(
-              imageUrl: ImageUrlUtils.getResizedUrl(
-                reply.avatar,
-                width: 48,
-              ),
+              imageUrl: ImageUrlUtils.getResizedUrl(reply.avatar, width: 48),
               width: 20,
               height: 20,
               memCacheWidth: 48,
               memCacheHeight: 48,
               fit: BoxFit.cover,
-              placeholder: (_, _) => Container(
-                width: 20,
-                height: 20,
-                color: Colors.white12,
-              ),
-              errorWidget: (_, _, _) => Container(
-                width: 20,
-                height: 20,
-                color: Colors.white12,
-              ),
+              placeholder: (_, _) =>
+                  Container(width: 20, height: 20, color: Colors.white12),
+              errorWidget: (_, _, _) =>
+                  Container(width: 20, height: 20, color: Colors.white12),
             ),
           ),
           const SizedBox(width: 6),

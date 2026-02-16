@@ -95,11 +95,13 @@ class _SettingsPanelState extends State<SettingsPanel> {
     if (widget.menuType == SettingsMenuType.speed) title = '倍速播放';
     if (widget.menuType == SettingsMenuType.quality) title = '画质选择';
 
+    final panelWidth = SettingsService.getSidePanelWidth(context);
+
     return Positioned(
       top: 0,
       right: 0,
       bottom: 0,
-      width: 250,
+      width: panelWidth,
       child: Container(
         color: const Color(0xFF1F1F1F).withValues(alpha: 0.95),
         child: Column(
@@ -301,7 +303,10 @@ class _SettingsPanelState extends State<SettingsPanel> {
                 : Colors.transparent,
             border: isFocused
                 ? Border(
-                    left: BorderSide(color: SettingsService.themeColor, width: 3),
+                    left: BorderSide(
+                      color: SettingsService.themeColor,
+                      width: 3,
+                    ),
                   )
                 : null,
           ),

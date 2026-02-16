@@ -3,12 +3,20 @@ import 'package:video_player/video_player.dart';
 
 class PauseIndicator extends StatelessWidget {
   final VideoPlayerController? controller;
+  final bool isSeeking; // 是否正在快进/快退
 
-  const PauseIndicator({super.key, required this.controller});
+  const PauseIndicator({
+    super.key,
+    required this.controller,
+    this.isSeeking = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     if (controller == null) return const SizedBox.shrink();
+
+    // 快进/快退期间不显示暂停图标
+    if (isSeeking) return const SizedBox.shrink();
 
     // 由于 VideoPlayerValue 不是 ValueListenable，我们依赖父组件重建
     final isPlaying = controller!.value.isPlaying;

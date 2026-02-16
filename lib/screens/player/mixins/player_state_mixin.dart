@@ -124,6 +124,8 @@ mixin PlayerStateMixin on State<PlayerScreen> {
   bool wasPlayingBeforeSeek = false; // 快进前是否在播放
   Timer? seekCommitTimer; // 松手后提交并恢复播放
   Duration? pendingSeekTarget; // 快进累积目标位置
+  Duration? lastCommittedSeekTarget; // 上次提交的快进位置（用于连续快进时避免回退）
+  DateTime? lastSeekCommitTime; // 上次提交快进的时间
   bool hideBufferAfterSeek = false; // 快进提交后短暂隐藏缓冲条，防止旧数据闪烁
   Timer? bufferHideTimer;
 
@@ -133,6 +135,9 @@ mixin PlayerStateMixin on State<PlayerScreen> {
   int precachedSpriteIndex = -1; // 已预缓存的雪碧图最大索引 (滑动窗口)
   bool hasShownVideoshotFailToast = false; // 是否已显示过预览图失败提示
   bool hasHandledVideoComplete = false; // 防止重复触发视频完成回调
+
+  // 循环播放模式
+  bool isLoopMode = false;
 
   // 获取编解码器简称
   String get _codecLabel {

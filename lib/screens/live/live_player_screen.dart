@@ -602,6 +602,7 @@ class _LivePlayerScreenState extends State<LivePlayerScreen>
     } else if (_focusedControlIndex == 4) {
       // Follow (Was 1) -> Moved to last
       if (_anchorUid == 0) {
+        Fluttertoast.cancel();
         Fluttertoast.showToast(msg: "无法获取主播信息");
         return;
       }
@@ -611,8 +612,10 @@ class _LivePlayerScreenState extends State<LivePlayerScreen>
         setState(() {
           _isFollowed = !_isFollowed;
         });
+        Fluttertoast.cancel();
         Fluttertoast.showToast(msg: _isFollowed ? "已关注" : "已取消关注");
       } else {
+        Fluttertoast.cancel();
         Fluttertoast.showToast(msg: "操作失败");
       }
     }
