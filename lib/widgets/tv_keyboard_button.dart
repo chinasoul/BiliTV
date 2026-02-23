@@ -1,19 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:bili_tv_app/services/settings_service.dart';
+
+/// 判断是否为按键按下或重复事件
+bool _isKeyDownOrRepeat(KeyEvent event) =>
+    event is KeyDownEvent || event is KeyRepeatEvent;
 
 /// 虚拟键盘按钮
 class TvKeyboardButton extends StatefulWidget {
   final String label;
   final VoidCallback onTap;
   final VoidCallback? onMoveLeft;
+  final VoidCallback? onMoveUp; // 按上键回调
   final VoidCallback? onBack; // 返回键回调
+  final FocusNode? focusNode; // 可选的外部 FocusNode
 
   const TvKeyboardButton({
     super.key,
     required this.label,
     required this.onTap,
     this.onMoveLeft,
+    this.onMoveUp,
     this.onBack,
+    this.focusNode,
   });
 
   @override
@@ -26,12 +35,19 @@ class _TvKeyboardButtonState extends State<TvKeyboardButton> {
   @override
   Widget build(BuildContext context) {
     return Focus(
+      focusNode: widget.focusNode,
       onFocusChange: (focused) => setState(() => _isFocused = focused),
       onKeyEvent: (node, event) {
-        if (event is KeyDownEvent) {
+        if (_isKeyDownOrRepeat(event)) {
           if (event.logicalKey == LogicalKeyboardKey.arrowLeft &&
               widget.onMoveLeft != null) {
             widget.onMoveLeft!();
+            return KeyEventResult.handled;
+          }
+          // 上键
+          if (event.logicalKey == LogicalKeyboardKey.arrowUp &&
+              widget.onMoveUp != null) {
+            widget.onMoveUp!();
             return KeyEventResult.handled;
           }
           // 返回键
@@ -53,15 +69,14 @@ class _TvKeyboardButtonState extends State<TvKeyboardButton> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         decoration: BoxDecoration(
-          color: _isFocused ? Colors.white : Colors.white12,
+          color: _isFocused ? SettingsService.themeColor : Colors.white12,
           borderRadius: BorderRadius.circular(8),
-          border: _isFocused ? Border.all(color: Colors.white, width: 2) : null,
         ),
         alignment: Alignment.center,
         child: Text(
           widget.label,
           style: TextStyle(
-            color: _isFocused ? Colors.black : Colors.white70,
+            color: _isFocused ? Colors.white : Colors.white70,
             fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
@@ -71,12 +86,13 @@ class _TvKeyboardButtonState extends State<TvKeyboardButton> {
   }
 }
 
-/// 操作按钮 (搜索/清空等)
+/// 操作按钮 (搜索按钮) - 未选中灰色，选中时主题色
 class TvActionButton extends StatefulWidget {
   final String label;
   final Color color;
   final VoidCallback onTap;
   final VoidCallback? onMoveLeft;
+  final VoidCallback? onMoveUp; // 按上键回调
   final VoidCallback? onBack; // 返回键回调
 
   const TvActionButton({
@@ -85,6 +101,7 @@ class TvActionButton extends StatefulWidget {
     required this.color,
     required this.onTap,
     this.onMoveLeft,
+    this.onMoveUp,
     this.onBack,
   });
 
@@ -100,10 +117,16 @@ class _TvActionButtonState extends State<TvActionButton> {
     return Focus(
       onFocusChange: (focused) => setState(() => _isFocused = focused),
       onKeyEvent: (node, event) {
-        if (event is KeyDownEvent) {
+        if (_isKeyDownOrRepeat(event)) {
           if (event.logicalKey == LogicalKeyboardKey.arrowLeft &&
               widget.onMoveLeft != null) {
             widget.onMoveLeft!();
+            return KeyEventResult.handled;
+          }
+          // 上键
+          if (event.logicalKey == LogicalKeyboardKey.arrowUp &&
+              widget.onMoveUp != null) {
+            widget.onMoveUp!();
             return KeyEventResult.handled;
           }
           // 返回键
@@ -125,15 +148,14 @@ class _TvActionButtonState extends State<TvActionButton> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         decoration: BoxDecoration(
-          color: _isFocused ? Colors.white : widget.color,
+          color: _isFocused ? widget.color : Colors.white12,
           borderRadius: BorderRadius.circular(8),
-          border: _isFocused ? Border.all(color: Colors.white, width: 2) : null,
         ),
         alignment: Alignment.center,
         child: Text(
           widget.label,
           style: TextStyle(
-            color: _isFocused ? Colors.black : Colors.white,
+            color: _isFocused ? Colors.white : Colors.white70,
             fontSize: 18,
             fontWeight: FontWeight.bold,
           ),

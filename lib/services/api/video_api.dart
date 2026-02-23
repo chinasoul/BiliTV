@@ -204,19 +204,18 @@ class VideoApi {
     }
 
     try {
-      final uri = Uri.parse(
-        '${BaseApi.apiBase}/x/v3/fav/resource/list',
-      ).replace(
-        queryParameters: {
-          'media_id': mediaId.toString(),
-          'pn': page.toString(),
-          'ps': pageSize.toString(),
-          'order': 'mtime', // 最近收藏优先
-          'type': '0',
-          'tid': '0',
-          'platform': 'web',
-        },
-      );
+      final uri = Uri.parse('${BaseApi.apiBase}/x/v3/fav/resource/list')
+          .replace(
+            queryParameters: {
+              'media_id': mediaId.toString(),
+              'pn': page.toString(),
+              'ps': pageSize.toString(),
+              'order': 'mtime', // 最近收藏优先
+              'type': '0',
+              'tid': '0',
+              'platform': 'web',
+            },
+          );
 
       final response = await http.get(
         uri,
@@ -295,6 +294,39 @@ class VideoApi {
               .map((tag) => tag['value'] as String? ?? '')
               .where((v) => v.isNotEmpty)
               .toList();
+        }
+      }
+    } catch (e) {
+      // 忽略错误
+    }
+    return [];
+  }
+
+  /// 获取热门搜索关键词
+  static Future<List<HotSearchItem>> getHotSearchKeywords() async {
+    try {
+      final uri = Uri.parse(
+        '${BaseApi.apiBase}/x/web-interface/wbi/search/square',
+      ).replace(queryParameters: {'limit': '10'});
+
+      final response = await http.get(uri, headers: BaseApi.getHeaders());
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(utf8.decode(response.bodyBytes));
+        if (json['code'] == 0 && json['data'] != null) {
+          final trending =
+              json['data']['trending'] as Map<String, dynamic>? ?? {};
+          final list = trending['list'] as List? ?? [];
+          return list.asMap().entries.map((entry) {
+            final item = entry.value as Map<String, dynamic>;
+            return HotSearchItem(
+              rank: entry.key + 1,
+              keyword: (item['keyword'] ?? '').toString(),
+              showName: (item['show_name'] ?? item['keyword'] ?? '').toString(),
+              icon: (item['icon'] ?? '').toString(),
+              hotId: BaseApi.toInt(item['hot_id']),
+            );
+          }).toList();
         }
       }
     } catch (e) {
@@ -547,5 +579,22 @@ class DynamicFeed {
     required this.videos,
     required this.offset,
     required this.hasMore,
+  });
+}
+
+/// 热门搜索项
+class HotSearchItem {
+  final int rank;
+  final String keyword;
+  final String showName;
+  final String icon; // 热搜图标(如有)
+  final int hotId;
+
+  HotSearchItem({
+    required this.rank,
+    required this.keyword,
+    required this.showName,
+    required this.icon,
+    required this.hotId,
   });
 }

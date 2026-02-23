@@ -10,6 +10,7 @@ import 'home/dynamic_tab.dart';
 import 'home/following_tab.dart';
 import 'home/live_tab.dart';
 import 'home/settings/settings_view.dart';
+import 'home/settings/widgets/value_picker_popup.dart';
 import '../widgets/tv_focusable_item.dart';
 import '../widgets/time_display.dart';
 import '../services/auth_service.dart';
@@ -29,10 +30,11 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
-  int _selectedTabIndex = 0; // 默认选中首页
-  final Set<int> _visitedTabs = {0}; // 已访问过的 tab（首页始终构建）
+  late int _selectedTabIndex; // 根据设置初始化
+  late Set<int> _visitedTabs; // 已访问过的 tab
   DateTime? _lastBackPressed;
   DateTime? _backFromSearchHandled; // 防止搜索键盘返回键重复处理
+  String? _pendingHomeCategory; // 待切换的首页分类（如热门）
 
   // 主导航区图标 (0~7)，设置图标移到搜索后面
   static const List<String> _mainTabIcons = [
@@ -70,6 +72,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _sideBarFocusNodes = List.generate(_totalTabs, (index) => FocusNode());
 
+    // 根据默认启动页面设置初始化
+    final startPage = SettingsService.defaultStartPage;
+    final initResult = _getInitialTabIndex(startPage);
+    _selectedTabIndex = initResult.tabIndex;
+    _pendingHomeCategory = initResult.homeCategory;
+    _visitedTabs = {_selectedTabIndex};
+    // 首页(0)始终需要被构建，因为可能需要切换到热门等分类
+    if (_selectedTabIndex != 0 &&
+        (startPage == 'recommend' || startPage == 'popular')) {
+      _visitedTabs.add(0);
+    }
+
     // 时间显示设置变更时刷新界面
     SettingsService.onShowTimeDisplayChanged = () {
       if (mounted) setState(() {});
@@ -80,7 +94,53 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           FocusHighlightStrategy.alwaysTraditional;
       // 自动检查更新（根据用户设置的间隔）
       UpdateService.autoCheckAndNotify(context);
+
+      // 如果需要切换到首页的特定分类（如热门），在首次加载完成后执行
+      if (_pendingHomeCategory != null && _selectedTabIndex == 0) {
+        _switchHomeCategory(_pendingHomeCategory!);
+        _pendingHomeCategory = null;
+      }
     });
+  }
+
+  /// 根据启动页面设置获取初始 tab 索引
+  /// 返回 (tabIndex, homeCategory) - homeCategory 用于首页内的分类切换
+  ({int tabIndex, String? homeCategory}) _getInitialTabIndex(String startPage) {
+    switch (startPage) {
+      case 'recommend':
+        // 检查推荐分类是否启用
+        if (SettingsService.isCategoryEnabled('recommend')) {
+          return (tabIndex: 0, homeCategory: null);
+        }
+        // 推荐未启用，使用首页第一个分类
+        return (tabIndex: 0, homeCategory: null);
+      case 'popular':
+        // 检查热门分类是否启用
+        if (SettingsService.isCategoryEnabled('popular')) {
+          return (tabIndex: 0, homeCategory: 'popular');
+        }
+        // 热门未启用，使用首页第一个分类
+        return (tabIndex: 0, homeCategory: null);
+      case 'dynamic':
+        return (tabIndex: 1, homeCategory: null); // 动态
+      case 'history':
+        return (tabIndex: 3, homeCategory: null); // 历史
+      case 'live':
+        return (tabIndex: 4, homeCategory: null); // 直播
+      default:
+        return (tabIndex: 0, homeCategory: null);
+    }
+  }
+
+  /// 切换首页到指定分类
+  void _switchHomeCategory(String categoryName) {
+    final success = _homeTabKey.currentState?.switchToCategoryByName(
+      categoryName,
+    );
+    if (success != true) {
+      // 分类不存在或切换失败，不做任何操作
+      debugPrint('⚠️ Failed to switch to category: $categoryName');
+    }
   }
 
   // 激活焦点系统
@@ -89,6 +149,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     FocusManager.instance.highlightStrategy =
         FocusHighlightStrategy.alwaysTraditional;
+
+    // 如果有待切换的首页分类，先执行切换
+    if (_pendingHomeCategory != null && _selectedTabIndex == 0) {
+      _switchHomeCategory(_pendingHomeCategory!);
+      _pendingHomeCategory = null;
+    }
 
     final currentFocusNode = _sideBarFocusNodes[_selectedTabIndex];
     if (!currentFocusNode.hasFocus) {
@@ -223,6 +289,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           return;
         }
 
+        // 优先处理全局弹窗（如设置弹窗）
+        if (ValuePickerOverlay.close()) {
+          return;
+        }
+
         // 侧边栏按返回键：双击退出
         if (_isSidebarFocused()) {
           final now = DateTime.now();
@@ -256,6 +327,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             break;
           case 4:
             handled = _liveTabKey.currentState?.handleBack() ?? false;
+            break;
+          case 7:
+            handled = _settingsKey.currentState?.handleBack() ?? false;
             break;
         }
         if (!handled) {

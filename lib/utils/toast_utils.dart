@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../services/settings_service.dart';
 
 /// 轻量级自定义 Toast 工具
 ///
@@ -44,33 +45,43 @@ class ToastUtils {
     final overlay = Overlay.of(context);
 
     _currentEntry = OverlayEntry(
-      builder: (context) => Positioned(
-        bottom: MediaQuery.of(context).size.height * 0.15,
-        left: 0,
-        right: 0,
-        child: Center(
-          child: Opacity(
-            opacity: _opacity,
-            child: Material(
-              color: Colors.transparent,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.8),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  msg,
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
+      builder: (context) {
+        final screenSize = MediaQuery.of(context).size;
+        final screenWidth = screenSize.width;
+        final screenHeight = screenSize.height;
+        // 侧边栏占 5%，内容区占 95%
+        final sidebarWidth = screenWidth * 0.05;
+        // 垂直位置：屏幕高度 2/3 处
+        final topOffset = screenHeight * 2 / 3;
+
+        return Positioned(
+          top: topOffset,
+          left: sidebarWidth,
+          right: 0,
+          child: Center(
+            child: Opacity(
+              opacity: _opacity,
+              child: Material(
+                color: Colors.transparent,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: SettingsService.themeColor.withValues(alpha: 0.9),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    msg,
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
 
     overlay.insert(_currentEntry!);

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import '../../../../services/device_info_service.dart';
 import '../../../../config/app_style.dart';
 import '../widgets/setting_action_row.dart';
@@ -24,11 +25,12 @@ class _DeviceInfoSettingsState extends State<DeviceInfoSettings> {
   late final List<FocusNode> _infoFocusNodes;
   bool _isLoading = true;
   Map<String, dynamic> _info = {};
+  String _publicIp = '获取中...';
 
   @override
   void initState() {
     super.initState();
-    _infoFocusNodes = List.generate(16, (_) => FocusNode());
+    _infoFocusNodes = List.generate(8, (_) => FocusNode()); // 8项（增加公网IP）
     _loadDeviceInfo();
   }
 
@@ -42,22 +44,48 @@ class _DeviceInfoSettingsState extends State<DeviceInfoSettings> {
   }
 
   Future<void> _loadDeviceInfo() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _publicIp = '获取中...';
+    });
     final info = await DeviceInfoService.getDeviceInfo();
     if (!mounted) return;
     setState(() {
       _info = info;
       _isLoading = false;
     });
+    // 异步获取公网 IP
+    _fetchPublicIp();
   }
 
-  String _buildRamValue() {
-    final totalMb = _info['totalRamMb'];
-    final availMb = _info['availRamMb'];
-    if (totalMb == null) return '未知';
-    final totalGb = (totalMb as int) / 1024;
-    final availGb = (availMb as int) / 1024;
-    return '总共 ${totalGb.toStringAsFixed(1)} GB，可用 ${availGb.toStringAsFixed(1)} GB';
+  Future<void> _fetchPublicIp() async {
+    // 尝试多个 API，提高成功率
+    final apis = [
+      'https://api.ipify.org',
+      'https://ifconfig.me/ip',
+      'https://icanhazip.com',
+    ];
+
+    for (final api in apis) {
+      try {
+        final response = await http
+            .get(Uri.parse(api))
+            .timeout(const Duration(seconds: 5));
+        if (!mounted) return;
+        if (response.statusCode == 200) {
+          final ip = response.body.trim();
+          if (ip.isNotEmpty && RegExp(r'^\d+\.\d+\.\d+\.\d+$').hasMatch(ip)) {
+            setState(() => _publicIp = ip);
+            return;
+          }
+        }
+      } catch (e) {
+        // 尝试下一个 API
+      }
+    }
+
+    if (!mounted) return;
+    setState(() => _publicIp = '获取失败');
   }
 
   String _valueOf(String key, {String fallback = '未知'}) {
@@ -111,9 +139,14 @@ class _DeviceInfoSettingsState extends State<DeviceInfoSettings> {
           final focused = Focus.of(ctx).hasFocus;
           return Container(
             width: double.infinity,
-            constraints: const BoxConstraints(minHeight: AppSpacing.settingItemMinHeight),
+            constraints: const BoxConstraints(
+              minHeight: AppSpacing.settingItemMinHeight,
+            ),
             margin: const EdgeInsets.only(bottom: AppSpacing.settingItemGap),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: AppSpacing.settingItemVerticalPadding),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: AppSpacing.settingItemVerticalPadding,
+            ),
             decoration: BoxDecoration(
               color: focused
                   ? Colors.white.withValues(alpha: 0.12)
@@ -169,26 +202,26 @@ class _DeviceInfoSettingsState extends State<DeviceInfoSettings> {
           onTap: _isLoading ? null : _loadDeviceInfo,
         ),
         const SizedBox(height: AppSpacing.settingItemGap),
-        _buildInfoItem(0, '平台', _valueOf('platform')),
+        // Android 版本 (SDK xx)
         _buildInfoItem(
-          1,
-          '安卓版本',
-          '${_valueOf('androidVersion')} (SDK ${_valueOf('sdkInt')})',
+          0,
+          '系统版本',
+          'Android ${_valueOf('androidVersion')} (SDK ${_valueOf('sdkInt')})',
         ),
-        _buildInfoItem(2, '运行内存', _buildRamValue()),
-        _buildInfoItem(3, '系统架构', _valueOf('arch')),
-        _buildInfoItem(4, 'CPU ABI', _valueOf('cpuAbi')),
-        _buildInfoItem(5, '支持 ABI 列表', _valueOf('supportedAbis')),
-        _buildInfoItem(6, 'GPU', _valueOf('gpu')),
-        _buildInfoItem(7, 'OpenGL ES', _valueOf('glEsVersion')),
-        _buildInfoItem(8, '设备型号', _valueOf('model')),
-        _buildInfoItem(9, '厂商', _valueOf('manufacturer')),
-        _buildInfoItem(10, '品牌', _valueOf('brand')),
-        _buildInfoItem(11, '设备代号', _valueOf('device')),
-        _buildInfoItem(12, '主板', _valueOf('board')),
-        _buildInfoItem(13, '硬件标识', _valueOf('hardware')),
-        _buildInfoItem(14, '产品名', _valueOf('product')),
-        _buildInfoItem(15, '内核版本', _valueOf('kernel')),
+        // 设备名
+        _buildInfoItem(1, '设备名', _valueOf('model')),
+        // 支持 ABI 列表
+        _buildInfoItem(2, '支持 ABI 列表', _valueOf('supportedAbis')),
+        // CPU
+        _buildInfoItem(3, 'CPU', _valueOf('arch')),
+        // GPU
+        _buildInfoItem(4, 'GPU', _valueOf('gpu')),
+        // 网络名
+        _buildInfoItem(5, '网络', _valueOf('networkName')),
+        // 内网 IP 地址
+        _buildInfoItem(6, '内网 IP', _valueOf('ipAddress')),
+        // 公网 IP 地址
+        _buildInfoItem(7, '公网 IP', _publicIp),
       ],
     );
   }

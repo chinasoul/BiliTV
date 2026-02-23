@@ -2,12 +2,16 @@ package com.bili.tv.bili_tv_app
 
 import android.content.Intent
 import android.media.MediaCodecList
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.os.Build
 import androidx.core.content.FileProvider
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
+import java.net.Inet4Address
+import java.net.NetworkInterface
 
 class MainActivity : FlutterActivity() {
     private val UPDATE_CHANNEL = "com.bili.tv/update"
@@ -139,6 +143,9 @@ class MainActivity : FlutterActivity() {
         val totalRamMb = memInfo.totalMem / (1024 * 1024)
         val availRamMb = memInfo.availMem / (1024 * 1024)
 
+        // 网络信息
+        val networkInfo = getNetworkInfo()
+
         return mapOf(
             "platform" to "Android",
             "androidVersion" to (Build.VERSION.RELEASE ?: "unknown"),
@@ -157,8 +164,62 @@ class MainActivity : FlutterActivity() {
             "gpu" to gpuInfo,
             "glEsVersion" to getGlEsVersion(),
             "totalRamMb" to totalRamMb,
-            "availRamMb" to availRamMb
+            "availRamMb" to availRamMb,
+            "networkName" to networkInfo.first,
+            "ipAddress" to networkInfo.second,
+            "publicIp" to "" // 公网 IP 由 Flutter 侧异步获取
         )
+    }
+
+    private fun getNetworkInfo(): Pair<String, String> {
+        var networkName = "未连接"
+        var ipAddress = "未知"
+
+        try {
+            val connectivityManager = getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
+            val activeNetwork = connectivityManager.activeNetwork
+            val capabilities = connectivityManager.getNetworkCapabilities(activeNetwork)
+
+            if (capabilities != null) {
+                when {
+                    capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> {
+                        networkName = "WiFi"
+                        ipAddress = getLocalIpAddress() ?: "未知"
+                    }
+                    capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> {
+                        networkName = "有线网络"
+                        ipAddress = getLocalIpAddress() ?: "未知"
+                    }
+                    capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> {
+                        networkName = "移动网络"
+                        ipAddress = getLocalIpAddress() ?: "未知"
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            // 忽略错误
+        }
+
+        return Pair(networkName, ipAddress)
+    }
+
+    private fun getLocalIpAddress(): String? {
+        try {
+            val interfaces = NetworkInterface.getNetworkInterfaces()
+            while (interfaces.hasMoreElements()) {
+                val networkInterface = interfaces.nextElement()
+                val addresses = networkInterface.inetAddresses
+                while (addresses.hasMoreElements()) {
+                    val address = addresses.nextElement()
+                    if (!address.isLoopbackAddress && address is Inet4Address) {
+                        return address.hostAddress
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            // 忽略错误
+        }
+        return null
     }
 
     private fun getGlEsVersion(): String {

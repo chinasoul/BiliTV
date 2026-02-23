@@ -573,17 +573,12 @@ mixin PlayerActionMixin on PlayerStateMixin {
     final int posMs = value.position.inMilliseconds;
     final int durMs = value.duration.inMilliseconds;
     final bool isSeeking =
-        pendingSeekTarget != null ||
-        isSeekPreviewMode ||
-        isProgressBarFocused;
+        pendingSeekTarget != null || isSeekPreviewMode || isProgressBarFocused;
 
     // 策略1 - 软着陆: 正常播放接近末尾时主动暂停(500ms)
     //   解决: TV 解码器 EOS 帧闪烁
     final bool isSoftEnd =
-        !isLoopMode &&
-        durMs >= 1000 &&
-        value.isPlaying &&
-        posMs >= durMs - 500;
+        !isLoopMode && durMs >= 1000 && value.isPlaying && posMs >= durMs - 500;
 
     // 策略2 - 末尾停转: 最后 5 秒内 isPlaying 意外变 false
     //   解决: DASH 分段边界导致的末尾卡顿(position停滞→跳到末尾)
@@ -610,37 +605,32 @@ mixin PlayerActionMixin on PlayerStateMixin {
       onVideoComplete();
     } else if (isEndZoneStall) {
       // 短防抖(200ms): 确认不是瞬间状态抖动
-      completionFallbackTimer ??= Timer(
-        const Duration(milliseconds: 200),
-        () {
-          completionFallbackTimer = null;
-          if (!mounted ||
-              videoController == null ||
-              hasHandledVideoComplete) return;
-          final v = videoController!.value;
-          if (!v.isPlaying && v.isInitialized &&
-              v.position.inMilliseconds >= v.duration.inMilliseconds - 5000) {
-            onVideoComplete();
-          }
-        },
-      );
+      completionFallbackTimer ??= Timer(const Duration(milliseconds: 200), () {
+        completionFallbackTimer = null;
+        if (!mounted || videoController == null || hasHandledVideoComplete)
+          return;
+        final v = videoController!.value;
+        if (!v.isPlaying &&
+            v.isInitialized &&
+            v.position.inMilliseconds >= v.duration.inMilliseconds - 5000) {
+          onVideoComplete();
+        }
+      });
     } else if (!isLoopMode) {
       // 策略4 - 兜底: position 接近 duration 且停止播放(800ms 防抖)
-      final bool isNearEnd =
-          durMs >= 1000 && posMs >= durMs - 1000;
+      final bool isNearEnd = durMs >= 1000 && posMs >= durMs - 1000;
 
       if (!value.isPlaying && value.isInitialized && isNearEnd) {
         completionFallbackTimer ??= Timer(
           const Duration(milliseconds: 800),
           () {
             completionFallbackTimer = null;
-            if (!mounted ||
-                videoController == null ||
-                hasHandledVideoComplete) return;
+            if (!mounted || videoController == null || hasHandledVideoComplete)
+              return;
             final v = videoController!.value;
-            final stillNearEnd = v.duration.inSeconds >= 1 &&
-                v.position.inMilliseconds >=
-                    v.duration.inMilliseconds - 1000;
+            final stillNearEnd =
+                v.duration.inSeconds >= 1 &&
+                v.position.inMilliseconds >= v.duration.inMilliseconds - 1000;
             if (!v.isPlaying && v.isInitialized && stillNearEnd) {
               onVideoComplete();
             }

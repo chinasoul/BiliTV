@@ -11,10 +11,10 @@
 library;
 
 // 导出子模块，供外部直接使用
-export 'api/video_api.dart' show DynamicFeed;
+export 'api/video_api.dart' show DynamicFeed, HotSearchItem;
 
 import 'api/auth_api.dart';
-import 'api/video_api.dart';
+import 'api/video_api.dart' show DynamicFeed, HotSearchItem, VideoApi;
 import 'api/playback_api.dart';
 import 'api/interaction_api.dart';
 import 'api/videoshot_api.dart';
@@ -90,6 +90,10 @@ class BilibiliApi {
   /// 获取搜索建议
   static Future<List<String>> getSearchSuggestions(String keyword) =>
       VideoApi.getSearchSuggestions(keyword);
+
+  /// 获取热门搜索关键词
+  static Future<List<HotSearchItem>> getHotSearchKeywords() =>
+      VideoApi.getHotSearchKeywords();
 
   /// 搜索视频 (需要 WBI 签名)
   static Future<List<Video>> searchVideos(

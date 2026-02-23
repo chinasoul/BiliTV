@@ -2,9 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/settings_service.dart';
 
-/// 顶部更新时间横幅组件
+/// 更新时间横幅组件
 ///
-/// 在页面顶部显示"更新于x分钟前"的横幅
+/// 在屏幕中央显示"更新于x分钟前"的横幅
 /// 延迟出现，显示一段时间后自动淡出
 class UpdateTimeBanner extends StatefulWidget {
   /// 要显示的时间文本，如 "更新于5分钟前"
@@ -16,59 +16,59 @@ class UpdateTimeBanner extends StatefulWidget {
   /// 显示时长（淡出前）
   final Duration displayDuration;
 
-  /// Banner 高度
-  final double height;
-
   const UpdateTimeBanner({
     super.key,
     required this.timeText,
     this.showDelay = const Duration(milliseconds: 500),
-    this.displayDuration = const Duration(seconds: 2),
-    this.height = 32,
+    this.displayDuration = const Duration(milliseconds: 1500),
   });
 
   @override
   State<UpdateTimeBanner> createState() => _UpdateTimeBannerState();
 }
 
-class _UpdateTimeBannerState extends State<UpdateTimeBanner>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _opacityAnimation;
+class _UpdateTimeBannerState extends State<UpdateTimeBanner> {
   Timer? _showTimer;
   Timer? _hideTimer;
+  Timer? _fadeTimer;
   bool _visible = false;
   bool _dismissed = false;
+  double _opacity = 1.0;
+
+  // 淡出动画参数
+  static const int _fadeSteps = 10;
+  static const int _fadeIntervalMs = 20; // 总共 200ms
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 400),
-      vsync: this,
-    );
-
-    _opacityAnimation = Tween<double>(
-      begin: 1.0,
-      end: 0.0,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-
-    _controller.addStatusListener((status) {
-      if (status == AnimationStatus.completed && mounted) {
-        setState(() => _dismissed = true);
-      }
-    });
 
     // 延迟后显示
     _showTimer = Timer(widget.showDelay, () {
       if (mounted) {
         setState(() => _visible = true);
         // 显示后再延迟淡出
-        _hideTimer = Timer(widget.displayDuration, () {
-          if (mounted) {
-            _controller.forward();
+        _hideTimer = Timer(widget.displayDuration, _startFadeOut);
+      }
+    });
+  }
+
+  void _startFadeOut() {
+    int step = 0;
+    _fadeTimer = Timer.periodic(const Duration(milliseconds: _fadeIntervalMs), (
+      timer,
+    ) {
+      step++;
+      if (mounted) {
+        setState(() {
+          _opacity = 1.0 - (step / _fadeSteps);
+          if (_opacity <= 0) {
+            timer.cancel();
+            _dismissed = true;
           }
         });
+      } else {
+        timer.cancel();
       }
     });
   }
@@ -77,7 +77,7 @@ class _UpdateTimeBannerState extends State<UpdateTimeBanner>
   void dispose() {
     _showTimer?.cancel();
     _hideTimer?.cancel();
-    _controller.dispose();
+    _fadeTimer?.cancel();
     super.dispose();
   }
 
@@ -89,38 +89,25 @@ class _UpdateTimeBannerState extends State<UpdateTimeBanner>
 
     final themeColor = SettingsService.themeColor;
 
-    return AnimatedBuilder(
-      animation: _opacityAnimation,
-      builder: (context, _) {
-        return Opacity(
-          opacity: _opacityAnimation.value,
-          child: Center(
-            child: Container(
-              height: widget.height,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: themeColor.withValues(alpha: 0.9),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.access_time, color: Colors.white, size: 14),
-                  const SizedBox(width: 6),
-                  Text(
-                    widget.timeText,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
+    return UnconstrainedBox(
+      child: Opacity(
+        opacity: _opacity,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          decoration: BoxDecoration(
+            color: themeColor.withValues(alpha: 0.9),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            widget.timeText,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }

@@ -21,23 +21,42 @@ class DanmakuSettings extends StatefulWidget {
 class _DanmakuSettingsState extends State<DanmakuSettings> {
   // 透明度选项: 0.1 ~ 1.0
   static const List<double> _opacityOptions = [
-    0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0,
+    0.1,
+    0.2,
+    0.3,
+    0.4,
+    0.5,
+    0.6,
+    0.7,
+    0.8,
+    0.9,
+    1.0,
   ];
 
   // 字体大小选项
   static const List<double> _fontSizeOptions = [
-    10, 12, 14, 16, 17, 18, 20, 24, 28, 32, 40, 50,
+    10,
+    12,
+    14,
+    16,
+    17,
+    18,
+    20,
+    24,
+    28,
+    32,
+    40,
+    50,
   ];
 
   // 速度选项: 4 ~ 20
-  static const List<double> _speedOptions = [
-    4, 6, 8, 10, 12, 14, 16, 18, 20,
-  ];
+  static const List<double> _speedOptions = [4, 6, 8, 10, 12, 14, 16, 18, 20];
 
   /// 找到列表中最接近的值
   T _closestValue<T extends num>(List<T> options, T value) {
-    return options.reduce((a, b) =>
-        (a - value).abs() < (b - value).abs() ? a : b);
+    return options.reduce(
+      (a, b) => (a - value).abs() < (b - value).abs() ? a : b,
+    );
   }
 
   @override
@@ -64,7 +83,7 @@ class _DanmakuSettingsState extends State<DanmakuSettings> {
         // 弹幕透明度
         SettingDropdownRow<double>(
           label: '弹幕透明度',
-          subtitle: '按确定键或右键切换',
+          subtitle: '按确定键弹出选择菜单',
           value: _closestValue(_opacityOptions, SettingsService.danmakuOpacity),
           items: _opacityOptions,
           itemLabel: (v) => '${(v * 100).toInt()}%',
@@ -81,8 +100,11 @@ class _DanmakuSettingsState extends State<DanmakuSettings> {
         // 弹幕字体大小
         SettingDropdownRow<double>(
           label: '弹幕字体大小',
-          subtitle: '按确定键或右键切换',
-          value: _closestValue(_fontSizeOptions, SettingsService.danmakuFontSize),
+          subtitle: '按确定键弹出选择菜单',
+          value: _closestValue(
+            _fontSizeOptions,
+            SettingsService.danmakuFontSize,
+          ),
           items: _fontSizeOptions,
           itemLabel: (v) => '${v.toInt()}',
           sidebarFocusNode: widget.sidebarFocusNode,

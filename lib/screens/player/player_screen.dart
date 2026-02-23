@@ -132,7 +132,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                       : videoController!.value.buffered,
                 ),
 
-              // 快进快退指示器 (含预览缩略图) - 仅快进预览模式显示
+              // 快进快退指示器 (含预览缩略图) - 仅快进预览模式且有雪碧图时显示
               if (showSeekIndicator &&
                   videoController != null &&
                   isSeekPreviewMode &&
@@ -185,6 +185,39 @@ class _PlayerScreenState extends State<PlayerScreen>
                           ),
                         ),
                       ],
+                    ),
+                  ),
+                ),
+
+              // 快进快退时间指示器 (无缩略图时) - 普通快进快退模式显示
+              if (showSeekIndicator &&
+                  videoController != null &&
+                  previewPosition != null &&
+                  !(isSeekPreviewMode && videoshotData != null))
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 16,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.75),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${_formatSeekTime(previewPosition!)} / ${_formatSeekTime(videoController!.value.duration)}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        shadows: [
+                          Shadow(
+                            blurRadius: 4,
+                            color: Colors.black,
+                            offset: Offset(0, 1),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),

@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../../../services/bilibili_api.dart';
 import '../../../services/search_history_service.dart';
 import '../../../widgets/tv_keyboard_button.dart';
 import 'package:bili_tv_app/services/settings_service.dart';
+
+/// 判断是否为按键按下或重复事件
+bool _isKeyDownOrRepeat(KeyEvent event) =>
+    event is KeyDownEvent || event is KeyRepeatEvent;
 
 class SearchKeyboardView extends StatefulWidget {
   final FocusNode? sidebarFocusNode;
@@ -25,6 +28,17 @@ class SearchKeyboardView extends StatefulWidget {
 class _SearchKeyboardViewState extends State<SearchKeyboardView> {
   String _searchText = '';
   List<String> _suggestions = [];
+  List<HotSearchItem> _hotSearchItems = [];
+  bool _isLoadingHotSearch = false;
+
+  // 热搜列表的 FocusNode
+  final List<FocusNode> _hotSearchFocusNodes = [];
+  // 搜索历史的 FocusNode
+  final List<FocusNode> _historyFocusNodes = [];
+  // 清空按钮的 FocusNode
+  final FocusNode _clearButtonFocusNode = FocusNode();
+  // 键盘区第一个按钮的 FocusNode (清空按钮)
+  final FocusNode _keyboardFirstFocusNode = FocusNode();
 
   final List<String> _gridKeys = [
     'A',
@@ -68,7 +82,57 @@ class _SearchKeyboardViewState extends State<SearchKeyboardView> {
   @override
   void initState() {
     super.initState();
-    SearchHistoryService.init(); // Initialize history
+    SearchHistoryService.init();
+    _loadHotSearch();
+  }
+
+  @override
+  void dispose() {
+    for (final node in _hotSearchFocusNodes) {
+      node.dispose();
+    }
+    for (final node in _historyFocusNodes) {
+      node.dispose();
+    }
+    _clearButtonFocusNode.dispose();
+    _keyboardFirstFocusNode.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadHotSearch() async {
+    if (_isLoadingHotSearch) return;
+    setState(() => _isLoadingHotSearch = true);
+
+    try {
+      final items = await BilibiliApi.getHotSearchKeywords();
+      if (mounted) {
+        setState(() {
+          _hotSearchItems = items;
+          _isLoadingHotSearch = false;
+          // 初始化热搜 FocusNode
+          _hotSearchFocusNodes.clear();
+          for (int i = 0; i < items.length; i++) {
+            _hotSearchFocusNodes.add(FocusNode());
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingHotSearch = false);
+      }
+    }
+  }
+
+  void _updateHistoryFocusNodes() {
+    final history = SearchHistoryService.getAll();
+    // 清理多余的节点
+    while (_historyFocusNodes.length > history.length) {
+      _historyFocusNodes.removeLast().dispose();
+    }
+    // 添加缺少的节点
+    while (_historyFocusNodes.length < history.length) {
+      _historyFocusNodes.add(FocusNode());
+    }
   }
 
   void _handleKeyboardTap(String key) {
@@ -121,115 +185,82 @@ class _SearchKeyboardViewState extends State<SearchKeyboardView> {
 
   @override
   Widget build(BuildContext context) {
+    _updateHistoryFocusNodes();
+    final history = SearchHistoryService.getAll();
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 左侧键盘区
-        SizedBox(
-          width: 380,
-          child: Container(
-            color: const Color(0xFF252525),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
-            child: FocusTraversalGroup(
-              policy: OrderedTraversalPolicy(),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
+        // 左侧：键盘区
+        SizedBox(width: 380, child: _buildKeyboardSection()),
+        // 中间：热门搜索
+        Expanded(child: _buildHotSearchSection()),
+        // 右侧：搜索历史
+        if (history.isNotEmpty)
+          SizedBox(width: 280, child: _buildHistorySection(history)),
+      ],
+    );
+  }
+
+  /// 构建键盘区域
+  Widget _buildKeyboardSection() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
+      child: FocusTraversalGroup(
+        policy: OrderedTraversalPolicy(),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            // 搜索输入框
+            Container(
+              height: 50,
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 15),
+              decoration: BoxDecoration(
+                color: Colors.white10,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.white12),
+              ),
+              alignment: Alignment.centerLeft,
+              child: Text(
+                _searchText.isEmpty ? '输入关键词搜索...' : _searchText,
+                style: TextStyle(
+                  fontSize: 22,
+                  color: _searchText.isEmpty ? Colors.white24 : Colors.white,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 2,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(height: 15),
+            // 清空/后退按钮
+            SizedBox(
+              height: 48,
+              child: Row(
                 children: [
-                  // 搜索输入框
-                  Container(
-                    height: 50,
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 15),
-                    decoration: BoxDecoration(
-                      color: Colors.white10,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.white12),
-                    ),
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      _searchText.isEmpty ? '输入关键词搜索...' : _searchText,
-                      style: TextStyle(
-                        fontSize: 22,
-                        color: _searchText.isEmpty
-                            ? Colors.white24
-                            : Colors.white,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 2,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const SizedBox(height: 15),
-                  // 清空/后退按钮
-                  SizedBox(
-                    height: 48,
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: FocusTraversalOrder(
-                            order: const NumericFocusOrder(1.0),
-                            child: TvKeyboardButton(
-                              label: '清空',
-                              onTap: () => _handleKeyboardTap('清空'),
-                              onMoveLeft: () =>
-                                  widget.sidebarFocusNode?.requestFocus(),
-                              onBack: widget.onBackToHome,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: FocusTraversalOrder(
-                            order: const NumericFocusOrder(1.1),
-                            child: TvKeyboardButton(
-                              label: '后退',
-                              onTap: () => _handleKeyboardTap('后退'),
-                              onBack: widget.onBackToHome,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  // 字母数字键盘
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    padding: EdgeInsets.zero,
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 6,
-                          childAspectRatio: 1.1,
-                          crossAxisSpacing: 8,
-                          mainAxisSpacing: 8,
-                        ),
-                    itemCount: _gridKeys.length,
-                    itemBuilder: (context, index) => FocusTraversalOrder(
-                      order: NumericFocusOrder(2.0 + (index * 0.001)),
+                  Expanded(
+                    child: FocusTraversalOrder(
+                      order: const NumericFocusOrder(1.0),
                       child: TvKeyboardButton(
-                        label: _gridKeys[index],
-                        onTap: () => _handleKeyboardTap(_gridKeys[index]),
-                        onMoveLeft: (index % 6 == 0)
-                            ? () => widget.sidebarFocusNode?.requestFocus()
-                            : null,
+                        label: '清空',
+                        focusNode: _keyboardFirstFocusNode,
+                        onTap: () => _handleKeyboardTap('清空'),
+                        onMoveLeft: () =>
+                            widget.sidebarFocusNode?.requestFocus(),
+                        onMoveUp: () {}, // 阻止上键
                         onBack: widget.onBackToHome,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 15),
-                  // 搜索按钮
-                  FocusTraversalOrder(
-                    order: const NumericFocusOrder(3.0),
-                    child: SizedBox(
-                      height: 48,
-                      width: double.infinity,
-                      child: TvActionButton(
-                        label: '搜索',
-                        color: SettingsService.themeColor,
-                        onTap: () => _handleKeyboardTap('搜索'),
-                        onMoveLeft: () =>
-                            widget.sidebarFocusNode?.requestFocus(),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: FocusTraversalOrder(
+                      order: const NumericFocusOrder(1.1),
+                      child: TvKeyboardButton(
+                        label: '后退',
+                        onTap: () => _handleKeyboardTap('后退'),
+                        onMoveUp: () {}, // 阻止上键
                         onBack: widget.onBackToHome,
                       ),
                     ),
@@ -237,134 +268,227 @@ class _SearchKeyboardViewState extends State<SearchKeyboardView> {
                 ],
               ),
             ),
-          ),
-        ),
-        // 右侧建议区
-        Expanded(child: _buildSuggestions()),
-      ],
-    );
-  }
-
-  /// 构建搜索建议列表
-  Widget _buildSuggestions() {
-    // 如果没有建议，显示搜索历史
-    if (_suggestions.isEmpty) {
-      final history = SearchHistoryService.getAll();
-      if (history.isEmpty) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SvgPicture.asset(
-                'assets/icons/search.svg',
-                width: 80,
-                height: 80,
-                colorFilter: ColorFilter.mode(
-                  Colors.white.withValues(alpha: 0.2),
-                  BlendMode.srcIn,
+            const SizedBox(height: 10),
+            // 字母数字键盘
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              padding: EdgeInsets.zero,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 6,
+                childAspectRatio: 1.1,
+                crossAxisSpacing: 8,
+                mainAxisSpacing: 8,
+              ),
+              itemCount: _gridKeys.length,
+              itemBuilder: (context, index) => FocusTraversalOrder(
+                order: NumericFocusOrder(2.0 + (index * 0.001)),
+                child: TvKeyboardButton(
+                  label: _gridKeys[index],
+                  onTap: () => _handleKeyboardTap(_gridKeys[index]),
+                  onMoveLeft: (index % 6 == 0)
+                      ? () => widget.sidebarFocusNode?.requestFocus()
+                      : null,
+                  onBack: widget.onBackToHome,
                 ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                '输入关键词开始搜索',
-                style: TextStyle(color: Colors.white38, fontSize: 16),
-              ),
-            ],
-          ),
-        );
-      }
-
-      // 显示搜索历史
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 30),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '搜索历史',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 15),
-            Expanded(
-              child: ListView.builder(
-                itemCount: history.length + 1, // +1 为清除按钮
-                itemBuilder: (context, index) {
-                  if (index == history.length) {
-                    // 清除搜索记录按钮
-                    return Padding(
-                      padding: const EdgeInsets.only(top: 15),
-                      child: _SuggestionItem(
-                        text: '清除搜索记录',
-                        icon: Icons.delete_outline,
-                        onTap: () async {
-                          await SearchHistoryService.clear();
-                          setState(() {});
-                        },
-                        onBack: widget.onBackToHome,
-                      ),
-                    );
-                  }
-                  final item = history[index];
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: _SuggestionItem(
-                      text: item,
-                      icon: Icons.history,
-                      onTap: () => _selectSuggestion(item),
-                      onBack: widget.onBackToHome,
-                    ),
-                  );
-                },
+            // 搜索按钮
+            FocusTraversalOrder(
+              order: const NumericFocusOrder(3.0),
+              child: SizedBox(
+                height: 48,
+                width: double.infinity,
+                child: TvActionButton(
+                  label: '搜索',
+                  color: SettingsService.themeColor,
+                  onTap: () => _handleKeyboardTap('搜索'),
+                  onMoveLeft: () => widget.sidebarFocusNode?.requestFocus(),
+                  onBack: widget.onBackToHome,
+                ),
               ),
             ),
           ],
         ),
-      );
-    }
+      ),
+    );
+  }
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 30),
-      child: ListView.builder(
-        itemCount: _suggestions.length,
-        itemBuilder: (context, index) {
-          final suggestion = _suggestions[index];
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: _SuggestionItem(
-              text: suggestion,
-              onTap: () => _selectSuggestion(suggestion),
-              onBack: widget.onBackToHome,
+  /// 构建热门搜索区域
+  Widget _buildHotSearchSection() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 25),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 标题
+          Row(
+            children: [
+              Icon(
+                Icons.local_fire_department,
+                color: Colors.orange.shade400,
+                size: 18,
+              ),
+              const SizedBox(width: 6),
+              const Text(
+                '热门搜索',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 15),
+          // 热搜列表
+          Expanded(
+            child: _isLoadingHotSearch
+                ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
+                : _hotSearchItems.isEmpty
+                ? const Center(
+                    child: Text(
+                      '暂无热搜',
+                      style: TextStyle(color: Colors.white38),
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: _hotSearchItems.length,
+                    itemBuilder: (context, index) {
+                      final item = _hotSearchItems[index];
+                      final isFirst = index == 0;
+                      final isLast = index == _hotSearchItems.length - 1;
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: _HotSearchItem(
+                          item: item,
+                          focusNode: _hotSearchFocusNodes[index],
+                          onTap: () => _selectSuggestion(item.keyword),
+                          onBack: widget.onBackToHome,
+                          onMoveUp: isFirst
+                              ? () {}
+                              : () {
+                                  _hotSearchFocusNodes[index - 1]
+                                      .requestFocus();
+                                },
+                          onMoveDown: isLast
+                              ? () {}
+                              : () {
+                                  _hotSearchFocusNodes[index + 1]
+                                      .requestFocus();
+                                },
+                          onMoveLeft: () =>
+                              _keyboardFirstFocusNode.requestFocus(),
+                          onMoveRight: _historyFocusNodes.isNotEmpty
+                              ? () => _historyFocusNodes[0].requestFocus()
+                              : null,
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 构建搜索历史区域
+  Widget _buildHistorySection(List<String> history) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 标题和清除按钮
+          Row(
+            children: [
+              const Icon(Icons.history, color: Colors.white54, size: 16),
+              const SizedBox(width: 6),
+              const Text(
+                '搜索历史',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(width: 10),
+              _ClearButton(
+                focusNode: _clearButtonFocusNode,
+                onTap: () async {
+                  await SearchHistoryService.clear();
+                  setState(() {});
+                },
+                onBack: widget.onBackToHome,
+                onMoveLeft: _hotSearchFocusNodes.isNotEmpty
+                    ? () => _hotSearchFocusNodes[0].requestFocus()
+                    : () => _keyboardFirstFocusNode.requestFocus(),
+              ),
+            ],
+          ),
+          const SizedBox(height: 15),
+          // 历史列表
+          Expanded(
+            child: ListView.builder(
+              itemCount: history.length,
+              itemBuilder: (context, index) {
+                final item = history[index];
+                final isFirst = index == 0;
+                final isLast = index == history.length - 1;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: _HistoryItem(
+                    text: item,
+                    focusNode: _historyFocusNodes[index],
+                    onTap: () => _selectSuggestion(item),
+                    onBack: widget.onBackToHome,
+                    onMoveUp: isFirst
+                        ? () => _clearButtonFocusNode.requestFocus()
+                        : () => _historyFocusNodes[index - 1].requestFocus(),
+                    onMoveDown: isLast
+                        ? () {}
+                        : () {
+                            _historyFocusNodes[index + 1].requestFocus();
+                          },
+                    onMoveLeft: _hotSearchFocusNodes.isNotEmpty
+                        ? () =>
+                              _hotSearchFocusNodes[index.clamp(
+                                    0,
+                                    _hotSearchFocusNodes.length - 1,
+                                  )]
+                                  .requestFocus()
+                        : () => _keyboardFirstFocusNode.requestFocus(),
+                  ),
+                );
+              },
             ),
-          );
-        },
+          ),
+        ],
       ),
     );
   }
 }
 
-/// 搜索建议项
-class _SuggestionItem extends StatefulWidget {
-  final String text;
+/// 清除按钮
+class _ClearButton extends StatefulWidget {
+  final FocusNode focusNode;
   final VoidCallback onTap;
   final VoidCallback? onBack;
-  final IconData? icon;
+  final VoidCallback? onMoveLeft;
 
-  const _SuggestionItem({
-    required this.text,
+  const _ClearButton({
+    required this.focusNode,
     required this.onTap,
     this.onBack,
-    this.icon,
+    this.onMoveLeft,
   });
 
   @override
-  State<_SuggestionItem> createState() => _SuggestionItemState();
+  State<_ClearButton> createState() => _ClearButtonState();
 }
 
-class _SuggestionItemState extends State<_SuggestionItem> {
+class _ClearButtonState extends State<_ClearButton> {
   bool _isFocused = false;
 
   @override
@@ -372,10 +496,18 @@ class _SuggestionItemState extends State<_SuggestionItem> {
     return GestureDetector(
       onTap: widget.onTap,
       child: Focus(
+        focusNode: widget.focusNode,
         onFocusChange: (focused) => setState(() => _isFocused = focused),
         onKeyEvent: (node, event) {
-          if (event is KeyDownEvent) {
-            // 返回键
+          if (_isKeyDownOrRepeat(event)) {
+            if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+              return KeyEventResult.handled; // 阻止上键
+            }
+            if (event.logicalKey == LogicalKeyboardKey.arrowLeft &&
+                widget.onMoveLeft != null) {
+              widget.onMoveLeft!();
+              return KeyEventResult.handled;
+            }
             if ((event.logicalKey == LogicalKeyboardKey.escape ||
                     event.logicalKey == LogicalKeyboardKey.goBack ||
                     event.logicalKey == LogicalKeyboardKey.browserBack) &&
@@ -393,34 +525,274 @@ class _SuggestionItemState extends State<_SuggestionItem> {
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: _isFocused ? Colors.white : Colors.white12,
-            borderRadius: BorderRadius.circular(8),
-            border: _isFocused
-                ? Border.all(color: Colors.white, width: 2)
-                : null,
+            color: _isFocused ? SettingsService.themeColor : Colors.transparent,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.delete_outline,
+                color: _isFocused ? Colors.white : Colors.white38,
+                size: 14,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                '清除',
+                style: TextStyle(
+                  color: _isFocused ? Colors.white : Colors.white38,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 热门搜索项
+class _HotSearchItem extends StatefulWidget {
+  final HotSearchItem item;
+  final FocusNode focusNode;
+  final VoidCallback onTap;
+  final VoidCallback? onBack;
+  final VoidCallback? onMoveUp;
+  final VoidCallback? onMoveDown;
+  final VoidCallback? onMoveLeft;
+  final VoidCallback? onMoveRight;
+
+  const _HotSearchItem({
+    required this.item,
+    required this.focusNode,
+    required this.onTap,
+    this.onBack,
+    this.onMoveUp,
+    this.onMoveDown,
+    this.onMoveLeft,
+    this.onMoveRight,
+  });
+
+  @override
+  State<_HotSearchItem> createState() => _HotSearchItemState();
+}
+
+class _HotSearchItemState extends State<_HotSearchItem> {
+  bool _isFocused = false;
+
+  Color _getRankColor(int rank) {
+    if (rank == 1) return Colors.red.shade400;
+    if (rank == 2) return Colors.orange.shade400;
+    if (rank == 3) return Colors.amber.shade600;
+    return Colors.grey;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: Focus(
+        focusNode: widget.focusNode,
+        onFocusChange: (focused) => setState(() => _isFocused = focused),
+        onKeyEvent: (node, event) {
+          if (_isKeyDownOrRepeat(event)) {
+            if (event.logicalKey == LogicalKeyboardKey.arrowUp &&
+                widget.onMoveUp != null) {
+              widget.onMoveUp!();
+              return KeyEventResult.handled;
+            }
+            if (event.logicalKey == LogicalKeyboardKey.arrowDown &&
+                widget.onMoveDown != null) {
+              widget.onMoveDown!();
+              return KeyEventResult.handled;
+            }
+            if (event.logicalKey == LogicalKeyboardKey.arrowLeft &&
+                widget.onMoveLeft != null) {
+              widget.onMoveLeft!();
+              return KeyEventResult.handled;
+            }
+            if (event.logicalKey == LogicalKeyboardKey.arrowRight &&
+                widget.onMoveRight != null) {
+              widget.onMoveRight!();
+              return KeyEventResult.handled;
+            }
+            if ((event.logicalKey == LogicalKeyboardKey.escape ||
+                    event.logicalKey == LogicalKeyboardKey.goBack ||
+                    event.logicalKey == LogicalKeyboardKey.browserBack) &&
+                widget.onBack != null) {
+              widget.onBack!();
+              return KeyEventResult.handled;
+            }
+            if (event.logicalKey == LogicalKeyboardKey.enter ||
+                event.logicalKey == LogicalKeyboardKey.select) {
+              widget.onTap();
+              return KeyEventResult.handled;
+            }
+          }
+          return KeyEventResult.ignored;
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: _isFocused ? SettingsService.themeColor : Colors.white12,
+            borderRadius: BorderRadius.circular(6),
           ),
           child: Row(
             children: [
-              if (widget.icon != null) ...[
-                Icon(
-                  widget.icon,
-                  size: 18,
-                  color: _isFocused ? Colors.black54 : Colors.white54,
+              // 排名
+              Container(
+                width: 20,
+                height: 20,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: _isFocused
+                      ? Colors.white.withValues(alpha: 0.2)
+                      : _getRankColor(widget.item.rank).withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(4),
                 ),
-                const SizedBox(width: 8),
-              ],
+                child: Text(
+                  '${widget.item.rank}',
+                  style: TextStyle(
+                    color: _isFocused
+                        ? Colors.white
+                        : _getRankColor(widget.item.rank),
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              // 关键词
               Expanded(
                 child: Text(
-                  widget.text,
+                  widget.item.showName,
                   style: TextStyle(
-                    color: _isFocused ? Colors.black : Colors.white70,
-                    fontSize: 16,
+                    color: _isFocused ? Colors.white : Colors.white70,
+                    fontSize: 14,
                     fontWeight: _isFocused
                         ? FontWeight.bold
                         : FontWeight.normal,
                   ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              // 热搜图标
+              if (widget.item.icon.isNotEmpty) ...[
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.whatshot,
+                  size: 14,
+                  color: _isFocused ? Colors.white : Colors.orange.shade300,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 搜索历史项
+class _HistoryItem extends StatefulWidget {
+  final String text;
+  final FocusNode focusNode;
+  final VoidCallback onTap;
+  final VoidCallback? onBack;
+  final VoidCallback? onMoveUp;
+  final VoidCallback? onMoveDown;
+  final VoidCallback? onMoveLeft;
+
+  const _HistoryItem({
+    required this.text,
+    required this.focusNode,
+    required this.onTap,
+    this.onBack,
+    this.onMoveUp,
+    this.onMoveDown,
+    this.onMoveLeft,
+  });
+
+  @override
+  State<_HistoryItem> createState() => _HistoryItemState();
+}
+
+class _HistoryItemState extends State<_HistoryItem> {
+  bool _isFocused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: Focus(
+        focusNode: widget.focusNode,
+        onFocusChange: (focused) => setState(() => _isFocused = focused),
+        onKeyEvent: (node, event) {
+          if (_isKeyDownOrRepeat(event)) {
+            if (event.logicalKey == LogicalKeyboardKey.arrowUp &&
+                widget.onMoveUp != null) {
+              widget.onMoveUp!();
+              return KeyEventResult.handled;
+            }
+            if (event.logicalKey == LogicalKeyboardKey.arrowDown &&
+                widget.onMoveDown != null) {
+              widget.onMoveDown!();
+              return KeyEventResult.handled;
+            }
+            if (event.logicalKey == LogicalKeyboardKey.arrowLeft &&
+                widget.onMoveLeft != null) {
+              widget.onMoveLeft!();
+              return KeyEventResult.handled;
+            }
+            // 右键不处理，最右边不能再往右
+            if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+              return KeyEventResult.handled;
+            }
+            if ((event.logicalKey == LogicalKeyboardKey.escape ||
+                    event.logicalKey == LogicalKeyboardKey.goBack ||
+                    event.logicalKey == LogicalKeyboardKey.browserBack) &&
+                widget.onBack != null) {
+              widget.onBack!();
+              return KeyEventResult.handled;
+            }
+            if (event.logicalKey == LogicalKeyboardKey.enter ||
+                event.logicalKey == LogicalKeyboardKey.select) {
+              widget.onTap();
+              return KeyEventResult.handled;
+            }
+          }
+          return KeyEventResult.ignored;
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: _isFocused ? SettingsService.themeColor : Colors.white12,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.history,
+                size: 16,
+                color: _isFocused ? Colors.white : Colors.white54,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  widget.text,
+                  style: TextStyle(
+                    color: _isFocused ? Colors.white : Colors.white70,
+                    fontSize: 14,
+                    fontWeight: _isFocused
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],

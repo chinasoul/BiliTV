@@ -77,6 +77,20 @@ class HomeTabState extends State<HomeTab> {
     _categoryFocusNodes[index].requestFocus();
   }
 
+  /// 切换到指定分类（通过分类名称），如果分类不存在则不切换
+  /// 返回是否成功切换
+  bool switchToCategoryByName(String categoryName) {
+    final index = _categories.indexWhere((c) => c.name == categoryName);
+    if (index < 0) return false;
+    if (index == _selectedCategoryIndex) return true; // 已经在该分类
+    _switchCategory(index);
+    return true;
+  }
+
+  /// 获取第一个分类的名称（用于 fallback）
+  String? get firstCategoryName =>
+      _categories.isNotEmpty ? _categories.first.name : null;
+
   @override
   void initState() {
     super.initState();
@@ -98,6 +112,14 @@ class HomeTabState extends State<HomeTab> {
       // 通知父组件（用于 Sidebar 焦点处理等）
       WidgetsBinding.instance.addPostFrameCallback((_) {
         widget.onFirstLoadComplete?.call();
+        // 启动时自动刷新开启，延迟显示已刷新提示（等待界面渲染完成）
+        if (SettingsService.autoRefreshOnLaunch) {
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (mounted) {
+              ToastUtils.show(context, '已刷新');
+            }
+          });
+        }
       });
     } else if (!SettingsService.autoRefreshOnLaunch) {
       // 【关闭自动刷新】尝试从本地缓存加载
@@ -119,8 +141,8 @@ class HomeTabState extends State<HomeTab> {
         _loadVideosForCategory(0);
       }
     } else {
-      // 只有没数据时，才自己去请求
-      _loadVideosForCategory(0);
+      // 【开启自动刷新】请求新数据，完成后显示 toast
+      _loadVideosForCategory(0, showRefreshToast: true);
     }
   }
 
@@ -232,6 +254,7 @@ class HomeTabState extends State<HomeTab> {
   Future<void> _loadVideosForCategory(
     int categoryIndex, {
     bool refresh = false,
+    bool showRefreshToast = false,
   }) async {
     if (_categoryLoading[categoryIndex] == true) return;
 
@@ -330,7 +353,7 @@ class HomeTabState extends State<HomeTab> {
       }
     });
 
-    if (refresh) {
+    if (refresh || showRefreshToast) {
       ToastUtils.show(context, requestFailed ? '刷新失败' : '已刷新');
     }
   }
@@ -660,15 +683,17 @@ class HomeTabState extends State<HomeTab> {
           ),
         ),
 
-        // 更新时间 Banner (显示在顶部，3秒后自动淡出)
+        // 更新时间 Banner (显示在屏幕高度 2/3 处，自动淡出)
         if (_updateTimeText.isNotEmpty)
           Positioned(
-            top: 12,
+            top: MediaQuery.of(context).size.height * 2 / 3,
             left: 0,
             right: 0,
-            child: UpdateTimeBanner(
-              key: ValueKey(_bannerKey),
-              timeText: _updateTimeText,
+            child: Center(
+              child: UpdateTimeBanner(
+                key: ValueKey(_bannerKey),
+                timeText: _updateTimeText,
+              ),
             ),
           ),
       ],

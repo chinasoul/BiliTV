@@ -71,6 +71,19 @@ class SettingsViewState extends State<SettingsView> {
     }
   }
 
+  /// 处理返回键：如果焦点在设置项上，先回到分类标签；否则返回 false 让上层处理
+  bool handleBack() {
+    // 检查焦点是否在分类标签上
+    for (final node in _categoryFocusNodes) {
+      if (node.hasFocus) {
+        return false; // 已经在分类标签上，让上层处理（回到侧边栏）
+      }
+    }
+    // 焦点在设置项或其他地方，回到当前分类标签
+    _categoryFocusNodes[_selectedCategoryIndex].requestFocus();
+    return true;
+  }
+
   /// 构建分类标签
   Widget _buildCategoryTab({
     required String label,

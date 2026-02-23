@@ -887,4 +887,37 @@ class SettingsService {
     final screenWidth = MediaQuery.of(context).size.width;
     return screenWidth * sidePanelWidthRatio;
   }
+
+  // ==================== 默认启动页面 ====================
+  static const String _defaultStartPageKey = 'default_start_page';
+
+  /// 启动页面选项：key → label
+  /// 对应 HomeScreen 的 tab 索引或特殊值
+  /// 'recommend' -> 主页推荐分类 (index 0)
+  /// 'popular' -> 主页热门分类 (index 0，但切换到热门)
+  /// 'dynamic' -> 动态 (index 1)
+  /// 'history' -> 历史 (index 3)
+  /// 'live' -> 直播 (index 4)
+  static const Map<String, String> defaultStartPageOptions = {
+    'recommend': '推荐',
+    'popular': '热门',
+    'dynamic': '关注动态',
+    'history': '历史',
+    'live': '直播',
+  };
+
+  /// 获取默认启动页面
+  static String get defaultStartPage {
+    return _prefs?.getString(_defaultStartPageKey) ?? 'recommend';
+  }
+
+  /// 设置默认启动页面
+  static Future<void> setDefaultStartPage(String value) async {
+    await init();
+    await _prefs!.setString(_defaultStartPageKey, value);
+  }
+
+  /// 获取默认启动页面标签
+  static String get defaultStartPageLabel =>
+      defaultStartPageOptions[defaultStartPage] ?? '推荐';
 }

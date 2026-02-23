@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:bili_tv_app/services/settings_service.dart';
 import 'package:bili_tv_app/config/app_style.dart';
+import 'value_picker_popup.dart';
 
 /// 设置页下拉选择行组件
 ///
-/// 使用统一的焦点管理系统，支持左右键切换选项
+/// 使用统一的焦点管理系统，按确认键或右键弹出选择窗口
 class SettingDropdownRow<T> extends StatelessWidget {
   final String label;
   final String? subtitle;
@@ -34,10 +35,17 @@ class SettingDropdownRow<T> extends StatelessWidget {
     this.isLast = false,
   });
 
-  void _nextValue() {
-    final currentIndex = items.indexOf(value);
-    final nextIndex = (currentIndex + 1) % items.length;
-    onChanged(items[nextIndex]);
+  void _showPicker(BuildContext context) {
+    ValuePickerOverlay.show<T>(
+      context: context,
+      title: label,
+      items: items,
+      currentValue: value,
+      itemLabel: itemLabel,
+      onSelected: (selectedValue) {
+        onChanged(selectedValue);
+      },
+    );
   }
 
   @override
@@ -69,7 +77,7 @@ class SettingDropdownRow<T> extends StatelessWidget {
           case LogicalKeyboardKey.arrowRight:
           case LogicalKeyboardKey.enter:
           case LogicalKeyboardKey.select:
-            _nextValue();
+            _showPicker(context);
             return KeyEventResult.handled;
 
           default:
@@ -78,76 +86,85 @@ class SettingDropdownRow<T> extends StatelessWidget {
       },
       child: Builder(
         builder: (context) {
-          final isFocused = Focus.of(context).hasFocus;
-          return Container(
-            constraints: const BoxConstraints(minHeight: AppSpacing.settingItemMinHeight),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: AppSpacing.settingItemVerticalPadding),
-            decoration: BoxDecoration(
-              color: isFocused
-                  ? Colors.white.withValues(alpha: 0.1)
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        label,
-                        style: TextStyle(
-                          color: isFocused ? Colors.white : Colors.white70,
-                          fontSize: AppFonts.sizeMD,
-                        ),
-                      ),
-                      if (subtitle != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 2),
-                          child: Text(
-                            subtitle!,
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.5),
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                SizedBox(
-                  height: AppSpacing.settingItemRightHeight,
-                  child: Container(
-                    alignment: Alignment.center,
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    decoration: BoxDecoration(
-                      color: isFocused
-                          ? SettingsService.themeColor
-                          : Colors.white.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+          final focusScope = Focus.of(context);
+          final isFocused = focusScope.hasFocus;
+          return GestureDetector(
+            onTap: () => _showPicker(context),
+            child: Container(
+              constraints: const BoxConstraints(
+                minHeight: AppSpacing.settingItemMinHeight,
+              ),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: AppSpacing.settingItemVerticalPadding,
+              ),
+              decoration: BoxDecoration(
+                color: isFocused
+                    ? Colors.white.withValues(alpha: 0.1)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          itemLabel(value),
+                          label,
                           style: TextStyle(
                             color: isFocused ? Colors.white : Colors.white70,
-                            fontSize: 14,
+                            fontSize: AppFonts.sizeMD,
                           ),
                         ),
-                        const SizedBox(width: 4),
-                        Icon(
-                          Icons.chevron_right,
-                          size: 16,
-                          color: isFocused ? Colors.white : Colors.white54,
-                        ),
+                        if (subtitle != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: Text(
+                              subtitle!,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.5),
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),
-                ),
-              ],
+                  SizedBox(
+                    height: AppSpacing.settingItemRightHeight,
+                    child: Container(
+                      alignment: Alignment.center,
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      decoration: BoxDecoration(
+                        color: isFocused
+                            ? SettingsService.themeColor
+                            : Colors.white.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            itemLabel(value),
+                            style: TextStyle(
+                              color: isFocused ? Colors.white : Colors.white70,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.unfold_more,
+                            size: 16,
+                            color: isFocused ? Colors.white : Colors.white54,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         },

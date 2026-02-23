@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../../models/video.dart';
 import '../../../services/bilibili_api.dart';
 import '../../../services/settings_service.dart';
 import '../../../widgets/tv_video_card.dart';
 import '../../player/player_screen.dart';
+
+/// 判断是否为按键按下或重复事件
+bool _isKeyDownOrRepeat(KeyEvent event) =>
+    event is KeyDownEvent || event is KeyRepeatEvent;
 
 class SearchResultsView extends StatefulWidget {
   final String query;
@@ -38,6 +41,8 @@ class _SearchResultsViewState extends State<SearchResultsView> {
   late final List<FocusNode> _sortFocusNodes;
   final Map<int, FocusNode> _videoFocusNodes = {};
   bool _shouldFocusFirstResult = false;
+  // 空结果时返回按钮的 FocusNode
+  final FocusNode _emptyBackButtonFocusNode = FocusNode();
 
   final Map<String, String> _sortOptions = {
     'totalrank': '综合排序',
@@ -65,6 +70,7 @@ class _SearchResultsViewState extends State<SearchResultsView> {
     for (final node in _videoFocusNodes.values) {
       node.dispose();
     }
+    _emptyBackButtonFocusNode.dispose();
     super.dispose();
   }
 
@@ -128,12 +134,19 @@ class _SearchResultsViewState extends State<SearchResultsView> {
       }
 
       // Handle explicit focus request after build
-      if (_shouldFocusFirstResult && _searchResults.isNotEmpty) {
+      if (_shouldFocusFirstResult) {
         _shouldFocusFirstResult = false;
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          final firstNode = _getFocusNode(0);
-          if (firstNode.canRequestFocus) {
-            firstNode.requestFocus();
+          if (_searchResults.isNotEmpty) {
+            final firstNode = _getFocusNode(0);
+            if (firstNode.canRequestFocus) {
+              firstNode.requestFocus();
+            }
+          } else {
+            // 无结果时聚焦返回按钮
+            if (_emptyBackButtonFocusNode.canRequestFocus) {
+              _emptyBackButtonFocusNode.requestFocus();
+            }
           }
         });
       }
@@ -188,10 +201,11 @@ class _SearchResultsViewState extends State<SearchResultsView> {
               '未找到相关视频',
               style: TextStyle(color: Colors.white38, fontSize: 16),
             ),
-            const SizedBox(height: 10),
-            const Text(
-              '按返回键重新搜索',
-              style: TextStyle(color: Colors.white24, fontSize: 14),
+            const SizedBox(height: 20),
+            // 可聚焦的返回按钮
+            _BackToSearchButton(
+              focusNode: _emptyBackButtonFocusNode,
+              onTap: widget.onBackToKeyboard,
             ),
           ],
         ),
@@ -361,11 +375,16 @@ class _SortButtonState extends State<_SortButton> {
         if (focused) widget.onFocus();
       },
       onKeyEvent: (node, event) {
-        if (event is KeyDownEvent &&
-            (event.logicalKey == LogicalKeyboardKey.enter ||
-                event.logicalKey == LogicalKeyboardKey.select)) {
-          widget.onTap();
-          return KeyEventResult.handled;
+        if (_isKeyDownOrRepeat(event)) {
+          // 阻止上键导航到其他页面
+          if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+            return KeyEventResult.handled;
+          }
+          if (event.logicalKey == LogicalKeyboardKey.enter ||
+              event.logicalKey == LogicalKeyboardKey.select) {
+            widget.onTap();
+            return KeyEventResult.handled;
+          }
         }
         return KeyEventResult.ignored;
       },
@@ -373,24 +392,12 @@ class _SortButtonState extends State<_SortButton> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: widget.isSelected
+          color: _isFocused
               ? SettingsService.themeColor
-              : _isFocused
+              : widget.isSelected
               ? Colors.white.withValues(alpha: 0.2)
               : Colors.white.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(20),
-          border: _isFocused
-              ? Border.all(color: Colors.white, width: 2)
-              : Border.all(color: Colors.transparent, width: 2),
-          boxShadow: _isFocused
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ]
-              : null,
         ),
         child: Text(
           widget.label,
@@ -400,6 +407,84 @@ class _SortButtonState extends State<_SortButton> {
             fontWeight: widget.isSelected || _isFocused
                 ? FontWeight.bold
                 : FontWeight.normal,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 返回搜索按钮 - 搜索结果为空时显示
+class _BackToSearchButton extends StatefulWidget {
+  final VoidCallback onTap;
+  final FocusNode? focusNode;
+
+  const _BackToSearchButton({required this.onTap, this.focusNode});
+
+  @override
+  State<_BackToSearchButton> createState() => _BackToSearchButtonState();
+}
+
+class _BackToSearchButtonState extends State<_BackToSearchButton> {
+  bool _isFocused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Focus(
+      focusNode: widget.focusNode,
+      onFocusChange: (focused) => setState(() => _isFocused = focused),
+      onKeyEvent: (node, event) {
+        if (_isKeyDownOrRepeat(event)) {
+          // 返回键
+          if (event.logicalKey == LogicalKeyboardKey.escape ||
+              event.logicalKey == LogicalKeyboardKey.goBack ||
+              event.logicalKey == LogicalKeyboardKey.browserBack) {
+            widget.onTap();
+            return KeyEventResult.handled;
+          }
+          // 确认键
+          if (event.logicalKey == LogicalKeyboardKey.enter ||
+              event.logicalKey == LogicalKeyboardKey.select) {
+            widget.onTap();
+            return KeyEventResult.handled;
+          }
+          // 阻止方向键导航到其他地方
+          if (event.logicalKey == LogicalKeyboardKey.arrowUp ||
+              event.logicalKey == LogicalKeyboardKey.arrowDown ||
+              event.logicalKey == LogicalKeyboardKey.arrowLeft ||
+              event.logicalKey == LogicalKeyboardKey.arrowRight) {
+            return KeyEventResult.handled;
+          }
+        }
+        return KeyEventResult.ignored;
+      },
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          decoration: BoxDecoration(
+            color: _isFocused ? SettingsService.themeColor : Colors.white12,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.arrow_back,
+                size: 18,
+                color: _isFocused ? Colors.white : Colors.white70,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '返回重新搜索',
+                style: TextStyle(
+                  color: _isFocused ? Colors.white : Colors.white70,
+                  fontSize: 15,
+                  fontWeight: _isFocused ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            ],
           ),
         ),
       ),

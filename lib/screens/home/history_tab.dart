@@ -34,6 +34,7 @@ class HistoryTabState extends State<HistoryTab> {
   bool _hasLoaded = false;
   int _currentLimit = SettingsService.listMaxItems;
   String _updateTimeText = ''; // 用于显示更新时间的 Banner
+  int _updateTimeBannerKey = 0; // 用于强制重建 Banner
   // 每个视频卡片的 FocusNode
   final Map<int, FocusNode> _videoFocusNodes = {};
   final FocusNode _loadMoreFocusNode = FocusNode();
@@ -115,15 +116,25 @@ class HistoryTabState extends State<HistoryTab> {
         _viewAt = 0;
         _max = 0;
         _hasMore = true;
+        _updateTimeText = ''; // 清除旧的更新时间
       });
       return;
     }
     _hasLoaded = true; // 标记已加载，避免切换时重复加载
-    _loadHistory(reset: true);
+    setState(() => _updateTimeText = ''); // 刷新时先清除旧的更新时间
+    _loadHistory(reset: true, isManualRefresh: true);
   }
 
-  Future<void> _loadHistory({bool reset = false}) async {
+  Future<void> _loadHistory({
+    bool reset = false,
+    bool isManualRefresh = false,
+  }) async {
     if (!AuthService.isLoggedIn) return;
+
+    // 记录刷新前的第一个视频 bvid，用于判断是否有更新
+    final oldFirstBvid = isManualRefresh && _videos.isNotEmpty
+        ? _videos.first.bvid
+        : null;
 
     if (reset) {
       // 释放旧的 FocusNode，防止内存泄漏
@@ -180,7 +191,41 @@ class HistoryTabState extends State<HistoryTab> {
 
     // 首次加载完成后保存缓存
     if (reset && _videos.isNotEmpty) {
-      _saveHistoryCache();
+      // 手动刷新时，先判断数据是否变化，再决定是否保存缓存
+      if (isManualRefresh) {
+        final newFirstBvid = _videos.isNotEmpty ? _videos.first.bvid : null;
+        final hasChanged = oldFirstBvid != newFirstBvid;
+        if (hasChanged) {
+          // 数据有变化，保存缓存并显示"更新于刚刚"
+          _saveHistoryCache();
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              setState(() {
+                _updateTimeText = '更新于刚刚';
+                _updateTimeBannerKey++;
+              });
+            }
+          });
+        } else {
+          // 数据无变化，显示上次缓存的时间
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              final timeStr = SettingsService.formatTimestamp(
+                SettingsService.lastHistoryRefreshTime,
+              );
+              if (timeStr.isNotEmpty) {
+                setState(() {
+                  _updateTimeText = timeStr;
+                  _updateTimeBannerKey++;
+                });
+              }
+            }
+          });
+        }
+      } else {
+        // 非手动刷新（如首次加载），只保存缓存
+        _saveHistoryCache();
+      }
     }
   }
 
@@ -213,7 +258,10 @@ class HistoryTabState extends State<HistoryTab> {
           SettingsService.lastHistoryRefreshTime,
         );
         if (timeStr.isNotEmpty && mounted) {
-          setState(() => _updateTimeText = timeStr);
+          setState(() {
+            _updateTimeText = timeStr;
+            _updateTimeBannerKey++; // 强制重建 Banner
+          });
         }
       });
       return true;
@@ -461,15 +509,17 @@ class HistoryTabState extends State<HistoryTab> {
           ),
         ),
 
-        // 更新时间 Banner (显示在顶部，3秒后自动收起)
+        // 更新时间 Banner (显示在屏幕高度 2/3 处，自动收起)
         if (_updateTimeText.isNotEmpty)
           Positioned(
-            top: 12,
+            top: MediaQuery.of(context).size.height * 2 / 3,
             left: 0,
             right: 0,
-            child: UpdateTimeBanner(
-              key: ValueKey(_updateTimeText),
-              timeText: _updateTimeText,
+            child: Center(
+              child: UpdateTimeBanner(
+                key: ValueKey(_updateTimeBannerKey),
+                timeText: _updateTimeText,
+              ),
             ),
           ),
       ],

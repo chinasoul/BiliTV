@@ -167,21 +167,41 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
           },
         ),
         const SizedBox(height: AppSpacing.settingItemGap),
+        // 默认启动页面
+        SettingActionRow(
+          label: '默认启动页面',
+          value: '当前: ${SettingsService.defaultStartPageLabel}',
+          buttonLabel: SettingsService.defaultStartPageLabel,
+          autofocus: false,
+          onMoveUp: null,
+          sidebarFocusNode: widget.sidebarFocusNode,
+          optionLabels: SettingsService.defaultStartPageOptions.values.toList(),
+          selectedOption: SettingsService.defaultStartPageLabel,
+          onTap: null,
+          onOptionSelected: (selectedLabel) async {
+            // 根据选中的标签找到对应的 key
+            final entry = SettingsService.defaultStartPageOptions.entries
+                .firstWhere((e) => e.value == selectedLabel);
+            await SettingsService.setDefaultStartPage(entry.key);
+            setState(() {});
+          },
+        ),
+        const SizedBox(height: AppSpacing.settingItemGap),
         // 每行视频列数
         SettingActionRow(
           label: '每行视频列数',
           value: '当前: $_videoGridColumns 列',
-          buttonLabel: '切换：$_videoGridColumns',
+          buttonLabel: '$_videoGridColumns 列',
           autofocus: false,
           onMoveUp: null,
           sidebarFocusNode: widget.sidebarFocusNode,
-          onTap: () async {
-            const options = [4, 5, 6];
-            final current = _videoGridColumns.clamp(4, 6);
-            final idx = options.indexOf(current);
-            final next = options[(idx + 1) % options.length];
-            await SettingsService.setVideoGridColumns(next);
-            setState(() => _videoGridColumns = next);
+          optionLabels: const ['4 列', '5 列', '6 列'],
+          selectedOption: '$_videoGridColumns 列',
+          onTap: null,
+          onOptionSelected: (selectedLabel) async {
+            final columns = int.parse(selectedLabel.replaceAll(' 列', ''));
+            await SettingsService.setVideoGridColumns(columns);
+            setState(() => _videoGridColumns = columns);
           },
         ),
         const SizedBox(height: AppSpacing.settingItemGap),
@@ -190,17 +210,29 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
           label: '播放页侧栏宽度',
           value:
               '当前: ${SettingsService.sidePanelWidthLabel(_sidePanelWidthRatio)}',
-          buttonLabel:
-              '切换：${SettingsService.sidePanelWidthLabel(_sidePanelWidthRatio)}',
+          buttonLabel: SettingsService.sidePanelWidthLabel(
+            _sidePanelWidthRatio,
+          ),
           autofocus: false,
           onMoveUp: null,
           sidebarFocusNode: widget.sidebarFocusNode,
-          onTap: () async {
+          optionLabels: SettingsService.sidePanelWidthOptions
+              .map((r) => SettingsService.sidePanelWidthLabel(r))
+              .toList(),
+          selectedOption: SettingsService.sidePanelWidthLabel(
+            _sidePanelWidthRatio,
+          ),
+          onTap: null,
+          onOptionSelected: (selectedLabel) async {
+            // 根据选中的标签找到对应的值
             final options = SettingsService.sidePanelWidthOptions;
-            final idx = options.indexOf(_sidePanelWidthRatio);
-            final next = options[(idx + 1) % options.length];
-            await SettingsService.setSidePanelWidthRatio(next);
-            setState(() => _sidePanelWidthRatio = next);
+            final idx = options.indexWhere(
+              (r) => SettingsService.sidePanelWidthLabel(r) == selectedLabel,
+            );
+            if (idx >= 0) {
+              await SettingsService.setSidePanelWidthRatio(options[idx]);
+              setState(() => _sidePanelWidthRatio = options[idx]);
+            }
           },
         ),
         const SizedBox(height: AppSpacing.settingItemGap),
@@ -230,12 +262,17 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
               .map((s) => SettingsService.fontScaleLabel(s))
               .toList(),
           selectedOption: SettingsService.fontScaleLabel(_fontScale),
-          onTap: () async {
+          onTap: null,
+          onOptionSelected: (selectedLabel) async {
+            // 根据选中的标签找到对应的值
             final options = SettingsService.fontScaleOptions;
-            final idx = options.indexOf(_fontScale);
-            final next = options[(idx + 1) % options.length];
-            await SettingsService.setFontScale(next);
-            setState(() => _fontScale = next);
+            final idx = options.indexWhere(
+              (s) => SettingsService.fontScaleLabel(s) == selectedLabel,
+            );
+            if (idx >= 0) {
+              await SettingsService.setFontScale(options[idx]);
+              setState(() => _fontScale = options[idx]);
+            }
           },
         ),
         const SizedBox(height: AppSpacing.settingItemGap),
