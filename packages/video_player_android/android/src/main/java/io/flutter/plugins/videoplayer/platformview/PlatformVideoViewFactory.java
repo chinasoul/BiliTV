@@ -21,6 +21,7 @@ import java.util.Objects;
  */
 public class PlatformVideoViewFactory extends PlatformViewFactory {
   private final VideoPlayerProvider videoPlayerProvider;
+  private final PlatformViewCreatedListener platformViewCreatedListener;
 
   /** Functional interface for providing a VideoPlayer instance based on the player ID. */
   @FunctionalInterface
@@ -35,15 +36,23 @@ public class PlatformVideoViewFactory extends PlatformViewFactory {
     VideoPlayer getVideoPlayer(@NonNull Long playerId);
   }
 
+  @FunctionalInterface
+  public interface PlatformViewCreatedListener {
+    void onCreated(@NonNull Long playerId, @NonNull PlatformVideoView platformVideoView);
+  }
+
   /**
    * Constructs a new PlatformVideoViewFactory.
    *
    * @param videoPlayerProvider The provider used to retrieve the video player associated with the
    *     view.
    */
-  public PlatformVideoViewFactory(@NonNull VideoPlayerProvider videoPlayerProvider) {
+  public PlatformVideoViewFactory(
+      @NonNull VideoPlayerProvider videoPlayerProvider,
+      @NonNull PlatformViewCreatedListener platformViewCreatedListener) {
     super(AndroidVideoPlayerApi.Companion.getCodec());
     this.videoPlayerProvider = videoPlayerProvider;
+    this.platformViewCreatedListener = platformViewCreatedListener;
   }
 
   /**
@@ -64,6 +73,8 @@ public class PlatformVideoViewFactory extends PlatformViewFactory {
     final VideoPlayer player = videoPlayerProvider.getVideoPlayer(playerId);
     final ExoPlayer exoPlayer = player.getExoPlayer();
 
-    return new PlatformVideoView(context, exoPlayer);
+    final PlatformVideoView view = new PlatformVideoView(context, exoPlayer);
+    platformViewCreatedListener.onCreated(playerId, view);
+    return view;
   }
 }

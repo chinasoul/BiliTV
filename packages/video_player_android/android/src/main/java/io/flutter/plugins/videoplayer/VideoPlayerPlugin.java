@@ -6,6 +6,7 @@ package io.flutter.plugins.videoplayer;
 
 import android.content.Context;
 import android.util.LongSparseArray;
+import java.util.Map;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.OptIn;
@@ -14,7 +15,10 @@ import io.flutter.FlutterInjector;
 import io.flutter.Log;
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
 import io.flutter.plugin.common.BinaryMessenger;
+import io.flutter.plugin.common.MethodCall;
+import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugins.videoplayer.platformview.PlatformVideoViewFactory;
+import io.flutter.plugins.videoplayer.platformview.PlatformVideoView;
 import io.flutter.plugins.videoplayer.platformview.PlatformViewVideoPlayer;
 import io.flutter.plugins.videoplayer.texture.TextureVideoPlayer;
 import io.flutter.view.TextureRegistry;
@@ -22,9 +26,12 @@ import io.flutter.view.TextureRegistry;
 /** Android platform implementation of the VideoPlayerPlugin. */
 public class VideoPlayerPlugin implements FlutterPlugin, AndroidVideoPlayerApi {
   private static final String TAG = "VideoPlayerPlugin";
+  private static final String DANMAKU_CHANNEL = "plugins.flutter.dev/video_player_android_danmaku";
   private final LongSparseArray<VideoPlayer> videoPlayers = new LongSparseArray<>();
+  private final LongSparseArray<PlatformVideoView> platformVideoViews = new LongSparseArray<>();
   private FlutterState flutterState;
   private final VideoPlayerOptions sharedOptions = new VideoPlayerOptions();
+  @Nullable private MethodChannel danmakuChannel;
   private long nextPlayerIdentifier = 1;
 
   /** Register this with the v2 embedding for the plugin to respond to lifecycle callbacks. */
@@ -46,7 +53,12 @@ public class VideoPlayerPlugin implements FlutterPlugin, AndroidVideoPlayerApi {
         .getPlatformViewRegistry()
         .registerViewFactory(
             "plugins.flutter.dev/video_player_android",
-            new PlatformVideoViewFactory(videoPlayers::get));
+            new PlatformVideoViewFactory(
+                videoPlayers::get,
+                (playerId, platformVideoView) -> platformVideoViews.put(playerId, platformVideoView)));
+
+    danmakuChannel = new MethodChannel(binding.getBinaryMessenger(), DANMAKU_CHANNEL);
+    danmakuChannel.setMethodCallHandler(this::handleDanmakuMethodCall);
   }
 
   @Override
@@ -55,6 +67,10 @@ public class VideoPlayerPlugin implements FlutterPlugin, AndroidVideoPlayerApi {
       Log.wtf(TAG, "Detached from the engine before registering to it.");
     }
     flutterState.stopListening(binding.getBinaryMessenger());
+    if (danmakuChannel != null) {
+      danmakuChannel.setMethodCallHandler(null);
+      danmakuChannel = null;
+    }
     flutterState = null;
     onDestroy();
   }
@@ -64,6 +80,7 @@ public class VideoPlayerPlugin implements FlutterPlugin, AndroidVideoPlayerApi {
       videoPlayers.valueAt(i).dispose();
     }
     videoPlayers.clear();
+    platformVideoViews.clear();
   }
 
   public void onDestroy() {
@@ -178,6 +195,75 @@ public class VideoPlayerPlugin implements FlutterPlugin, AndroidVideoPlayerApi {
     VideoPlayer player = getPlayer(playerId);
     player.dispose();
     videoPlayers.remove(playerId);
+    platformVideoViews.remove(playerId);
+  }
+
+  @SuppressWarnings("unchecked")
+  private void handleDanmakuMethodCall(@NonNull MethodCall call, @NonNull MethodChannel.Result result) {
+    final Map<String, Object> args = (Map<String, Object>) call.arguments;
+    if (args == null) {
+      result.error("bad_args", "Arguments are null", null);
+      return;
+    }
+    final Number playerIdNumber = (Number) args.get("playerId");
+    if (playerIdNumber == null) {
+      result.error("bad_args", "playerId is required", null);
+      return;
+    }
+    final long playerId = playerIdNumber.longValue();
+    final PlatformVideoView view = platformVideoViews.get(playerId);
+    if (view == null) {
+      result.error("no_view", "No platform video view for playerId=" + playerId, null);
+      return;
+    }
+
+    switch (call.method) {
+      case "addDanmaku": {
+        final String text = (String) args.get("text");
+        final Number color = (Number) args.get("color");
+        if (text == null || color == null) {
+          result.error("bad_args", "text/color required", null);
+          return;
+        }
+        view.addDanmaku(text, color.intValue());
+        result.success(null);
+        return;
+      }
+      case "updateOption": {
+        view.updateDanmakuOption(
+            toDouble(args.get("opacity"), 0.6),
+            toDouble(args.get("fontSize"), 17.0),
+            toDouble(args.get("area"), 0.25),
+            toDouble(args.get("duration"), 10.0),
+            toBoolean(args.get("hideScroll"), false),
+            toDouble(args.get("strokeWidth"), 0.8),
+            toDouble(args.get("lineHeight"), 1.6));
+        result.success(null);
+        return;
+      }
+      case "clear":
+        view.clearDanmaku();
+        result.success(null);
+        return;
+      case "pause":
+        view.pauseDanmaku();
+        result.success(null);
+        return;
+      case "resume":
+        view.resumeDanmaku();
+        result.success(null);
+        return;
+      default:
+        result.notImplemented();
+    }
+  }
+
+  private static double toDouble(@Nullable Object value, double defaultValue) {
+    return value instanceof Number ? ((Number) value).doubleValue() : defaultValue;
+  }
+
+  private static boolean toBoolean(@Nullable Object value, boolean defaultValue) {
+    return value instanceof Boolean ? (Boolean) value : defaultValue;
   }
 
   @Override

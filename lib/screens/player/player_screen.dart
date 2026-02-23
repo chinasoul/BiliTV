@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
+import 'package:video_player/video_player.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import '../../config/build_flags.dart';
 import '../../models/video.dart';
@@ -95,7 +97,11 @@ class _PlayerScreenState extends State<PlayerScreen>
               ),
 
               // 弹幕层
-              if (!isLoading && videoController != null && danmakuEnabled)
+              if (!isLoading &&
+                  videoController != null &&
+                  danmakuEnabled &&
+                  !(defaultTargetPlatform == TargetPlatform.android &&
+                      preferNativeDanmaku))
                 DanmakuLayer(
                   onCreated: (c) => danmakuController = c,
                   option: DanmakuOption(
@@ -466,6 +472,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         '${videoSpeedKbps <= 0 ? '0.0' : videoSpeedKbps.toStringAsFixed(1)} Kbps';
     final networkText =
         '${networkActivityKb <= 0 ? '0.00' : networkActivityKb.toStringAsFixed(2)} KB';
+    final renderPath = _buildRenderPathText();
 
     TextStyle labelStyle = const TextStyle(
       color: Colors.white70,
@@ -513,6 +520,7 @@ class _PlayerScreenState extends State<PlayerScreen>
           ),
           const SizedBox(height: 2),
           row('分辨率', resolutionText),
+          row('渲染链路', renderPath),
           row('流(编码)', '$codec（B站下发，本机不编码）'),
           row('视频码率', dataRateText),
           _buildDecodeHintRow(codec, labelStyle, valueStyle),
@@ -521,6 +529,19 @@ class _PlayerScreenState extends State<PlayerScreen>
         ],
       ),
     );
+  }
+
+  String _buildRenderPathText() {
+    final controller = videoController;
+    if (controller == null) return 'view=unknown | tunnel=unknown';
+    final view = controller.viewType == VideoViewType.platformView
+        ? 'platformView'
+        : 'textureView';
+    final tunnel = defaultTargetPlatform == TargetPlatform.android &&
+            controller.viewType == VideoViewType.platformView
+        ? 'requested'
+        : 'n/a';
+    return 'view=$view | tunnel=$tunnel';
   }
 
   Widget _buildDecodeHintRow(

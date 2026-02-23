@@ -43,6 +43,7 @@ mixin PlayerStateMixin on State<PlayerScreen> {
   double danmakuSpeed = 10.0;
   bool hideTopDanmaku = false;
   bool hideBottomDanmaku = false;
+  bool preferNativeDanmaku = false;
 
   // 播放设置
   double playbackSpeed = 1.0;
@@ -95,6 +96,10 @@ mixin PlayerStateMixin on State<PlayerScreen> {
   // 弹幕数据
   List<dynamic> danmakuList = [];
   int lastDanmakuIndex = 0;
+  DateTime? lastUiRebuildAt;
+  DateTime? lastPluginHandleAt;
+  Timer? danmakuSyncTimer;
+  Timer? danmakuOptionApplyTimer;
 
   // 新面板
   bool showUpPanel = false;

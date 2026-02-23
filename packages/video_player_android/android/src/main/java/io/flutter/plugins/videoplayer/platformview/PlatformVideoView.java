@@ -9,6 +9,7 @@ import android.os.Build;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
+import android.widget.FrameLayout;
 import androidx.annotation.NonNull;
 import androidx.annotation.OptIn;
 import androidx.media3.common.util.UnstableApi;
@@ -20,7 +21,9 @@ import io.flutter.plugin.platform.PlatformView;
  * {@link ExoPlayer} instance and displays its video content.
  */
 public final class PlatformVideoView implements PlatformView {
+  @NonNull private final FrameLayout container;
   @NonNull private final SurfaceView surfaceView;
+  @NonNull private final DanmakuOverlayView danmakuOverlayView;
 
   /**
    * Constructs a new PlatformVideoView.
@@ -30,7 +33,15 @@ public final class PlatformVideoView implements PlatformView {
    */
   @OptIn(markerClass = UnstableApi.class)
   public PlatformVideoView(@NonNull Context context, @NonNull ExoPlayer exoPlayer) {
+    container = new FrameLayout(context);
     surfaceView = new SurfaceView(context);
+    danmakuOverlayView = new DanmakuOverlayView(context);
+
+    final FrameLayout.LayoutParams matchParent =
+        new FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT);
+    container.addView(surfaceView, matchParent);
+    container.addView(danmakuOverlayView, matchParent);
 
     if (Build.VERSION.SDK_INT == Build.VERSION_CODES.P) {
       // Workaround for rendering issues on Android 9 (API 28).
@@ -83,12 +94,41 @@ public final class PlatformVideoView implements PlatformView {
   @NonNull
   @Override
   public View getView() {
-    return surfaceView;
+    return container;
   }
 
   /** Disposes of the resources used by this PlatformView. */
   @Override
   public void dispose() {
+    danmakuOverlayView.clearDanmaku();
     surfaceView.getHolder().getSurface().release();
+  }
+
+  public void addDanmaku(@NonNull String text, int color) {
+    danmakuOverlayView.addDanmaku(text, color);
+  }
+
+  public void updateDanmakuOption(
+      double opacity,
+      double fontSize,
+      double area,
+      double duration,
+      boolean hideScroll,
+      double strokeWidth,
+      double lineHeight) {
+    danmakuOverlayView.updateOption(
+        opacity, fontSize, area, duration, hideScroll, strokeWidth, lineHeight);
+  }
+
+  public void clearDanmaku() {
+    danmakuOverlayView.clearDanmaku();
+  }
+
+  public void pauseDanmaku() {
+    danmakuOverlayView.pauseDanmaku();
+  }
+
+  public void resumeDanmaku() {
+    danmakuOverlayView.resumeDanmaku();
   }
 }

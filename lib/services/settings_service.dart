@@ -352,6 +352,7 @@ class SettingsService {
   static const String _danmakuSpeedKey = 'danmaku_speed';
   static const String _hideTopDanmakuKey = 'hide_top_danmaku';
   static const String _hideBottomDanmakuKey = 'hide_bottom_danmaku';
+  static const String _preferNativeDanmakuKey = 'prefer_native_danmaku';
 
   /// 弹幕开关 (默认开)
   static bool get danmakuEnabled => _prefs?.getBool(_danmakuEnabledKey) ?? true;
@@ -431,6 +432,14 @@ class SettingsService {
   static Future<void> setHideBottomDanmaku(bool value) async {
     await init();
     await _prefs!.setBool(_hideBottomDanmakuKey, value);
+  }
+
+  /// 优先使用原生弹幕渲染 (Android, 默认关闭)
+  static bool get preferNativeDanmaku =>
+      _prefs?.getBool(_preferNativeDanmakuKey) ?? false;
+  static Future<void> setPreferNativeDanmaku(bool value) async {
+    await init();
+    await _prefs!.setBool(_preferNativeDanmakuKey, value);
   }
 
   // ==================== 直播分区设置 ====================

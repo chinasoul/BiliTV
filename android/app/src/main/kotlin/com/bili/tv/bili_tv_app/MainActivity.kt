@@ -17,9 +17,17 @@ class MainActivity : FlutterActivity() {
     private val UPDATE_CHANNEL = "com.bili.tv/update"
     private val CODEC_CHANNEL = "com.bili.tv/codec"
     private val DEVICE_INFO_CHANNEL = "com.bili.tv/device_info"
+    private val NATIVE_DANMAKU_VIEW_TYPE = "com.bili.tv/native_danmaku_view"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        flutterEngine
+            .platformViewsController
+            .registry
+            .registerViewFactory(
+                NATIVE_DANMAKU_VIEW_TYPE,
+                NativeDanmakuViewFactory(flutterEngine.dartExecutor.binaryMessenger)
+            )
         
         // 更新安装 Channel
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, UPDATE_CHANNEL).setMethodCallHandler { call, result ->
