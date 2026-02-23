@@ -19,7 +19,7 @@ final class DanmakuOverlayView extends View {
     final float width;
     final int trackIndex;
     final float y;
-    final long bornAtMs;
+    long bornAtMs;
 
     DanmakuItem(String text, int color, float width, int trackIndex, float y, long bornAtMs) {
       this.text = text;
@@ -31,8 +31,20 @@ final class DanmakuOverlayView extends View {
     }
   }
 
+  private static final class TrackTail {
+    float textWidth;
+    long bornAtMs;
+    float speed;
+
+    TrackTail(float textWidth, long bornAtMs, float speed) {
+      this.textWidth = textWidth;
+      this.bornAtMs = bornAtMs;
+      this.speed = speed;
+    }
+  }
+
   private final List<DanmakuItem> items = new ArrayList<>();
-  private final List<Long> trackNextSpawnAtMs = new ArrayList<>();
+  private final List<TrackTail> trackTails = new ArrayList<>();
   private final Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
   private final Paint strokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
@@ -44,6 +56,7 @@ final class DanmakuOverlayView extends View {
   private float durationSec = 10f;
   private float lineHeight = 1.6f;
   private long droppedByTrackBusy = 0;
+  private long pauseStartMs = 0;
 
   DanmakuOverlayView(@NonNull Context context) {
     super(context);
@@ -91,22 +104,22 @@ final class DanmakuOverlayView extends View {
     final int tracks = getTrackCount(rowHeight);
     ensureTrackStateSize(tracks);
     final long now = SystemClock.elapsedRealtime();
-    final int trackIndex = pickTrackIndex(now);
-    final long readyAt = trackNextSpawnAtMs.get(trackIndex);
-    // All tracks are busy: drop this item instead of forcing overlap.
-    if (readyAt > now + 80L) {
+    final float width = textPaint.measureText(text);
+    final float screenW = getWidth();
+    final float durationMs = Math.max(durationSec * 1000.0f, 1000.0f);
+    final float totalDistance = screenW + width;
+    final float newSpeed = totalDistance / durationMs;
+    final float minGapPx = Math.max(textSizePx * 1.0f, 42f);
+
+    final int trackIndex = pickTrackByPosition(now, screenW, newSpeed, width, minGapPx);
+    if (trackIndex < 0) {
       droppedByTrackBusy++;
       return;
     }
 
-    final float width = textPaint.measureText(text);
     final float y = (trackIndex + 1) * rowHeight;
-    final float durationMs = Math.max(durationSec * 1000.0f, 1000.0f);
-    final float totalDistance = getWidth() + width;
-    final float speed = totalDistance / durationMs;
-    final float minGapPx = Math.max(textSizePx * 1.0f, 42f);
-    final long nextSpawnAt = now + (long) Math.ceil((width + minGapPx) / Math.max(speed, 0.001f));
-    trackNextSpawnAtMs.set(trackIndex, nextSpawnAt);
+
+    trackTails.set(trackIndex, new TrackTail(width, now, newSpeed));
 
     synchronized (items) {
       items.add(new DanmakuItem(text, color, width, trackIndex, y, now));
@@ -118,16 +131,35 @@ final class DanmakuOverlayView extends View {
     synchronized (items) {
       items.clear();
     }
-    trackNextSpawnAtMs.clear();
+    trackTails.clear();
     droppedByTrackBusy = 0;
+    pauseStartMs = 0;
     invalidate();
   }
 
   void pauseDanmaku() {
     running = false;
+    pauseStartMs = SystemClock.elapsedRealtime();
   }
 
   void resumeDanmaku() {
+    if (pauseStartMs > 0) {
+      final long pauseDuration = SystemClock.elapsedRealtime() - pauseStartMs;
+      if (pauseDuration > 0) {
+        synchronized (items) {
+          for (DanmakuItem item : items) {
+            item.bornAtMs += pauseDuration;
+          }
+        }
+        for (int i = 0; i < trackTails.size(); i++) {
+          final TrackTail tail = trackTails.get(i);
+          if (tail != null) {
+            tail.bornAtMs += pauseDuration;
+          }
+        }
+      }
+      pauseStartMs = 0;
+    }
     running = true;
     postInvalidateOnAnimation();
   }
@@ -190,28 +222,63 @@ final class DanmakuOverlayView extends View {
   }
 
   private void ensureTrackStateSize(int trackCount) {
-    while (trackNextSpawnAtMs.size() < trackCount) {
-      trackNextSpawnAtMs.add(0L);
+    while (trackTails.size() < trackCount) {
+      trackTails.add(null);
     }
-    while (trackNextSpawnAtMs.size() > trackCount) {
-      trackNextSpawnAtMs.remove(trackNextSpawnAtMs.size() - 1);
+    while (trackTails.size() > trackCount) {
+      trackTails.remove(trackTails.size() - 1);
     }
   }
 
-  private int pickTrackIndex(long nowMs) {
-    int best = 0;
-    long bestReadyAt = Long.MAX_VALUE;
-    for (int i = 0; i < trackNextSpawnAtMs.size(); i++) {
-      final long readyAt = trackNextSpawnAtMs.get(i);
-      if (readyAt <= nowMs) {
+  /**
+   * Returns the track index where the new danmaku can be placed, or -1 if all tracks are busy.
+   * A track is available if:
+   *   1) no tail recorded, OR
+   *   2) the tail's right edge (tailX + tailWidth) has cleared the right edge of screen with gap, AND
+   *   3) the new danmaku won't catch up with the tail before the tail exits.
+   */
+  private int pickTrackByPosition(long nowMs, float screenW, float newSpeed,
+      float newWidth, float minGapPx) {
+    int bestTrack = -1;
+    float bestGap = -Float.MAX_VALUE;
+
+    for (int i = 0; i < trackTails.size(); i++) {
+      final TrackTail tail = trackTails.get(i);
+      if (tail == null) {
         return i;
       }
-      if (readyAt < bestReadyAt) {
-        bestReadyAt = readyAt;
-        best = i;
+      final float tailElapsed = nowMs - tail.bornAtMs;
+      final float tailX = screenW - tailElapsed * tail.speed;
+      final float tailRightEdge = tailX + tail.textWidth;
+      final float gap = screenW - tailRightEdge;
+
+      if (gap < minGapPx) {
+        if (gap > bestGap) {
+          bestGap = gap;
+          bestTrack = i;
+        }
+        continue;
       }
+
+      if (newSpeed > tail.speed) {
+        final float tailTotalDist = screenW + tail.textWidth;
+        final float tailDurationMs = tailTotalDist / Math.max(tail.speed, 0.001f);
+        final float tailRemainingMs = tailDurationMs - tailElapsed;
+        final float catchUpX = screenW - tailRemainingMs * newSpeed;
+        if (catchUpX <= tailX - minGapPx) {
+          return i;
+        }
+        if (gap > bestGap) {
+          bestGap = gap;
+          bestTrack = i;
+        }
+        continue;
+      }
+
+      return i;
     }
-    return best;
+
+    return -1;
   }
 
   private static int applyOpacity(int color, float opacityScale) {

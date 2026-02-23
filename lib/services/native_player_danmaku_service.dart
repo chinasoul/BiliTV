@@ -30,6 +30,22 @@ class NativePlayerDanmakuService {
     });
   }
 
+  static void addDanmakuBatch(
+    VideoPlayerController? controller,
+    List<DanmakuContentItem> items,
+  ) {
+    if (items.isEmpty) return;
+    final playerId = _playerIdOf(controller);
+    if (playerId == null) return;
+    final batch = items
+        .map((item) => {'text': item.text, 'color': item.color.toARGB32()})
+        .toList(growable: false);
+    _channel.invokeMethod<void>('addDanmakuBatch', {
+      'playerId': playerId,
+      'items': batch,
+    });
+  }
+
   static void updateOption(
     VideoPlayerController? controller,
     DanmakuOption option,

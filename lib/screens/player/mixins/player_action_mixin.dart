@@ -1160,14 +1160,17 @@ mixin PlayerActionMixin on PlayerStateMixin {
         ? PluginManager().getEnabledPlugins<DanmakuPlugin>()
         : const <DanmakuPlugin>[];
 
+    List<DanmakuContentItem>? nativeBatch;
+    if (useNativeDanmaku) {
+      nativeBatch = <DanmakuContentItem>[];
+    }
+
     while (lastDanmakuIndex < danmakuList.length) {
       final dm = danmakuList[lastDanmakuIndex];
       final time = dm['time'] as double;
 
       if (time <= currentTime) {
         if (currentTime - time < 1.0) {
-          // 构造插件传递对象 (目前简单用 Map 传递)
-          // 真实项目中建议定义 DanmakuItem 模型
           Map<String, dynamic>? dmItem = {
             'content': dm['content'],
             'color': dm['color'],
@@ -1175,7 +1178,6 @@ mixin PlayerActionMixin on PlayerStateMixin {
 
           DanmakuStyle? style;
 
-          // 插件过滤管道
           for (var plugin in plugins) {
             if (dmItem == null) break;
             dmItem = plugin.filterDanmaku(dmItem);
@@ -1188,8 +1190,6 @@ mixin PlayerActionMixin on PlayerStateMixin {
           if (dmItem != null) {
             Color color = Color(dmItem['color'] as int).withValues(alpha: 255);
             if (style != null && style.borderColor != null) {
-              // 高亮样式暂时用颜色替代，或如果库支持边框则设置
-              // 这里简单将文字变色，并加粗（如果库支持）
               color = style.borderColor!;
             }
 
@@ -1197,8 +1197,8 @@ mixin PlayerActionMixin on PlayerStateMixin {
               dmItem['content'] as String,
               color: color,
             );
-            if (useNativeDanmaku) {
-              NativePlayerDanmakuService.addDanmaku(videoController, item);
+            if (nativeBatch != null) {
+              nativeBatch.add(item);
             } else if (danmakuController != null) {
               danmakuController!.addDanmaku(item);
             }
@@ -1208,6 +1208,10 @@ mixin PlayerActionMixin on PlayerStateMixin {
       } else {
         break;
       }
+    }
+
+    if (nativeBatch != null && nativeBatch.isNotEmpty) {
+      NativePlayerDanmakuService.addDanmakuBatch(videoController, nativeBatch);
     }
   }
 

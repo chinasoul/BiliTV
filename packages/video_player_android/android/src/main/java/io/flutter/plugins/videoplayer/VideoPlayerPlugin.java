@@ -6,6 +6,7 @@ package io.flutter.plugins.videoplayer;
 
 import android.content.Context;
 import android.util.LongSparseArray;
+import java.util.List;
 import java.util.Map;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -226,6 +227,24 @@ public class VideoPlayerPlugin implements FlutterPlugin, AndroidVideoPlayerApi {
           return;
         }
         view.addDanmaku(text, color.intValue());
+        result.success(null);
+        return;
+      }
+      case "addDanmakuBatch": {
+        final List<?> items = (List<?>) args.get("items");
+        if (items != null) {
+          for (Object obj : items) {
+            if (obj instanceof Map) {
+              @SuppressWarnings("unchecked")
+              final Map<String, Object> entry = (Map<String, Object>) obj;
+              final String t = (String) entry.get("text");
+              final Number c = (Number) entry.get("color");
+              if (t != null && c != null) {
+                view.addDanmaku(t, c.intValue());
+              }
+            }
+          }
+        }
         result.success(null);
         return;
       }
