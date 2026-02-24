@@ -65,14 +65,12 @@ class _DanmakuSettingsState extends State<DanmakuSettings> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SettingToggleRow(
-          label: '原生弹幕渲染优化(实验)',
+          label: '原生弹幕渲染优化',
           subtitleWidget: Text(
-            '若弹幕卡顿，可尝试开启（Android TV 推荐）',
-            style: TextStyle(
-              color: Colors.amber.withValues(alpha: 0.9),
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
+            '若弹幕卡顿可尝试开启',
+            style: TextStyle(color: Colors.amber.shade300, fontSize: 12),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           value: SettingsService.preferNativeDanmaku,
           autofocus: true,
