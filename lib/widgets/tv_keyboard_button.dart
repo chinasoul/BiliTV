@@ -66,19 +66,29 @@ class _TvKeyboardButtonState extends State<TvKeyboardButton> {
         }
         return KeyEventResult.ignored;
       },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        decoration: BoxDecoration(
-          color: _isFocused ? SettingsService.themeColor : Colors.white12,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          widget.label,
-          style: TextStyle(
-            color: _isFocused ? Colors.white : Colors.white70,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+      child: Builder(
+        builder: (ctx) => MouseRegion(
+          cursor: SystemMouseCursors.click,
+          onEnter: (_) => Focus.of(ctx).requestFocus(),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: widget.onTap,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              decoration: BoxDecoration(
+                color: _isFocused ? SettingsService.themeColor : Colors.white12,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                widget.label,
+                style: TextStyle(
+                  color: _isFocused ? Colors.white : Colors.white70,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
           ),
         ),
       ),
@@ -145,19 +155,29 @@ class _TvActionButtonState extends State<TvActionButton> {
         }
         return KeyEventResult.ignored;
       },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        decoration: BoxDecoration(
-          color: _isFocused ? widget.color : Colors.white12,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          widget.label,
-          style: TextStyle(
-            color: _isFocused ? Colors.white : Colors.white70,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+      child: Builder(
+        builder: (ctx) => MouseRegion(
+          cursor: SystemMouseCursors.click,
+          onEnter: (_) => Focus.of(ctx).requestFocus(),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: widget.onTap,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              decoration: BoxDecoration(
+                color: _isFocused ? widget.color : Colors.white12,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                widget.label,
+                style: TextStyle(
+                  color: _isFocused ? Colors.white : Colors.white70,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
           ),
         ),
       ),

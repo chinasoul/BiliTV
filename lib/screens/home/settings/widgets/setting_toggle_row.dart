@@ -54,82 +54,95 @@ class SettingToggleRow extends StatelessWidget {
       child: Builder(
         builder: (context) {
           final isFocused = Focus.of(context).hasFocus;
-          return Opacity(
-            opacity: enabled ? 1.0 : 0.5,
-            child: Container(
-              width: double.infinity,
-              constraints: const BoxConstraints(
-                minHeight: AppSpacing.settingItemMinHeight,
-              ),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: AppSpacing.settingItemVerticalPadding,
-              ),
-              decoration: BoxDecoration(
-                color: isFocused
-                    ? Colors.white.withValues(alpha: 0.1)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          label,
-                          style: TextStyle(
-                            color: isFocused ? Colors.white : Colors.white70,
-                            fontSize: AppFonts.sizeMD,
-                          ),
-                        ),
-                        if (subtitleWidget != null)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 2),
-                            child: subtitleWidget!,
-                          )
-                        else if (subtitle != null)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 2),
-                            child: Text(
-                              subtitle!,
-                              style: const TextStyle(
-                                color: Colors.white38,
-                                fontSize: 12,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                      ],
-                    ),
+          return MouseRegion(
+            cursor: enabled
+                ? SystemMouseCursors.click
+                : SystemMouseCursors.basic,
+            onEnter: (_) => Focus.of(context).requestFocus(),
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                if (enabled) onChanged(!value);
+              },
+              child: Opacity(
+                opacity: enabled ? 1.0 : 0.5,
+                child: Container(
+                  width: double.infinity,
+                  constraints: const BoxConstraints(
+                    minHeight: AppSpacing.settingItemMinHeight,
                   ),
-                  SizedBox(
-                    height: AppSpacing.settingItemRightHeight,
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: ExcludeFocus(
-                        child: Switch(
-                          value: value,
-                          onChanged: enabled ? onChanged : null,
-                          materialTapTargetSize:
-                              MaterialTapTargetSize.shrinkWrap,
-                          activeTrackColor: SettingsService.themeColor.withValues(
-                            alpha: 0.5,
-                          ),
-                          thumbColor: WidgetStateProperty.resolveWith((states) {
-                            if (states.contains(WidgetState.selected)) {
-                              return SettingsService.themeColor;
-                            }
-                            return Colors.grey;
-                          }),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: AppSpacing.settingItemVerticalPadding,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isFocused
+                        ? Colors.white.withValues(alpha: 0.1)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              label,
+                              style: TextStyle(
+                                color: isFocused ? Colors.white : Colors.white70,
+                                fontSize: AppFonts.sizeMD,
+                              ),
+                            ),
+                            if (subtitleWidget != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 2),
+                                child: subtitleWidget!,
+                              )
+                            else if (subtitle != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 2),
+                                child: Text(
+                                  subtitle!,
+                                  style: const TextStyle(
+                                    color: Colors.white38,
+                                    fontSize: 12,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                          ],
                         ),
                       ),
-                    ),
+                      SizedBox(
+                        height: AppSpacing.settingItemRightHeight,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: ExcludeFocus(
+                            child: Switch(
+                              value: value,
+                              onChanged: enabled ? onChanged : null,
+                              materialTapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
+                              activeTrackColor: SettingsService.themeColor
+                                  .withValues(alpha: 0.5),
+                              thumbColor: WidgetStateProperty.resolveWith((
+                                states,
+                              ) {
+                                if (states.contains(WidgetState.selected)) {
+                                  return SettingsService.themeColor;
+                                }
+                                return Colors.grey;
+                              }),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           );

@@ -81,9 +81,16 @@ class SettingActionRow extends StatelessWidget {
       child: Builder(
         builder: (context) {
           final isFocused = Focus.of(context).hasFocus;
-          return GestureDetector(
-            onTap: () => _showPicker(context),
-            child: Container(
+          return MouseRegion(
+            cursor: SystemMouseCursors.click,
+            onEnter: (_) => Focus.of(context).requestFocus(),
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                Focus.of(context).requestFocus();
+                _showPicker(context);
+              },
+              child: Container(
               width: double.infinity,
               constraints: const BoxConstraints(
                 minHeight: AppSpacing.settingItemMinHeight,
@@ -163,6 +170,7 @@ class SettingActionRow extends StatelessWidget {
                     ),
                   ),
                 ],
+              ),
               ),
             ),
           );

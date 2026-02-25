@@ -169,34 +169,44 @@ class _BaseTvCardState extends State<BaseTvCard> {
       isFirst: widget.isFirst,
       isLast: widget.isLast,
       enableKeyRepeat: true,
-      child: RepaintBoundary(
-        child: Container(
-          padding: const EdgeInsets.all(3),
-          decoration: BoxDecoration(
-            color: _isFocused
-                ? SettingsService.themeColor.withValues(alpha: 0.6)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 封面区域
-              AspectRatio(
-                aspectRatio: 16 / 9,
-                child: ClipRRect(
-                  clipBehavior: Clip.hardEdge,
-                  borderRadius: BorderRadius.circular(8),
-                  child: widget.imageContent,
+      child: Builder(
+        builder: (ctx) => MouseRegion(
+          cursor: SystemMouseCursors.click,
+          onEnter: (_) => Focus.of(ctx).requestFocus(),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: widget.onTap,
+            child: RepaintBoundary(
+              child: Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  color: _isFocused
+                      ? SettingsService.themeColor.withValues(alpha: 0.6)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 封面区域
+                    AspectRatio(
+                      aspectRatio: 16 / 9,
+                      child: ClipRRect(
+                        clipBehavior: Clip.hardEdge,
+                        borderRadius: BorderRadius.circular(8),
+                        child: widget.imageContent,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    // 底部信息区域
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 2),
+                      child: widget.infoContentBuilder(context, _isFocused),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 6),
-              // 底部信息区域
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 2),
-                child: widget.infoContentBuilder(context, _isFocused),
-              ),
-            ],
+            ),
           ),
         ),
       ),

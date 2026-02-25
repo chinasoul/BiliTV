@@ -328,6 +328,12 @@ mixin PlayerEventMixin on PlayerActionMixin {
 
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
 
+    // 外接键盘：空格键切换播放/暂停
+    if (event.logicalKey == LogicalKeyboardKey.space) {
+      togglePlayPause();
+      return KeyEventResult.handled;
+    }
+
     // 使用 PlayerFocusHandler 处理控制栏导航
     final nav = PlayerFocusHandler.handleControlsNavigation(
       event,
@@ -439,6 +445,13 @@ mixin PlayerEventMixin on PlayerActionMixin {
 
     if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
       return KeyEventResult.ignored;
+    }
+
+    // 外接键盘：空格键切换播放/暂停
+    if (event is KeyDownEvent &&
+        event.logicalKey == LogicalKeyboardKey.space) {
+      togglePlayPause();
+      return KeyEventResult.handled;
     }
 
     // 上下键显示控制栏

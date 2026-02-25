@@ -104,9 +104,16 @@ class SettingDropdownRow<T> extends StatelessWidget {
         builder: (context) {
           final focusScope = Focus.of(context);
           final isFocused = focusScope.hasFocus;
-          return GestureDetector(
-            onTap: () => _showPicker(context),
-            child: Container(
+          return MouseRegion(
+            cursor: SystemMouseCursors.click,
+            onEnter: (_) => Focus.of(context).requestFocus(),
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                Focus.of(context).requestFocus();
+                _showPicker(context);
+              },
+              child: Container(
               width: double.infinity,
               constraints: const BoxConstraints(
                 minHeight: AppSpacing.settingItemMinHeight,
@@ -183,6 +190,7 @@ class SettingDropdownRow<T> extends StatelessWidget {
                     ),
                   ),
                 ],
+              ),
               ),
             ),
           );

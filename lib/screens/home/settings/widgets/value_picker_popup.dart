@@ -314,9 +314,22 @@ class _ValuePickerContentState extends State<_ValuePickerContent>
                                           setState(() => _focusedIndex = index);
                                         }
                                       },
-                                      child: GestureDetector(
-                                        onTap: () => widget.onSelected(item),
-                                        child: Container(
+                                      child: Builder(
+                                        builder: (_) => MouseRegion(
+                                          cursor: SystemMouseCursors.click,
+                                          onEnter: (_) {
+                                            if (index != _focusedIndex) {
+                                              setState(
+                                                () => _focusedIndex = index,
+                                              );
+                                            }
+                                            _focusNodes[index].requestFocus();
+                                            _scrollToItem(index, animate: false);
+                                          },
+                                          child: GestureDetector(
+                                            behavior: HitTestBehavior.opaque,
+                                            onTap: () => widget.onSelected(item),
+                                            child: Container(
                                           height: itemHeight,
                                           padding: const EdgeInsets.symmetric(
                                             horizontal: 20,
@@ -366,6 +379,8 @@ class _ValuePickerContentState extends State<_ValuePickerContent>
                                                 ),
                                               ),
                                             ],
+                                          ),
+                                            ),
                                           ),
                                         ),
                                       ),
