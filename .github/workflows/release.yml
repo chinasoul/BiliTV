@@ -174,10 +174,51 @@ jobs:
 
           RELEASE_ID=$(echo "$RELEASE_RESP" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])" 2>/dev/null || true)
           if [[ -z "$RELEASE_ID" ]]; then
-            echo "::warning::Failed to create Gitee release. Response: $RELEASE_RESP"
-            exit 0
+            echo "::warning::Failed to create Gitee release. Trying to reuse existing release. Response: $RELEASE_RESP"
+
+            # The release may already exist on Gitee for the same tag.
+            EXISTING_RESP=$(curl -sS --connect-timeout 15 --max-time 30 \
+              "${API}?access_token=${GITEE_TOKEN}&page=1&per_page=100")
+            RELEASE_ID=$(echo "$EXISTING_RESP" | python3 - "$RELEASE_TAG" <<'PY'
+import json
+import sys
+
+tag = sys.argv[1]
+try:
+    data = json.load(sys.stdin)
+except Exception:
+    print("")
+    raise SystemExit(0)
+
+if isinstance(data, dict):
+    # Some APIs wrap list payloads in dict fields.
+    for k in ("releases", "items", "data"):
+        if isinstance(data.get(k), list):
+            data = data[k]
+            break
+
+if not isinstance(data, list):
+    print("")
+    raise SystemExit(0)
+
+for item in data:
+    if not isinstance(item, dict):
+        continue
+    if item.get("tag_name") == tag:
+        print(item.get("id", ""))
+        raise SystemExit(0)
+
+print("")
+PY
+)
+            if [[ -z "$RELEASE_ID" ]]; then
+              echo "::warning::Could not find existing Gitee release for tag ${RELEASE_TAG}, skipping asset upload."
+              exit 0
+            fi
+            echo "Using existing Gitee release: ID=$RELEASE_ID"
+          else
+            echo "Gitee release created: ID=$RELEASE_ID"
           fi
-          echo "Gitee release created: ID=$RELEASE_ID"
 
           for apk in release-assets/v7a.apk release-assets/v8a.apk; do
             apk_name="$(basename "$apk")"
