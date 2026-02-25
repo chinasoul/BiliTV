@@ -179,38 +179,22 @@ jobs:
             # The release may already exist on Gitee for the same tag.
             EXISTING_RESP=$(curl -sS --connect-timeout 15 --max-time 30 \
               "${API}?access_token=${GITEE_TOKEN}&page=1&per_page=100")
-            RELEASE_ID=$(echo "$EXISTING_RESP" | python3 - "$RELEASE_TAG" <<'PY'
-import json
-import sys
-
-tag = sys.argv[1]
+            RELEASE_ID=$(python3 -c 'import json,sys; tag=sys.argv[1];
 try:
-    data = json.load(sys.stdin)
+  data=json.loads(sys.argv[2])
 except Exception:
-    print("")
-    raise SystemExit(0)
-
-if isinstance(data, dict):
-    # Some APIs wrap list payloads in dict fields.
-    for k in ("releases", "items", "data"):
-        if isinstance(data.get(k), list):
-            data = data[k]
-            break
-
-if not isinstance(data, list):
-    print("")
-    raise SystemExit(0)
-
-for item in data:
-    if not isinstance(item, dict):
-        continue
-    if item.get("tag_name") == tag:
-        print(item.get("id", ""))
-        raise SystemExit(0)
-
-print("")
-PY
-)
+  print("")
+  raise SystemExit(0)
+if isinstance(data,dict):
+  for k in ("releases","items","data"):
+    v=data.get(k)
+    if isinstance(v,list):
+      data=v
+      break
+if not isinstance(data,list):
+  print("")
+  raise SystemExit(0)
+print(next((str(i.get("id","")) for i in data if isinstance(i,dict) and i.get("tag_name")==tag),""))' "$RELEASE_TAG" "$EXISTING_RESP")
             if [[ -z "$RELEASE_ID" ]]; then
               echo "::warning::Could not find existing Gitee release for tag ${RELEASE_TAG}, skipping asset upload."
               exit 0
