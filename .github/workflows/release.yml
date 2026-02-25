@@ -162,36 +162,89 @@ jobs:
           fi
           set -euo pipefail
           API="https://gitee.com/api/v5/repos/${GITEE_REPO}/releases"
-          BODY=$(cat "$RELEASE_NOTES_FILE")
+          RELEASE_ID=""
 
-          echo "Creating Gitee release for ${RELEASE_TAG}..."
-          RELEASE_RESP=$(curl -s --connect-timeout 15 --max-time 30 -X POST "$API" \
-            -F "access_token=${GITEE_TOKEN}" \
-            -F "tag_name=${RELEASE_TAG}" \
-            -F "name=${RELEASE_TAG}" \
-            -F "body=${BODY}" \
-            -F "target_commitish=main")
+          # 1) Prefer querying release by tag: exists -> reuse ID
+          query_resp="$(mktemp)"
+          query_err="$(mktemp)"
+          query_http="$(curl -sS --connect-timeout 15 --max-time 30 \
+            -o "$query_resp" -w "%{http_code}" \
+            "${API}/tags/${RELEASE_TAG}?access_token=${GITEE_TOKEN}" 2>"$query_err" || true)"
 
-          RELEASE_ID=$(echo "$RELEASE_RESP" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])" 2>/dev/null || true)
-          if [[ -z "$RELEASE_ID" ]]; then
-            echo "::warning::Failed to create Gitee release. Trying to reuse existing release. Response: $RELEASE_RESP"
-
-            # The release may already exist on Gitee for the same tag.
-            EXISTING_RESP=$(curl -sS --connect-timeout 15 --max-time 30 \
-              "${API}?access_token=${GITEE_TOKEN}&page=1&per_page=100")
-            RELEASE_ID=$(python3 -c 'import json,sys; tag=sys.argv[1]; raw=sys.argv[2]; data=json.loads(raw) if raw else []; data=next((data.get(k) for k in ("releases","items","data") if isinstance(data,dict) and isinstance(data.get(k),list)), data); print(next((str(i.get("id","")) for i in data if isinstance(i,dict) and i.get("tag_name")==tag),"") if isinstance(data,list) else "")' "$RELEASE_TAG" "$EXISTING_RESP" 2>/dev/null || true)
-            if [[ -z "$RELEASE_ID" ]]; then
-              echo "::warning::Could not find existing Gitee release for tag ${RELEASE_TAG}, skipping asset upload."
-              exit 0
-            fi
+          if [[ "$query_http" == "200" ]]; then
+            RELEASE_ID=$(python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("id",""))' < "$query_resp" 2>/dev/null || true)
             echo "Using existing Gitee release: ID=$RELEASE_ID"
+          elif [[ "$query_http" == "404" ]]; then
+            echo "No Gitee release for ${RELEASE_TAG}, creating..."
+            payload_file="$(mktemp)"
+            create_resp="$(mktemp)"
+            create_err="$(mktemp)"
+
+            python3 -c 'import json,sys,pathlib; body=pathlib.Path(sys.argv[3]).read_text(encoding="utf-8"); print(json.dumps({"tag_name":sys.argv[2],"name":sys.argv[2],"body":body,"target_commitish":"main"}, ensure_ascii=False))' "$GITEE_TOKEN" "$RELEASE_TAG" "$RELEASE_NOTES_FILE" > "$payload_file"
+
+            create_http="$(curl -sS --connect-timeout 15 --max-time 60 \
+              --retry 2 --retry-delay 3 --retry-all-errors \
+              -o "$create_resp" -w "%{http_code}" \
+              -X POST "${API}?access_token=${GITEE_TOKEN}" \
+              -H "Content-Type: application/json" \
+              --data @"$payload_file" 2>"$create_err" || true)"
+
+            if [[ "$create_http" =~ ^2[0-9][0-9]$ ]]; then
+              RELEASE_ID=$(python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("id",""))' < "$create_resp" 2>/dev/null || true)
+              echo "Gitee release created: ID=$RELEASE_ID"
+            else
+              echo "::warning::Failed to create Gitee release (HTTP ${create_http})."
+              echo "Curl stderr:"
+              cat "$create_err"
+              echo "Response:"
+              cat "$create_resp"
+            fi
+
+            rm -f "$payload_file" "$create_resp" "$create_err"
           else
-            echo "Gitee release created: ID=$RELEASE_ID"
+            echo "::warning::Failed to query Gitee release by tag (HTTP ${query_http})."
+            echo "Curl stderr:"
+            cat "$query_err"
+            echo "Response:"
+            cat "$query_resp"
+          fi
+
+          rm -f "$query_resp" "$query_err"
+
+          if [[ -z "$RELEASE_ID" || ! "$RELEASE_ID" =~ ^[0-9]+$ ]]; then
+            echo "::warning::Invalid or empty Gitee release id: '${RELEASE_ID}', skipping asset upload."
+            exit 0
           fi
 
           for apk in release-assets/v7a.apk release-assets/v8a.apk; do
             apk_name="$(basename "$apk")"
             echo "Uploading ${apk_name} to Gitee..."
+
+            # If the same filename already exists, delete it first to avoid conflicts.
+            list_resp="$(mktemp)"
+            list_err="$(mktemp)"
+            list_http="$(curl -sS --connect-timeout 15 --max-time 30 \
+              -o "$list_resp" -w "%{http_code}" \
+              "${API}/${RELEASE_ID}/attach_files?access_token=${GITEE_TOKEN}" 2>"$list_err" || true)"
+            if [[ "$list_http" == "200" ]]; then
+              old_attach_id="$(python3 -c 'import json,sys; name=sys.argv[1]; data=json.load(sys.stdin); print(next((str(i.get("id","")) for i in data if isinstance(i,dict) and i.get("name")==name),""))' "$apk_name" < "$list_resp" 2>/dev/null || true)"
+              if [[ -n "$old_attach_id" ]]; then
+                del_resp="$(mktemp)"
+                del_err="$(mktemp)"
+                del_http="$(curl -sS --connect-timeout 15 --max-time 30 \
+                  -o "$del_resp" -w "%{http_code}" \
+                  -X DELETE "${API}/${RELEASE_ID}/attach_files/${old_attach_id}?access_token=${GITEE_TOKEN}" 2>"$del_err" || true)"
+                if [[ "$del_http" =~ ^2[0-9][0-9]$ ]]; then
+                  echo "Deleted existing attachment: ${apk_name} (id=${old_attach_id})"
+                else
+                  echo "::warning::Failed to delete existing attachment ${apk_name} (HTTP ${del_http})"
+                  echo "Delete response:"
+                  cat "$del_resp"
+                fi
+                rm -f "$del_resp" "$del_err"
+              fi
+            fi
+            rm -f "$list_resp" "$list_err"
 
             resp_file="$(mktemp)"
             err_file="$(mktemp)"
