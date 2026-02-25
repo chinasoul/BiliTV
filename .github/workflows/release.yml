@@ -277,6 +277,7 @@ jobs:
 
             resp_file="$(mktemp)"
             err_file="$(mktemp)"
+            curl_exit=0
             http_code="$(curl -sS \
               --connect-timeout 30 \
               --max-time 60 \
@@ -287,8 +288,7 @@ jobs:
               -w "%{http_code}" \
               -X POST "${API}/${RELEASE_ID}/attach_files" \
               -F "access_token=${GITEE_TOKEN}" \
-              -F "file=@${apk}" 2>"$err_file")"
-            curl_exit=$?
+              -F "file=@${apk}" 2>"$err_file")" || curl_exit=$?
 
             if [[ $curl_exit -ne 0 ]]; then
               echo "::warning::Failed to upload ${apk_name} to Gitee (curl exit=${curl_exit})"
