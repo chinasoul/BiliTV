@@ -776,48 +776,55 @@ class _CategoryTab extends StatelessWidget {
         child: Builder(
           builder: (ctx) {
             final f = Focus.of(ctx).hasFocus;
-            return GestureDetector(
-              onTap: onTap,
-              child: Container(
-                padding: TabStyle.tabPadding,
-                decoration: BoxDecoration(
-                  color: f
-                      ? SettingsService.themeColor.withValues(alpha: 0.6)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(TabStyle.tabBorderRadius),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      label,
-                      style: TextStyle(
-                        color: f
-                            ? Colors.white
-                            : (isSelected
-                                  ? SettingsService.themeColor
-                                  : Colors.grey),
-                        fontSize: TabStyle.tabFontSize,
-                        fontWeight: f || isSelected
-                            ? FontWeight.bold
-                            : FontWeight.normal,
-                        height: TabStyle.tabLineHeight,
-                      ),
-                    ),
-                    const SizedBox(height: TabStyle.tabUnderlineGap),
-                    Container(
-                      height: TabStyle.tabUnderlineHeight,
-                      width: TabStyle.tabUnderlineWidth,
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? SettingsService.themeColor
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(
-                          TabStyle.tabUnderlineRadius,
+            return MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  focusNode.requestFocus();
+                  onTap();
+                },
+                child: Container(
+                  padding: TabStyle.tabPadding,
+                  decoration: BoxDecoration(
+                    color: f
+                        ? SettingsService.themeColor.withValues(alpha: 0.6)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(TabStyle.tabBorderRadius),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        label,
+                        style: TextStyle(
+                          color: f
+                              ? Colors.white
+                              : (isSelected
+                                    ? SettingsService.themeColor
+                                    : Colors.grey),
+                          fontSize: TabStyle.tabFontSize,
+                          fontWeight: f || isSelected
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                          height: TabStyle.tabLineHeight,
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: TabStyle.tabUnderlineGap),
+                      Container(
+                        height: TabStyle.tabUnderlineHeight,
+                        width: TabStyle.tabUnderlineWidth,
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? SettingsService.themeColor
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(
+                            TabStyle.tabUnderlineRadius,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );

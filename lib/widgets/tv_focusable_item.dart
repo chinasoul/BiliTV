@@ -56,18 +56,28 @@ class TvFocusableItem extends StatelessWidget {
     child: Builder(
       builder: (c) {
         final f = Focus.of(c).hasFocus;
-        return Container(
-          height: 44,
-          margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
-          decoration: BoxDecoration(
-            color: f
-                ? SettingsService.themeColor.withValues(alpha: 0.6)
-                : (isSelected ? Colors.white10 : Colors.transparent),
-            borderRadius: BorderRadius.circular(12),
-            border: null,
+        return MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              focusNode.requestFocus();
+              onTap();
+            },
+            child: Container(
+              height: 44,
+              margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+              decoration: BoxDecoration(
+                color: f
+                    ? SettingsService.themeColor.withValues(alpha: 0.6)
+                    : (isSelected ? Colors.white10 : Colors.transparent),
+                borderRadius: BorderRadius.circular(12),
+                border: null,
+              ),
+              alignment: Alignment.center,
+              child: _buildContent(f),
+            ),
           ),
-          alignment: Alignment.center,
-          child: _buildContent(f),
         );
       },
     ),

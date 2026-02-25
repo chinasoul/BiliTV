@@ -87,8 +87,42 @@ class _PlayerScreenState extends State<PlayerScreen>
         body: Focus(
           autofocus: true,
           onKeyEvent: handleGlobalKeyEvent,
-          child: Stack(
-            children: [
+          child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                if (!mounted || isLoading || videoController == null) return;
+
+                // 优先级 1：若有右侧子面板打开，单击空白区先关闭一层，不触发暂停。
+                if (showSettingsPanel ||
+                    showEpisodePanel ||
+                    showUpPanel ||
+                    showRelatedPanel ||
+                    showCommentPanel ||
+                    showActionButtons) {
+                  setState(() {
+                    showSettingsPanel = false;
+                    showEpisodePanel = false;
+                    showUpPanel = false;
+                    showRelatedPanel = false;
+                    showCommentPanel = false;
+                    showActionButtons = false;
+                    showControls = true;
+                  });
+                  startHideTimer();
+                  return;
+                }
+
+                // 优先级 2：无子面板时，维持现有行为：
+                // 控制栏隐藏 -> 呼出控制栏；控制栏显示 -> 播放/暂停。
+                if (!showControls) {
+                  setState(() => showControls = true);
+                } else {
+                  togglePlayPause();
+                }
+                startHideTimer();
+              },
+              child: Stack(
+              children: [
               // 视频层
               VideoLayer(
                 controller: videoController,
@@ -229,45 +263,80 @@ class _PlayerScreenState extends State<PlayerScreen>
                 ),
 
               // 控制界面
-              if (!isLoading && videoController != null)
-                AnimatedOpacity(
-                  opacity: showControls ? 1.0 : 0.0,
-                  duration: const Duration(milliseconds: 300),
-                  child: ControlsOverlay(
-                    video: getDisplayVideo(),
-                    controller: videoController!,
-                    showControls: showControls,
-                    focusedIndex: focusedButtonIndex,
-                    onPlayPause: togglePlayPause,
-                    onSettings: () {
-                      setState(() {
-                        showSettingsPanel = true;
-                        hideTimer?.cancel();
-                      });
-                    },
-                    onEpisodes: () {
-                      ensureEpisodesLoaded(); // 按需加载完整集数列表
-                      setState(() {
-                        showEpisodePanel = true;
-                        hideTimer?.cancel();
-                      });
-                    },
-                    isDanmakuEnabled: danmakuEnabled,
-                    onToggleDanmaku: toggleDanmaku,
-                    currentQuality: currentQualityDesc,
-                    onQualityClick: showQualityPicker,
-                    isProgressBarFocused: isProgressBarFocused,
-                    previewPosition: previewPosition,
-                    alwaysShowPlayerTime: SettingsService.alwaysShowPlayerTime,
-                    onlineCount: onlineCount,
-                    danmakuCount: danmakuList.length,
-                    showStatsForNerds: showStatsForNerds,
-                    onToggleStatsForNerds: toggleStatsForNerds,
-                    isLoopMode: isLoopMode,
-                    onToggleLoop: toggleLoopMode,
-                    onClose: () => Navigator.of(context).pop(),
+                if (!isLoading && videoController != null)
+                  AnimatedOpacity(
+                    opacity: showControls ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 300),
+                    child: ControlsOverlay(
+                      video: getDisplayVideo(),
+                      controller: videoController!,
+                      showControls: showControls,
+                      focusedIndex: focusedButtonIndex,
+                      onPlayPause: togglePlayPause,
+                      onSettings: () {
+                        setState(() {
+                          showSettingsPanel = true;
+                          hideTimer?.cancel();
+                        });
+                      },
+                      onEpisodes: () {
+                        ensureEpisodesLoaded(); // 按需加载完整集数列表
+                        setState(() {
+                          showEpisodePanel = true;
+                          hideTimer?.cancel();
+                        });
+                      },
+                      isDanmakuEnabled: danmakuEnabled,
+                      onToggleDanmaku: toggleDanmaku,
+                      currentQuality: currentQualityDesc,
+                      onQualityClick: showQualityPicker,
+                      isProgressBarFocused: isProgressBarFocused,
+                      previewPosition: previewPosition,
+                      alwaysShowPlayerTime: SettingsService.alwaysShowPlayerTime,
+                      onlineCount: onlineCount,
+                      danmakuCount: danmakuList.length,
+                      showStatsForNerds: showStatsForNerds,
+                      onToggleStatsForNerds: toggleStatsForNerds,
+                      isLoopMode: isLoopMode,
+                      onToggleLoop: toggleLoopMode,
+                      onClose: () => Navigator.of(context).pop(),
+                      onControlTap: (index) {
+                        if (!mounted) return;
+                        setState(() {
+                          showControls = true;
+                          focusedButtonIndex = index;
+                        });
+                        activateControlButton(index);
+                        startHideTimer();
+                      },
+                      onProgressSeek: (ratio) {
+                        if (!mounted || videoController == null) return;
+                        final duration = videoController!.value.duration;
+                        if (duration <= Duration.zero) return;
+
+                        final targetMs =
+                            (duration.inMilliseconds * ratio)
+                                .round()
+                                .clamp(0, duration.inMilliseconds);
+                        final target = Duration(milliseconds: targetMs);
+
+                        // 从末尾回拖时重置完成状态，避免 UI 卡在“已播完”。
+                        if (target.inMilliseconds <
+                            duration.inMilliseconds - 1000) {
+                          hasHandledVideoComplete = false;
+                        }
+
+                        videoController!.seekTo(target);
+                        resetDanmakuIndex(target);
+                        setState(() {
+                          showControls = true;
+                          isProgressBarFocused = false;
+                          previewPosition = null;
+                        });
+                        startHideTimer();
+                      },
+                    ),
                   ),
-                ),
 
               // 常驻时间显示
               if (SettingsService.alwaysShowPlayerTime)
@@ -305,7 +374,11 @@ class _PlayerScreenState extends State<PlayerScreen>
                   videoController != null &&
                   showStatsForNerds &&
                   !showSettingsPanel &&
-                  !showEpisodePanel)
+                  !showEpisodePanel &&
+                  !showUpPanel &&
+                  !showRelatedPanel &&
+                  !showCommentPanel &&
+                  !showActionButtons)
                 Positioned(top: 20, left: 30, child: _buildStatsForNerds()),
 
               // 点赞/投币/收藏按钮
@@ -447,8 +520,10 @@ class _PlayerScreenState extends State<PlayerScreen>
 
               // 插件跳过按钮
               _buildSkipButton(),
-            ],
-          ),
+
+              ],
+              ),
+            ),
         ),
       ),
     );

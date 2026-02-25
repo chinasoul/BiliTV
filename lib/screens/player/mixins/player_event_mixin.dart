@@ -328,12 +328,18 @@ mixin PlayerEventMixin on PlayerActionMixin {
 
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
 
+    // 控制栏显示时：空格键等同确认键，触发当前聚焦按钮
+    if (event.logicalKey == LogicalKeyboardKey.space) {
+      activateControlButton(focusedButtonIndex);
+      return KeyEventResult.handled;
+    }
+
     // 使用 PlayerFocusHandler 处理控制栏导航
     final nav = PlayerFocusHandler.handleControlsNavigation(
       event,
       currentIndex: focusedButtonIndex,
       maxIndex: 9,
-      onSelect: _activateControlButton,
+      onSelect: activateControlButton,
       onProgressBar: enterProgressBarMode,
       onHide: () => setState(() => showControls = false),
     );
@@ -359,43 +365,77 @@ mixin PlayerEventMixin on PlayerActionMixin {
   }
 
   /// 激活控制栏按钮
-  void _activateControlButton(int index) {
+  void activateControlButton(int index) {
     switch (index) {
       case 0: // 播放/暂停
         togglePlayPause();
         break;
       case 1: // 评论
         setState(() {
+          showSettingsPanel = false;
+          showEpisodePanel = false;
+          showUpPanel = false;
+          showRelatedPanel = false;
           showCommentPanel = true;
+          showActionButtons = false;
           hideTimer?.cancel();
         });
         break;
       case 2: // 选集
         ensureEpisodesLoaded(); // 按需加载完整集数列表
         setState(() {
+          showSettingsPanel = false;
           showEpisodePanel = true;
+          showUpPanel = false;
+          showRelatedPanel = false;
+          showCommentPanel = false;
+          showActionButtons = false;
           hideTimer?.cancel();
         });
         break;
       case 3: // UP主
         setState(() {
+          showSettingsPanel = false;
+          showEpisodePanel = false;
           showUpPanel = true;
+          showRelatedPanel = false;
+          showCommentPanel = false;
+          showActionButtons = false;
           hideTimer?.cancel();
         });
         break;
       case 4: // 更多视频
         setState(() {
+          showSettingsPanel = false;
+          showEpisodePanel = false;
+          showUpPanel = false;
           showRelatedPanel = true;
+          showCommentPanel = false;
+          showActionButtons = false;
           hideTimer?.cancel();
         });
         break;
       case 5: // 设置
         setState(() {
           showSettingsPanel = true;
+          showEpisodePanel = false;
+          showUpPanel = false;
+          showRelatedPanel = false;
+          showCommentPanel = false;
+          showActionButtons = false;
           hideTimer?.cancel();
         });
         break;
       case 6: // 视频数据实时监测
+        setState(() {
+          // 打开监测面板时，优先关闭侧栏/浮层，避免显示条件冲突。
+          showSettingsPanel = false;
+          showEpisodePanel = false;
+          showUpPanel = false;
+          showRelatedPanel = false;
+          showCommentPanel = false;
+          showActionButtons = false;
+        });
         toggleStatsForNerds();
         startHideTimer(); // 重置隐藏定时器
         break;
@@ -439,6 +479,13 @@ mixin PlayerEventMixin on PlayerActionMixin {
 
     if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
       return KeyEventResult.ignored;
+    }
+
+    // 外接键盘：空格键切换播放/暂停
+    if (event is KeyDownEvent &&
+        event.logicalKey == LogicalKeyboardKey.space) {
+      togglePlayPause();
+      return KeyEventResult.handled;
     }
 
     // 上下键显示控制栏

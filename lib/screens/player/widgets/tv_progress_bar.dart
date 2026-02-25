@@ -11,6 +11,7 @@ class TvProgressBar extends StatelessWidget {
   final Duration duration;
   final Duration buffered;
   final bool isFocused;
+  final ValueChanged<double>? onSeekRequested;
 
   const TvProgressBar({
     super.key,
@@ -18,7 +19,14 @@ class TvProgressBar extends StatelessWidget {
     required this.duration,
     this.buffered = Duration.zero,
     this.isFocused = false,
+    this.onSeekRequested,
   });
+
+  void _handleSeekFromLocalDx(double localDx, double width) {
+    if (onSeekRequested == null || width <= 0) return;
+    final ratio = (localDx / width).clamp(0.0, 1.0);
+    onSeekRequested!(ratio);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,11 +43,19 @@ class TvProgressBar extends StatelessWidget {
         final width = constraints.maxWidth;
         final progressDotX = progress * width;
 
-        return SizedBox(
-          height: 40,
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTapDown: (details) =>
+              _handleSeekFromLocalDx(details.localPosition.dx, width),
+          onHorizontalDragStart: (details) =>
+              _handleSeekFromLocalDx(details.localPosition.dx, width),
+          onHorizontalDragUpdate: (details) =>
+              _handleSeekFromLocalDx(details.localPosition.dx, width),
+          child: SizedBox(
+            height: 40,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
               // 进度条主体
               Positioned(
                 left: 0,
@@ -105,7 +121,8 @@ class TvProgressBar extends StatelessWidget {
                   ),
                 ),
               ),
-            ],
+              ],
+            ),
           ),
         );
       },

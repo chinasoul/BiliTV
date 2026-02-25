@@ -27,6 +27,8 @@ class ControlsOverlay extends StatelessWidget {
   final bool isLoopMode; // 循环播放模式
   final VoidCallback onToggleLoop; // 切换循环播放
   final VoidCallback onClose; // 关闭视频
+  final ValueChanged<int> onControlTap; // 鼠标点击控制按钮
+  final ValueChanged<double> onProgressSeek; // 鼠标控制进度条
 
   const ControlsOverlay({
     super.key,
@@ -51,6 +53,8 @@ class ControlsOverlay extends StatelessWidget {
     this.isLoopMode = false,
     required this.onToggleLoop,
     required this.onClose,
+    required this.onControlTap,
+    required this.onProgressSeek,
   });
 
   final bool alwaysShowPlayerTime;
@@ -179,6 +183,7 @@ class ControlsOverlay extends StatelessWidget {
                         duration: controller.value.duration,
                         buffered: buffered,
                         isFocused: isProgressBarFocused,
+                        onSeekRequested: onProgressSeek,
                       ),
                     ),
                     const SizedBox(width: 20),
@@ -327,19 +332,26 @@ class ControlsOverlay extends StatelessWidget {
   }) {
     final isFocused =
         !isProgressBarFocused && focusedIndex == index && showControls;
-    return Container(
-      padding: EdgeInsets.all(padding),
-      decoration: BoxDecoration(
-        color: isFocused
-            ? SettingsService.themeColor.withValues(alpha: 0.8)
-            : Colors.white.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: isFocused ? Colors.white : Colors.transparent,
-          width: 3,
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => onControlTap(index),
+        child: Container(
+          padding: EdgeInsets.all(padding),
+          decoration: BoxDecoration(
+            color: isFocused
+                ? SettingsService.themeColor.withValues(alpha: 0.8)
+                : Colors.white.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isFocused ? Colors.white : Colors.transparent,
+              width: 3,
+            ),
+          ),
+          child: Icon(icon, color: Colors.white, size: iconSize),
         ),
       ),
-      child: Icon(icon, color: Colors.white, size: iconSize),
     );
   }
 
