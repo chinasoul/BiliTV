@@ -2,6 +2,8 @@ name: Release APK (Obfuscated)
 
 on:
   push:
+    branches:
+      - "feature/**"
     tags:
       - "v*"
   workflow_dispatch:
@@ -19,8 +21,8 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      # 统一 tag 名：push tag 时用 GITHUB_REF_NAME，手动触发时用 inputs.tag
-      RELEASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
+      # Push: use ref name (branch/tag). Dispatch: use input tag.
+      RELEASE_REF: ${{ github.event.inputs.tag || github.ref_name }}
 
     steps:
       - name: Checkout
@@ -44,23 +46,37 @@ jobs:
       - name: Flutter Pub Get
         run: flutter pub get --enforce-lockfile
 
-      - name: Resolve version & release notes from tag
+      - name: Resolve build metadata
         shell: bash
         run: |
           set -euo pipefail
 
-          # 从 tag 提取版本号：v0.4.2 → 0.4.2
-          VERSION="${RELEASE_TAG#v}"
-          if [[ -z "$VERSION" ]]; then
-            echo "::error::Unable to extract version from tag '${RELEASE_TAG}'"
-            exit 1
+          if [[ "${GITHUB_REF}" == refs/tags/v* || "${RELEASE_REF}" == v* ]]; then
+            # Tag build: v0.4.2 -> 0.4.2
+            VERSION="${RELEASE_REF#v}"
+            LABEL="${RELEASE_REF}"
+          else
+            # Branch build: use pubspec version name and a sanitized branch label.
+            VERSION="$(sed -nE "s/^version:[[:space:]]*([0-9]+\\.[0-9]+\\.[0-9]+)\\+[0-9]+$/\\1/p" pubspec.yaml)"
+            if [[ -z "$VERSION" ]]; then
+              echo "::error::Failed to parse semantic version from pubspec.yaml"
+              exit 1
+            fi
+            LABEL="$(echo "${RELEASE_REF}" | tr '/ ' '--')"
           fi
+
           echo "BUILD_NAME=$VERSION" >> "$GITHUB_ENV"
           echo "BUILD_NUMBER=${{ github.run_number }}" >> "$GITHUB_ENV"
-          echo "Version: $VERSION, Build number: ${{ github.run_number }}"
+          echo "RELEASE_LABEL=$LABEL" >> "$GITHUB_ENV"
+          echo "Version: $VERSION, Build number: ${{ github.run_number }}, Label: $LABEL"
 
+      - name: Resolve release notes from tag
+        if: startsWith(github.ref, 'refs/tags/v') || startsWith(github.event.inputs.tag, 'v')
+        shell: bash
+        run: |
+          set -euo pipefail
           # release notes：优先用文件，不存在则用 tag 所在 commit message
-          NOTES_FILE="release-notes/${RELEASE_TAG}.md"
+          NOTES_FILE="release-notes/${RELEASE_REF}.md"
           if [[ -f "$NOTES_FILE" ]]; then
             echo "RELEASE_NOTES_FILE=$NOTES_FILE" >> "$GITHUB_ENV"
             echo "Using release notes from file: $NOTES_FILE"
@@ -114,90 +130,38 @@ jobs:
       - name: Upload v7a APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: v7a-${{ env.RELEASE_TAG }}
+          name: v7a-${{ env.RELEASE_LABEL }}
           path: release-assets/v7a.apk
           if-no-files-found: error
 
       - name: Upload v8a APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: v8a-${{ env.RELEASE_TAG }}
+          name: v8a-${{ env.RELEASE_LABEL }}
           path: release-assets/v8a.apk
           if-no-files-found: error
 
       - name: Upload Symbols Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: symbols-${{ env.RELEASE_TAG }}
+          name: symbols-${{ env.RELEASE_LABEL }}
           path: build/symbols
           if-no-files-found: error
 
       - name: Upload SHA256 Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: checksums-${{ env.RELEASE_TAG }}
+          name: checksums-${{ env.RELEASE_LABEL }}
           path: release-assets/SHA256SUMS.txt
           if-no-files-found: error
 
-      - name: Upload APKs to Cloudflare R2 (optional)
-        shell: bash
-        env:
-          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
-          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          R2_BUCKET: ${{ vars.R2_BUCKET || secrets.R2_BUCKET }}
-          R2_PREFIX: ${{ vars.R2_PREFIX }}
-          R2_PUBLIC_BASE: ${{ vars.R2_PUBLIC_BASE }}
-        run: |
-          set -euo pipefail
-          BODY_FILE="release-assets/release-body.md"
-          cp "$RELEASE_NOTES_FILE" "$BODY_FILE"
-
-          if [[ -z "${R2_ACCOUNT_ID:-}" || -z "${R2_ACCESS_KEY_ID:-}" || -z "${R2_SECRET_ACCESS_KEY:-}" || -z "${R2_BUCKET:-}" ]]; then
-            echo "R2 not fully configured, skipping R2 upload."
-            echo "RELEASE_BODY_FILE=$BODY_FILE" >> "$GITHUB_ENV"
-            exit 0
-          fi
-
-          if ! command -v aws >/dev/null 2>&1; then
-            echo "::warning::aws cli not found, skipping R2 upload."
-            echo "RELEASE_BODY_FILE=$BODY_FILE" >> "$GITHUB_ENV"
-            exit 0
-          fi
-
-          export AWS_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID"
-          export AWS_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY"
-          export AWS_DEFAULT_REGION="auto"
-
-          ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
-          PREFIX="${R2_PREFIX:-releases}/${RELEASE_TAG}"
-
-          aws s3 cp "release-assets/v7a.apk" "s3://${R2_BUCKET}/${PREFIX}/v7a.apk" --endpoint-url "$ENDPOINT" --only-show-errors
-          aws s3 cp "release-assets/v8a.apk" "s3://${R2_BUCKET}/${PREFIX}/v8a.apk" --endpoint-url "$ENDPOINT" --only-show-errors
-          aws s3 cp "release-assets/SHA256SUMS.txt" "s3://${R2_BUCKET}/${PREFIX}/SHA256SUMS.txt" --endpoint-url "$ENDPOINT" --only-show-errors
-
-          PUBLIC_BASE="${R2_PUBLIC_BASE:-https://${R2_BUCKET}.${R2_ACCOUNT_ID}.r2.dev}"
-          V7A_URL="${PUBLIC_BASE}/${PREFIX}/v7a.apk"
-          V8A_URL="${PUBLIC_BASE}/${PREFIX}/v8a.apk"
-          SUMS_URL="${PUBLIC_BASE}/${PREFIX}/SHA256SUMS.txt"
-
-          {
-            echo
-            echo "## Mirror Download (Cloudflare R2)"
-            echo "- v7a.apk: ${V7A_URL}"
-            echo "- v8a.apk: ${V8A_URL}"
-            echo "- SHA256SUMS.txt: ${SUMS_URL}"
-          } >> "$BODY_FILE"
-
-          echo "RELEASE_BODY_FILE=$BODY_FILE" >> "$GITHUB_ENV"
-          echo "R2 upload done."
-
       - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v') || startsWith(github.event.inputs.tag, 'v')
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.RELEASE_TAG }}
-          name: ${{ env.RELEASE_TAG }}
-          body_path: ${{ env.RELEASE_BODY_FILE }}
+          tag_name: ${{ env.RELEASE_REF }}
+          name: ${{ env.RELEASE_REF }}
+          body_path: ${{ env.RELEASE_NOTES_FILE }}
           files: |
             release-assets/v7a.apk
             release-assets/v8a.apk
@@ -205,6 +169,7 @@ jobs:
 
       # ============ Gitee 镜像发布（可选，需配置 GITEE_TOKEN 和 GITEE_REPO） ============
       - name: Publish to Gitee
+        if: startsWith(github.ref, 'refs/tags/v') || startsWith(github.event.inputs.tag, 'v')
         shell: bash
         env:
           GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
@@ -216,15 +181,14 @@ jobs:
           fi
           set -euo pipefail
           API="https://gitee.com/api/v5/repos/${GITEE_REPO}/releases"
-          BODY_FILE="${RELEASE_BODY_FILE:-$RELEASE_NOTES_FILE}"
           RELEASE_ID=""
           create_gitee_release() {
-            echo "Creating Gitee release for ${RELEASE_TAG}..."
+            echo "Creating Gitee release for ${RELEASE_REF}..."
             payload_file="$(mktemp)"
             create_resp="$(mktemp)"
             create_err="$(mktemp)"
 
-            python3 -c 'import json,sys,pathlib; body=pathlib.Path(sys.argv[2]).read_text(encoding="utf-8"); print(json.dumps({"tag_name":sys.argv[1],"name":sys.argv[1],"body":body,"target_commitish":"main"}, ensure_ascii=False))' "$RELEASE_TAG" "$BODY_FILE" > "$payload_file"
+            python3 -c 'import json,sys,pathlib; body=pathlib.Path(sys.argv[2]).read_text(encoding="utf-8"); print(json.dumps({"tag_name":sys.argv[1],"name":sys.argv[1],"body":body,"target_commitish":"main"}, ensure_ascii=False))' "$RELEASE_REF" "$RELEASE_NOTES_FILE" > "$payload_file"
 
             create_http="$(curl -sS --connect-timeout 15 --max-time 60 \
               --retry 2 --retry-delay 3 --retry-all-errors \
@@ -252,7 +216,7 @@ jobs:
           query_err="$(mktemp)"
           query_http="$(curl -sS --connect-timeout 15 --max-time 30 \
             -o "$query_resp" -w "%{http_code}" \
-            "${API}/tags/${RELEASE_TAG}?access_token=${GITEE_TOKEN}" 2>"$query_err" || true)"
+            "${API}/tags/${RELEASE_REF}?access_token=${GITEE_TOKEN}" 2>"$query_err" || true)"
 
           if [[ "$query_http" == "200" ]]; then
             RELEASE_ID=$(python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("id","") if isinstance(d,dict) else "")' < "$query_resp" 2>/dev/null || true)
@@ -266,11 +230,11 @@ jobs:
                 -o "$list_release_resp" -w "%{http_code}" \
                 "${API}?access_token=${GITEE_TOKEN}&page=1&per_page=100" 2>"$list_release_err" || true)"
               if [[ "$list_release_http" == "200" ]]; then
-                RELEASE_ID=$(python3 -c 'import json,sys; tag=sys.argv[1]; data=json.load(sys.stdin); print(next((str(i.get("id","")) for i in data if isinstance(i,dict) and i.get("tag_name")==tag),"") if isinstance(data,list) else "")' "$RELEASE_TAG" < "$list_release_resp" 2>/dev/null || true)
+                RELEASE_ID=$(python3 -c 'import json,sys; tag=sys.argv[1]; data=json.load(sys.stdin); print(next((str(i.get("id","")) for i in data if isinstance(i,dict) and i.get("tag_name")==tag),"") if isinstance(data,list) else "")' "$RELEASE_REF" < "$list_release_resp" 2>/dev/null || true)
                 if [[ -n "$RELEASE_ID" ]]; then
                   echo "Using existing Gitee release from list: ID=$RELEASE_ID"
                 else
-                  echo "::warning::Release list lookup still found no id for tag ${RELEASE_TAG}. Will try create."
+                  echo "::warning::Release list lookup still found no id for tag ${RELEASE_REF}. Will try create."
                   echo "Query-by-tag response:"
                   cat "$query_resp"
                   create_gitee_release
@@ -283,7 +247,7 @@ jobs:
               rm -f "$list_release_resp" "$list_release_err"
             fi
           elif [[ "$query_http" == "404" ]]; then
-            echo "No Gitee release for ${RELEASE_TAG}, creating..."
+            echo "No Gitee release for ${RELEASE_REF}, creating..."
             create_gitee_release
           else
             echo "::warning::Failed to query Gitee release by tag (HTTP ${query_http})."
