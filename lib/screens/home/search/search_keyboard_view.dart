@@ -9,6 +9,18 @@ import 'package:bili_tv_app/services/settings_service.dart';
 bool _isKeyDownOrRepeat(KeyEvent event) =>
     event is KeyDownEvent || event is KeyRepeatEvent;
 
+class _SearchInputMoveLeftIntent extends Intent {
+  const _SearchInputMoveLeftIntent();
+}
+
+class _SearchInputMoveDownIntent extends Intent {
+  const _SearchInputMoveDownIntent();
+}
+
+class _SearchInputBlockUpIntent extends Intent {
+  const _SearchInputBlockUpIntent();
+}
+
 class SearchKeyboardView extends StatefulWidget {
   final FocusNode? sidebarFocusNode;
   final VoidCallback? onBackToHome;
@@ -22,14 +34,16 @@ class SearchKeyboardView extends StatefulWidget {
   });
 
   @override
-  State<SearchKeyboardView> createState() => _SearchKeyboardViewState();
+  State<SearchKeyboardView> createState() => SearchKeyboardViewState();
 }
 
-class _SearchKeyboardViewState extends State<SearchKeyboardView> {
+class SearchKeyboardViewState extends State<SearchKeyboardView> {
   String _searchText = '';
   List<String> _suggestions = [];
   List<HotSearchItem> _hotSearchItems = [];
   bool _isLoadingHotSearch = false;
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchInputFocusNode = FocusNode();
 
   // 热搜列表的 FocusNode
   final List<FocusNode> _hotSearchFocusNodes = [];
@@ -39,6 +53,10 @@ class _SearchKeyboardViewState extends State<SearchKeyboardView> {
   final FocusNode _clearButtonFocusNode = FocusNode();
   // 键盘区第一个按钮的 FocusNode (清空按钮)
   final FocusNode _keyboardFirstFocusNode = FocusNode();
+  // 键盘区第二个按钮的 FocusNode (后退按钮)
+  final FocusNode _keyboardBackFocusNode = FocusNode();
+  // 字母数字键盘 FocusNode
+  final List<FocusNode> _gridFocusNodes = [];
 
   final List<String> _gridKeys = [
     'A',
@@ -82,21 +100,75 @@ class _SearchKeyboardViewState extends State<SearchKeyboardView> {
   @override
   void initState() {
     super.initState();
+    _searchInputFocusNode.addListener(_onSearchInputFocusChanged);
+    _gridFocusNodes.addAll(List.generate(_gridKeys.length, (_) => FocusNode()));
     SearchHistoryService.init();
     _loadHotSearch();
   }
 
   @override
   void dispose() {
+    _searchInputFocusNode.removeListener(_onSearchInputFocusChanged);
     for (final node in _hotSearchFocusNodes) {
       node.dispose();
     }
     for (final node in _historyFocusNodes) {
       node.dispose();
     }
+    for (final node in _gridFocusNodes) {
+      node.dispose();
+    }
     _clearButtonFocusNode.dispose();
     _keyboardFirstFocusNode.dispose();
+    _keyboardBackFocusNode.dispose();
+    _searchController.dispose();
+    _searchInputFocusNode.dispose();
     super.dispose();
+  }
+
+  void _onSearchInputFocusChanged() {
+    if (_searchInputFocusNode.hasFocus) {
+      // TV 上聚焦输入框时主动请求系统输入法。
+      SystemChannels.textInput.invokeMethod<void>('TextInput.show');
+      return;
+    }
+    // 输入法关闭后，部分设备会让焦点丢失；仅在搜索区无任何焦点时兜底回到输入框。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_hasAnySearchAreaFocus()) return;
+      if (widget.sidebarFocusNode?.hasFocus == true) return;
+      _searchInputFocusNode.requestFocus();
+    });
+  }
+
+  bool _hasAnySearchAreaFocus() {
+    if (_searchInputFocusNode.hasFocus) return true;
+    if (_keyboardFirstFocusNode.hasFocus || _keyboardBackFocusNode.hasFocus) {
+      return true;
+    }
+    if (_clearButtonFocusNode.hasFocus) return true;
+    for (final node in _gridFocusNodes) {
+      if (node.hasFocus) return true;
+    }
+    for (final node in _hotSearchFocusNodes) {
+      if (node.hasFocus) return true;
+    }
+    for (final node in _historyFocusNodes) {
+      if (node.hasFocus) return true;
+    }
+    return false;
+  }
+
+  void focusSearchInput() {
+    if (!_searchInputFocusNode.hasFocus) {
+      _searchInputFocusNode.requestFocus();
+    }
+  }
+
+  void focusDefaultEntry() {
+    if (_gridFocusNodes.isNotEmpty && _gridFocusNodes.first.canRequestFocus) {
+      _gridFocusNodes.first.requestFocus();
+    }
   }
 
   Future<void> _loadHotSearch() async {
@@ -138,27 +210,30 @@ class _SearchKeyboardViewState extends State<SearchKeyboardView> {
   void _handleKeyboardTap(String key) {
     if (key == '后退') {
       if (_searchText.isNotEmpty) {
-        setState(() {
-          _searchText = _searchText.substring(0, _searchText.length - 1);
-        });
-        _fetchSuggestions();
+        final next = _searchText.substring(0, _searchText.length - 1);
+        _setSearchText(next);
       }
     } else if (key == '清空') {
-      setState(() {
-        _searchText = '';
-        _suggestions = [];
-      });
+      _setSearchText('');
     } else if (key == '搜索') {
       if (_searchText.trim().isNotEmpty) {
         SearchHistoryService.add(_searchText.trim());
       }
       widget.onSearch(_searchText);
     } else {
-      setState(() {
-        _searchText += key;
-      });
-      _fetchSuggestions();
+      _setSearchText('$_searchText$key');
     }
+  }
+
+  void _setSearchText(String value) {
+    setState(() {
+      _searchText = value;
+      _searchController.value = TextEditingValue(
+        text: value,
+        selection: TextSelection.collapsed(offset: value.length),
+      );
+    });
+    _fetchSuggestions();
   }
 
   Future<void> _fetchSuggestions() async {
@@ -176,9 +251,7 @@ class _SearchKeyboardViewState extends State<SearchKeyboardView> {
   }
 
   void _selectSuggestion(String suggestion) {
-    setState(() {
-      _searchText = suggestion;
-    });
+    _setSearchText(suggestion);
     SearchHistoryService.add(suggestion);
     widget.onSearch(suggestion);
   }
@@ -212,25 +285,117 @@ class _SearchKeyboardViewState extends State<SearchKeyboardView> {
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
             // 搜索输入框
-            Container(
-              height: 50,
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 15),
-              decoration: BoxDecoration(
-                color: Colors.white10,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.white12),
-              ),
-              alignment: Alignment.centerLeft,
-              child: Text(
-                _searchText.isEmpty ? '输入关键词搜索...' : _searchText,
-                style: TextStyle(
-                  fontSize: 22,
-                  color: _searchText.isEmpty ? Colors.white24 : Colors.white,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 2,
+            FocusTraversalOrder(
+              order: const NumericFocusOrder(0.5),
+              child: Focus(
+                onKeyEvent: (node, event) {
+                  if (_isKeyDownOrRepeat(event)) {
+                    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+                      widget.sidebarFocusNode?.requestFocus();
+                      return KeyEventResult.handled;
+                    }
+                    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                      return KeyEventResult.handled;
+                    }
+                    if ((event.logicalKey == LogicalKeyboardKey.escape ||
+                            event.logicalKey == LogicalKeyboardKey.goBack ||
+                            event.logicalKey == LogicalKeyboardKey.browserBack) &&
+                        widget.onBackToHome != null) {
+                      widget.onBackToHome!();
+                      return KeyEventResult.handled;
+                    }
+                  }
+                  return KeyEventResult.ignored;
+                },
+                child: SizedBox(
+                  height: 50,
+                  width: double.infinity,
+                  child: Shortcuts(
+                    shortcuts: const <ShortcutActivator, Intent>{
+                      SingleActivator(
+                        LogicalKeyboardKey.arrowLeft,
+                      ): _SearchInputMoveLeftIntent(),
+                      SingleActivator(
+                        LogicalKeyboardKey.arrowDown,
+                      ): _SearchInputMoveDownIntent(),
+                      SingleActivator(
+                        LogicalKeyboardKey.arrowUp,
+                      ): _SearchInputBlockUpIntent(),
+                    },
+                    child: Actions(
+                      actions: <Type, Action<Intent>>{
+                        _SearchInputMoveLeftIntent: CallbackAction<
+                          _SearchInputMoveLeftIntent
+                        >(
+                          onInvoke: (_) {
+                            widget.sidebarFocusNode?.requestFocus();
+                            return null;
+                          },
+                        ),
+                        _SearchInputMoveDownIntent: CallbackAction<
+                          _SearchInputMoveDownIntent
+                        >(
+                          onInvoke: (_) {
+                            _keyboardFirstFocusNode.requestFocus();
+                            return null;
+                          },
+                        ),
+                        _SearchInputBlockUpIntent: CallbackAction<
+                          _SearchInputBlockUpIntent
+                        >(onInvoke: (_) => null),
+                      },
+                      child: TextField(
+                        controller: _searchController,
+                        focusNode: _searchInputFocusNode,
+                        textInputAction: TextInputAction.search,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 2,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: '输入关键词搜索...',
+                          hintStyle: const TextStyle(
+                            color: Colors.white24,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 2,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 15,
+                          ),
+                          filled: true,
+                          fillColor: Colors.white10,
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(color: Colors.white12),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(
+                              color: SettingsService.themeColor,
+                            ),
+                          ),
+                        ),
+                        onTap: () =>
+                            SystemChannels.textInput.invokeMethod<void>(
+                              'TextInput.show',
+                            ),
+                        onChanged: (value) {
+                          setState(() => _searchText = value);
+                          _fetchSuggestions();
+                        },
+                        onSubmitted: (_) {
+                          if (_searchText.trim().isNotEmpty) {
+                            SearchHistoryService.add(_searchText.trim());
+                          }
+                          widget.onSearch(_searchText);
+                        },
+                      ),
+                    ),
+                  ),
                 ),
-                overflow: TextOverflow.ellipsis,
               ),
             ),
             const SizedBox(height: 15),
@@ -248,7 +413,7 @@ class _SearchKeyboardViewState extends State<SearchKeyboardView> {
                         onTap: () => _handleKeyboardTap('清空'),
                         onMoveLeft: () =>
                             widget.sidebarFocusNode?.requestFocus(),
-                        onMoveUp: () {}, // 阻止上键
+                        onMoveUp: focusSearchInput,
                         onBack: widget.onBackToHome,
                       ),
                     ),
@@ -259,8 +424,9 @@ class _SearchKeyboardViewState extends State<SearchKeyboardView> {
                       order: const NumericFocusOrder(1.1),
                       child: TvKeyboardButton(
                         label: '后退',
+                        focusNode: _keyboardBackFocusNode,
                         onTap: () => _handleKeyboardTap('后退'),
-                        onMoveUp: () {}, // 阻止上键
+                        onMoveUp: focusSearchInput,
                         onBack: widget.onBackToHome,
                       ),
                     ),
@@ -285,9 +451,19 @@ class _SearchKeyboardViewState extends State<SearchKeyboardView> {
                 order: NumericFocusOrder(2.0 + (index * 0.001)),
                 child: TvKeyboardButton(
                   label: _gridKeys[index],
+                  focusNode: _gridFocusNodes[index],
                   onTap: () => _handleKeyboardTap(_gridKeys[index]),
                   onMoveLeft: (index % 6 == 0)
                       ? () => widget.sidebarFocusNode?.requestFocus()
+                      : null,
+                  onMoveUp: index < 6
+                      ? () {
+                          if (index < 3) {
+                            _keyboardFirstFocusNode.requestFocus();
+                          } else {
+                            _keyboardBackFocusNode.requestFocus();
+                          }
+                        }
                       : null,
                   onBack: widget.onBackToHome,
                 ),

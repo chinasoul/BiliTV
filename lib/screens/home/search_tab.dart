@@ -23,6 +23,8 @@ class SearchTab extends StatefulWidget {
 class SearchTabState extends State<SearchTab> {
   String _searchText = '';
   bool _showResults = false; // true: 显示视频结果, false: 显示建议
+  final GlobalKey<SearchKeyboardViewState> _searchKeyboardKey =
+      GlobalKey<SearchKeyboardViewState>();
 
   // 防止返回键重复处理
   DateTime? _lastBackHandled;
@@ -60,6 +62,28 @@ class SearchTabState extends State<SearchTab> {
     });
   }
 
+  void focusSearchInput() {
+    if (_showResults) {
+      _backToKeyboard();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _searchKeyboardKey.currentState?.focusSearchInput();
+      });
+      return;
+    }
+    _searchKeyboardKey.currentState?.focusSearchInput();
+  }
+
+  void focusDefaultEntry() {
+    if (_showResults) {
+      _backToKeyboard();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _searchKeyboardKey.currentState?.focusDefaultEntry();
+      });
+      return;
+    }
+    _searchKeyboardKey.currentState?.focusDefaultEntry();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -71,6 +95,7 @@ class SearchTabState extends State<SearchTab> {
                 onBackToKeyboard: _backToKeyboard,
               )
             : SearchKeyboardView(
+                key: _searchKeyboardKey,
                 sidebarFocusNode: widget.sidebarFocusNode,
                 onBackToHome: widget.onBackToHome,
                 onSearch: _onSearch,

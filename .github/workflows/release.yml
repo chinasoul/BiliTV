@@ -101,6 +101,15 @@ jobs:
           build_variant "android-arm" "app-armeabi-v7a-release.apk" "v7a.apk" "v7a-on"
           build_variant "android-arm64" "app-arm64-v8a-release.apk" "v8a.apk" "v8a-on"
 
+      - name: Generate APK checksums and size report
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "APK size report:"
+          ls -lh release-assets/*.apk
+          sha256sum release-assets/v7a.apk release-assets/v8a.apk > release-assets/SHA256SUMS.txt
+          cat release-assets/SHA256SUMS.txt
+
       - name: Upload v7a APK Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -122,6 +131,13 @@ jobs:
           path: build/symbols
           if-no-files-found: error
 
+      - name: Upload SHA256 Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: checksums-${{ env.RELEASE_TAG }}
+          path: release-assets/SHA256SUMS.txt
+          if-no-files-found: error
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -131,6 +147,7 @@ jobs:
           files: |
             release-assets/v7a.apk
             release-assets/v8a.apk
+            release-assets/SHA256SUMS.txt
 
       # ============ Gitee 镜像发布（可选，需配置 GITEE_TOKEN 和 GITEE_REPO） ============
       - name: Publish to Gitee

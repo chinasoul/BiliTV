@@ -269,6 +269,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (index == 5 && AuthService.isLoggedIn) {
       return null; // 个人资料页不需要特殊右键导航
     }
+    // 搜索页：右键进入键盘区默认入口（保持原导航习惯）
+    if (index == 6) {
+      return () => _searchTabKey.currentState?.focusDefaultEntry();
+    }
     // 设置页 (index 7)
     if (index == 7) {
       return () => _settingsKey.currentState?.focusFirstCategory();

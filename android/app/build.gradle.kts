@@ -54,6 +54,14 @@ android {
             )
         }
     }
+
+    packaging {
+        jniLibs {
+            // Compress native libraries inside APK to reduce download size.
+            // Trade-off: slightly slower install/unpack on device.
+            useLegacyPackaging = true
+        }
+    }
 }
 
 flutter {
