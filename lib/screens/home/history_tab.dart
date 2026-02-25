@@ -274,7 +274,9 @@ class HistoryTabState extends State<HistoryTab> {
     return Focus(
       focusNode: _loadMoreFocusNode,
       onKeyEvent: (node, event) {
-        if (event is! KeyDownEvent) return KeyEventResult.ignored;
+        if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+          return KeyEventResult.ignored;
+        }
         if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
           final gridColumns = SettingsService.videoGridColumns;
           final lastRowStart = (_videos.length ~/ gridColumns) * gridColumns;
@@ -291,8 +293,9 @@ class HistoryTabState extends State<HistoryTab> {
           widget.sidebarFocusNode?.requestFocus();
           return KeyEventResult.handled;
         }
-        if (event.logicalKey == LogicalKeyboardKey.enter ||
-            event.logicalKey == LogicalKeyboardKey.select) {
+        if (event is KeyDownEvent &&
+            (event.logicalKey == LogicalKeyboardKey.enter ||
+                event.logicalKey == LogicalKeyboardKey.select)) {
           _extendLimit();
           return KeyEventResult.handled;
         }

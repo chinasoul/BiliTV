@@ -226,9 +226,9 @@ class TvFocusScope extends StatelessWidget {
       case FocusPattern.vertical:
         return handler(
           event,
-          // 垂直模式：上下移动由 Flutter 默认处理，除非是边界
-          onUp: isFirst ? _getExitUpHandler() : null,
-          onDown: isLast ? _getExitDownHandler() : null,
+          // 垂直模式使用方向性导航，避免 previous/next 跨区“串焦点”
+          onUp: isFirst ? _getExitUpHandler() : () => _focusInDirection(node, TraversalDirection.up),
+          onDown: isLast ? _getExitDownHandler() : () => _focusInDirection(node, TraversalDirection.down),
           onLeft: _getExitLeftHandler(),
           onRight: _getExitRightHandler(),
           onSelect: onSelect,
@@ -241,24 +241,32 @@ class TvFocusScope extends StatelessWidget {
           event,
           onUp: _getExitUpHandler(),
           onDown: _getExitDownHandler(),
-          // 水平模式：左右移动由 Flutter 默认处理，除非是边界
-          onLeft: isFirst ? _getExitLeftHandler() : null,
-          onRight: isLast ? _getExitRightHandler() : null,
+          // 水平模式使用方向性导航，避免 previous/next 跨区“串焦点”
+          onLeft: isFirst ? _getExitLeftHandler() : () => _focusInDirection(node, TraversalDirection.left),
+          onRight: isLast ? _getExitRightHandler() : () => _focusInDirection(node, TraversalDirection.right),
           onSelect: onSelect,
           blockLeft: isFirst && exitLeft == null && onExitLeft == null,
           blockRight: isLast && exitRight == null && onExitRight == null,
         );
 
       case FocusPattern.grid:
-        // 网格模式：如果提供了回调则强制使用回调（适用于明确指定导航目标的情况）
-        // 这样可以实现严格的 4x4 网格导航
+        // 网格模式：显式回调优先；未配置回调时阻止默认焦点搜索，
+        // 避免边界处焦点“漏出”当前页面/容器。
+        final upHandler = _getExitUpHandler();
+        final downHandler = _getExitDownHandler();
+        final leftHandler = _getExitLeftHandler();
+        final rightHandler = _getExitRightHandler();
         return handler(
           event,
-          onUp: _getExitUpHandler(),
-          onDown: _getExitDownHandler(),
-          onLeft: _getExitLeftHandler(),
-          onRight: _getExitRightHandler(),
+          onUp: upHandler,
+          onDown: downHandler,
+          onLeft: leftHandler,
+          onRight: rightHandler,
           onSelect: onSelect,
+          blockUp: upHandler == null,
+          blockDown: downHandler == null,
+          blockLeft: leftHandler == null,
+          blockRight: rightHandler == null,
         );
     }
   }
@@ -318,6 +326,10 @@ class TvFocusScope extends StatelessWidget {
     } else {
       exitRight?.requestFocus();
     }
+  }
+
+  void _focusInDirection(FocusNode node, TraversalDirection direction) {
+    FocusTraversalGroup.of(node.context!).inDirection(node, direction);
   }
 }
 

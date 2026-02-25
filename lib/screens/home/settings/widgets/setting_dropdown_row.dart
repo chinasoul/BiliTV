@@ -53,7 +53,9 @@ class SettingDropdownRow<T> extends StatelessWidget {
     return Focus(
       onKeyEvent: (node, event) {
         // 处理左右键导航和值切换
-        if (event is! KeyDownEvent) return KeyEventResult.ignored;
+        if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+          return KeyEventResult.ignored;
+        }
 
         switch (event.logicalKey) {
           case LogicalKeyboardKey.arrowLeft:
@@ -65,20 +67,34 @@ class SettingDropdownRow<T> extends StatelessWidget {
               onMoveUp!();
               return KeyEventResult.handled;
             }
-            return isFirst ? KeyEventResult.handled : KeyEventResult.ignored;
+            if (isFirst) return KeyEventResult.handled;
+            FocusTraversalGroup.of(node.context!).inDirection(
+              node,
+              TraversalDirection.up,
+            );
+            return KeyEventResult.handled;
 
           case LogicalKeyboardKey.arrowDown:
             if (isLast && onMoveDown != null) {
               onMoveDown!();
               return KeyEventResult.handled;
             }
-            return isLast ? KeyEventResult.handled : KeyEventResult.ignored;
+            if (isLast) return KeyEventResult.handled;
+            FocusTraversalGroup.of(node.context!).inDirection(
+              node,
+              TraversalDirection.down,
+            );
+            return KeyEventResult.handled;
 
           case LogicalKeyboardKey.arrowRight:
           case LogicalKeyboardKey.enter:
           case LogicalKeyboardKey.select:
-            _showPicker(context);
-            return KeyEventResult.handled;
+            // 防止长按确认反复弹窗
+            if (event is KeyDownEvent) {
+              _showPicker(context);
+              return KeyEventResult.handled;
+            }
+            return KeyEventResult.ignored;
 
           default:
             return KeyEventResult.ignored;

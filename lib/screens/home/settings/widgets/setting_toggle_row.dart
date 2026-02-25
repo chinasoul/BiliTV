@@ -42,6 +42,7 @@ class SettingToggleRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return TvFocusScope(
       pattern: FocusPattern.vertical,
+      enableKeyRepeat: true,
       focusNode: focusNode,
       autofocus: autofocus,
       exitLeft: sidebarFocusNode,
@@ -109,19 +110,22 @@ class SettingToggleRow extends StatelessWidget {
                     height: AppSpacing.settingItemRightHeight,
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
-                      child: Switch(
-                        value: value,
-                        onChanged: enabled ? onChanged : null,
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        activeTrackColor: SettingsService.themeColor.withValues(
-                          alpha: 0.5,
+                      child: ExcludeFocus(
+                        child: Switch(
+                          value: value,
+                          onChanged: enabled ? onChanged : null,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                          activeTrackColor: SettingsService.themeColor.withValues(
+                            alpha: 0.5,
+                          ),
+                          thumbColor: WidgetStateProperty.resolveWith((states) {
+                            if (states.contains(WidgetState.selected)) {
+                              return SettingsService.themeColor;
+                            }
+                            return Colors.grey;
+                          }),
                         ),
-                        thumbColor: WidgetStateProperty.resolveWith((states) {
-                          if (states.contains(WidgetState.selected)) {
-                            return SettingsService.themeColor;
-                          }
-                          return Colors.grey;
-                        }),
                       ),
                     ),
                   ),

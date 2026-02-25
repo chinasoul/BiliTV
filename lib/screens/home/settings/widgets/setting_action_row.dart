@@ -69,6 +69,7 @@ class SettingActionRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return TvFocusScope(
       pattern: FocusPattern.vertical,
+      enableKeyRepeat: true,
       focusNode: focusNode,
       autofocus: autofocus,
       exitLeft: sidebarFocusNode,

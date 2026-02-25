@@ -115,6 +115,7 @@ class _PluginCardState extends State<_PluginCard> {
           onTap: () => widget.onToggle(widget.plugin, !isEnabled),
           child: TvFocusScope(
             pattern: FocusPattern.vertical,
+            enableKeyRepeat: true,
             autofocus: widget.isFirst,
             exitLeft: widget.sidebarFocusNode,
             onExitUp: widget.isFirst ? widget.onMoveUp : null,
@@ -178,18 +179,20 @@ class _PluginCardState extends State<_PluginCard> {
                       ],
                     ),
                   ),
-                  Switch(
-                    value: isEnabled,
-                    onChanged: (value) => widget.onToggle(widget.plugin, value),
-                    activeTrackColor: const Color(
-                      0xFF81C784,
-                    ).withValues(alpha: 0.5),
-                    thumbColor: WidgetStateProperty.resolveWith((states) {
-                      if (states.contains(WidgetState.selected)) {
-                        return SettingsService.themeColor;
-                      }
-                      return Colors.grey;
-                    }),
+                  ExcludeFocus(
+                    child: Switch(
+                      value: isEnabled,
+                      onChanged: (value) => widget.onToggle(widget.plugin, value),
+                      activeTrackColor: const Color(
+                        0xFF81C784,
+                      ).withValues(alpha: 0.5),
+                      thumbColor: WidgetStateProperty.resolveWith((states) {
+                        if (states.contains(WidgetState.selected)) {
+                          return SettingsService.themeColor;
+                        }
+                        return Colors.grey;
+                      }),
+                    ),
                   ),
                 ],
               ),

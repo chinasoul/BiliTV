@@ -304,6 +304,7 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
 
               return TvFocusScope(
                 pattern: FocusPattern.horizontal,
+                enableKeyRepeat: true,
                 focusNode: _themeColorFocusNodes[index],
                 isFirst: index == 0,
                 isLast: index == SettingsService.themeColorOptions.length - 1,
@@ -396,6 +397,7 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
 
               return TvFocusScope(
                 pattern: FocusPattern.horizontal,
+                enableKeyRepeat: true,
                 focusNode: _categoryToggleFocusNodes[index],
                 isFirst: index == 0,
                 isLast: index == _categoryOrder.length - 1,
@@ -538,8 +540,11 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
                           return KeyEventResult.handled;
                         }
 
-                        // 阻止向下导航
+                        // 向下导航到直播分区开关
                         if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                          if (_liveCategoryToggleFocusNodes.isNotEmpty) {
+                            _liveCategoryToggleFocusNodes.first.requestFocus();
+                          }
                           return KeyEventResult.handled;
                         }
 
@@ -679,10 +684,22 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
 
               return TvFocusScope(
                 pattern: FocusPattern.horizontal,
+                enableKeyRepeat: true,
                 focusNode: _liveCategoryToggleFocusNodes[index],
                 isFirst: index == 0,
                 isLast: index == _liveCategoryOrder.length - 1,
                 exitLeft: widget.sidebarFocusNode,
+                onExitUp: () {
+                  final enabled = _categoryOrder
+                      .where((n) => SettingsService.isCategoryEnabled(n))
+                      .toList();
+                  if (enabled.isNotEmpty) {
+                    final idx = _categoryOrder.indexOf(enabled.first);
+                    if (idx >= 0 && idx < _categoryOrderFocusNodes.length) {
+                      _categoryOrderFocusNodes[idx].requestFocus();
+                    }
+                  }
+                },
                 onExitDown: () {
                   // 跳转到直播分区排序的第一个已启用分区
                   final enabled = _liveCategoryOrder
@@ -771,7 +788,7 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
         SizedBox(
           height: 36,
           child:
-              _categoryOrder
+              _liveCategoryOrder
                   .where((name) => SettingsService.isLiveCategoryEnabled(name))
                   .isEmpty
               ? Center(

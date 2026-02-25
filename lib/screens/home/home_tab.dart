@@ -472,7 +472,9 @@ class HomeTabState extends State<HomeTab> {
     return Focus(
       focusNode: _loadMoreFocusNode,
       onKeyEvent: (node, event) {
-        if (event is! KeyDownEvent) return KeyEventResult.ignored;
+        if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+          return KeyEventResult.ignored;
+        }
         if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
           final gridColumns = SettingsService.videoGridColumns;
           final lastRowStart =
@@ -749,23 +751,25 @@ class _CategoryTab extends StatelessWidget {
         focusNode: focusNode,
         onFocusChange: (f) => f ? onFocus() : null,
         onKeyEvent: (node, event) {
-          if (event is KeyDownEvent) {
-            if (event.logicalKey == LogicalKeyboardKey.arrowLeft &&
-                onMoveLeft != null) {
-              onMoveLeft!();
-              return KeyEventResult.handled;
-            }
-            if (event.logicalKey == LogicalKeyboardKey.arrowRight &&
-                onMoveRight != null) {
-              onMoveRight!();
-              return KeyEventResult.handled;
-            }
-            // 确定键刷新当前分类
-            if (event.logicalKey == LogicalKeyboardKey.select ||
-                event.logicalKey == LogicalKeyboardKey.enter) {
-              onConfirm();
-              return KeyEventResult.handled;
-            }
+        if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+          return KeyEventResult.ignored;
+        }
+        if (event.logicalKey == LogicalKeyboardKey.arrowLeft &&
+            onMoveLeft != null) {
+          onMoveLeft!();
+          return KeyEventResult.handled;
+        }
+        if (event.logicalKey == LogicalKeyboardKey.arrowRight &&
+            onMoveRight != null) {
+          onMoveRight!();
+          return KeyEventResult.handled;
+        }
+        // 确定键不处理重复事件，避免长按重复触发刷新
+        if (event is KeyDownEvent &&
+            (event.logicalKey == LogicalKeyboardKey.select ||
+                event.logicalKey == LogicalKeyboardKey.enter)) {
+          onConfirm();
+          return KeyEventResult.handled;
           }
           return KeyEventResult.ignored;
         },

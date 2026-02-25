@@ -20,10 +20,22 @@ class _GlobalMemoryOverlayState extends State<GlobalMemoryOverlay> {
   String _availMem = '';
   String _totalMem = '';
   String _cpuUsage = '';
-  String _appCpuStr = '';
-  String _coreFreqStr = '';
+  String _appCpu = '';
+  List<MapEntry<String, String>> _coreFreqLines = const [];
   int _prevProcessJiffies = 0;
   DateTime? _prevCpuSampleTime;
+
+  static const TextStyle _overlayTextStyle = TextStyle(
+    color: Color(0xFFFFC107), // amber, 比纯黄在白底上更稳
+    fontSize: 9,
+    fontFamily: 'monospace',
+    fontFeatures: [FontFeature.tabularFigures()],
+    height: 1.5,
+    decoration: TextDecoration.none,
+    shadows: [
+      Shadow(color: Colors.black87, blurRadius: 2, offset: Offset(0, 1)),
+    ],
+  );
 
   @override
   void initState() {
@@ -51,7 +63,7 @@ class _GlobalMemoryOverlayState extends State<GlobalMemoryOverlay> {
   void _startMonitor() {
     _updateMemory();
     _memoryTimer = Timer.periodic(
-      const Duration(seconds: 1),
+      const Duration(milliseconds: 500),
       (_) => _updateMemory(),
     );
   }
@@ -65,8 +77,8 @@ class _GlobalMemoryOverlayState extends State<GlobalMemoryOverlay> {
         _availMem = '';
         _totalMem = '';
         _cpuUsage = '';
-        _appCpuStr = '';
-        _coreFreqStr = '';
+        _appCpu = '';
+        _coreFreqLines = const <MapEntry<String, String>>[];
       });
     }
     _prevProcessJiffies = 0;
@@ -91,7 +103,7 @@ class _GlobalMemoryOverlayState extends State<GlobalMemoryOverlay> {
 
       // CPU 占用: 从 /proc/self/stat 读取 utime + stime（单位为 jiffies）
       String cpuStr = _cpuUsage;
-      String appCpuStr = '';
+      String appCpu = '';
       try {
         final stat = File('/proc/self/stat').readAsStringSync();
         // comm 字段可能含空格，安全解析：找到最后一个 ')' 后再 split
@@ -117,7 +129,7 @@ class _GlobalMemoryOverlayState extends State<GlobalMemoryOverlay> {
             if (SettingsService.showAppCpu) {
               final cores = Platform.numberOfProcessors;
               final appPercent = cpuPercent / cores;
-              appCpuStr = 'APP ${appPercent.toStringAsFixed(0)}%/$cores核';
+              appCpu = '${appPercent.toStringAsFixed(0)}%/$cores';
             }
           }
         }
@@ -126,11 +138,11 @@ class _GlobalMemoryOverlayState extends State<GlobalMemoryOverlay> {
       } catch (_) {}
 
       // 核心频率
-      String coreFreqStr = '';
+      List<MapEntry<String, String>> coreFreqLines = const [];
       if (SettingsService.showCoreFreq) {
         try {
           final cores = Platform.numberOfProcessors;
-          final freqStrs = <String>[];
+          final freqRows = <MapEntry<String, String>>[];
           for (int i = 0; i < cores; i++) {
             final freqFile = File(
               '/sys/devices/system/cpu/cpu$i/cpufreq/scaling_cur_freq',
@@ -138,23 +150,23 @@ class _GlobalMemoryOverlayState extends State<GlobalMemoryOverlay> {
             if (freqFile.existsSync()) {
               final khz = int.tryParse(freqFile.readAsStringSync().trim()) ?? 0;
               final mhz = (khz / 1000).round();
-              freqStrs.add('C$i:${mhz}M');
+              freqRows.add(MapEntry('C$i', '${mhz}M'));
             } else {
-              freqStrs.add('C$i:--');
+              freqRows.add(MapEntry('C$i', '--'));
             }
           }
-          coreFreqStr = freqStrs.join('\n');
+          coreFreqLines = freqRows;
         } catch (_) {}
       }
 
       if (mounted) {
         setState(() {
-          _appMem = '占${appMb}M';
-          _availMem = '余${availMb}M';
-          _totalMem = '共${totalMb}M';
+          _appMem = '${appMb}M';
+          _availMem = '${availMb}M';
+          _totalMem = '${totalMb}M';
           _cpuUsage = cpuStr;
-          _appCpuStr = appCpuStr;
-          _coreFreqStr = coreFreqStr;
+          _appCpu = appCpu;
+          _coreFreqLines = coreFreqLines;
         });
       }
     } catch (_) {
@@ -165,12 +177,23 @@ class _GlobalMemoryOverlayState extends State<GlobalMemoryOverlay> {
   @override
   Widget build(BuildContext context) {
     final showOverlay = SettingsService.showMemoryInfo && _appMem.isNotEmpty;
-
-    // 侧边栏宽度 = 屏幕宽度 × 5%
-    final screenWidth = MediaQuery.of(context).size.width;
-    final sidebarWidth = screenWidth * 0.05;
+    final baseMetrics = <MapEntry<String, String>>[
+      if (_cpuUsage.isNotEmpty) MapEntry('CPU', _cpuUsage),
+      MapEntry('APP', _appMem),
+      MapEntry('AVL', _availMem),
+      MapEntry('TOT', _totalMem),
+    ];
+    final extraMetrics = <MapEntry<String, String>>[
+      if (_appCpu.isNotEmpty) MapEntry('PCT', _appCpu),
+      ..._coreFreqLines,
+    ];
+    final allMetrics = <MapEntry<String, String>>[...baseMetrics, ...extraMetrics];
+    final maxValueChars = allMetrics.isEmpty
+        ? 0
+        : allMetrics.map((e) => e.value.length).reduce((a, b) => a > b ? a : b);
 
     return Stack(
+      clipBehavior: Clip.none,
       children: [
         widget.child,
         if (showOverlay)
@@ -178,30 +201,37 @@ class _GlobalMemoryOverlayState extends State<GlobalMemoryOverlay> {
             left: 0,
             bottom: 60, // 设置图标上方
             child: IgnorePointer(
-              child: SizedBox(
-                width: sidebarWidth,
-                child: FittedBox(
-                  fit: BoxFit.scaleDown, // 只缩小不放大
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.black45,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Text(
-                      [
-                        if (_cpuUsage.isNotEmpty) 'CPU$_cpuUsage',
-                        if (_appCpuStr.isNotEmpty) _appCpuStr,
-                        if (_coreFreqStr.isNotEmpty) _coreFreqStr,
-                        _appMem,
-                        _availMem,
-                        _totalMem,
-                      ].join('\n'),
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.white38,
-                        fontSize: 9,
-                        fontFamily: 'monospace',
-                        fontFeatures: [FontFeature.tabularFigures()],
-                        height: 1.5,
-                        decoration: TextDecoration.none,
-                      ),
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // 基础信息固定显示，避免可选项挤占
+                        Text(
+                          _formatMetricLines(baseMetrics, maxValueChars),
+                          softWrap: false,
+                          overflow: TextOverflow.visible,
+                          style: _overlayTextStyle,
+                        ),
+                        if (extraMetrics.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              _formatMetricLines(extraMetrics, maxValueChars),
+                              softWrap: false,
+                              overflow: TextOverflow.visible,
+                              style: _overlayTextStyle,
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ),
@@ -210,5 +240,14 @@ class _GlobalMemoryOverlayState extends State<GlobalMemoryOverlay> {
           ),
       ],
     );
+  }
+
+  String _formatMetricLines(List<MapEntry<String, String>> lines, int maxValueChars) {
+    return lines
+        .map(
+          (line) =>
+              '${line.key.padRight(3)} ${line.value.padLeft(maxValueChars)}',
+        )
+        .join('\n');
   }
 }

@@ -1092,7 +1092,9 @@ class _TopTab extends StatelessWidget {
       focusNode: focusNode,
       onFocusChange: (f) => f ? onFocus() : null,
       onKeyEvent: (node, event) {
-        if (event is! KeyDownEvent) return KeyEventResult.ignored;
+        if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+          return KeyEventResult.ignored;
+        }
         if (event.logicalKey == LogicalKeyboardKey.arrowLeft &&
             onMoveLeft != null) {
           onMoveLeft!();
@@ -1108,8 +1110,9 @@ class _TopTab extends StatelessWidget {
           onMoveDown!();
           return KeyEventResult.handled;
         }
-        if (event.logicalKey == LogicalKeyboardKey.enter ||
-            event.logicalKey == LogicalKeyboardKey.select) {
+        if (event is KeyDownEvent &&
+            (event.logicalKey == LogicalKeyboardKey.enter ||
+                event.logicalKey == LogicalKeyboardKey.select)) {
           onTap();
           return KeyEventResult.handled;
         }
@@ -1196,7 +1199,9 @@ class _FolderTab extends StatelessWidget {
       focusNode: focusNode,
       onFocusChange: (f) => f ? onFocus() : null,
       onKeyEvent: (node, event) {
-        if (event is! KeyDownEvent) return KeyEventResult.ignored;
+        if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+          return KeyEventResult.ignored;
+        }
         if (event.logicalKey == LogicalKeyboardKey.arrowLeft &&
             onMoveLeft != null) {
           onMoveLeft!();
@@ -1212,8 +1217,9 @@ class _FolderTab extends StatelessWidget {
           onMoveUp!();
           return KeyEventResult.handled;
         }
-        if (event.logicalKey == LogicalKeyboardKey.enter ||
-            event.logicalKey == LogicalKeyboardKey.select) {
+        if (event is KeyDownEvent &&
+            (event.logicalKey == LogicalKeyboardKey.enter ||
+                event.logicalKey == LogicalKeyboardKey.select)) {
           onTap();
           return KeyEventResult.handled;
         }
@@ -1285,7 +1291,9 @@ class _FollowingUserCard extends StatelessWidget {
         }
       },
       onKeyEvent: (node, event) {
-        if (event is! KeyDownEvent) return KeyEventResult.ignored;
+        if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+          return KeyEventResult.ignored;
+        }
         if (event.logicalKey == LogicalKeyboardKey.arrowLeft &&
             onMoveLeft != null) {
           onMoveLeft!();
@@ -1306,8 +1314,9 @@ class _FollowingUserCard extends StatelessWidget {
           onMoveDown!();
           return KeyEventResult.handled;
         }
-        if (event.logicalKey == LogicalKeyboardKey.select ||
-            event.logicalKey == LogicalKeyboardKey.enter) {
+        if (event is KeyDownEvent &&
+            (event.logicalKey == LogicalKeyboardKey.select ||
+                event.logicalKey == LogicalKeyboardKey.enter)) {
           onTap();
           return KeyEventResult.handled;
         }
