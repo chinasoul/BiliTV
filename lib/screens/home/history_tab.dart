@@ -96,6 +96,12 @@ class HistoryTabState extends State<HistoryTab> {
     }
   }
 
+  void focusFirstItem() {
+    if (_videos.isNotEmpty) {
+      _getFocusNode(0).requestFocus();
+    }
+  }
+
   /// 用户主动点击"加载更多"时，扩展上限并继续加载
   void _extendLimit() {
     setState(() {

@@ -94,6 +94,12 @@ class DynamicTabState extends State<DynamicTab> {
     }
   }
 
+  void focusFirstItem() {
+    if (_videos.isNotEmpty) {
+      _getFocusNode(0).requestFocus();
+    }
+  }
+
   /// 公开的刷新方法 - 供外部调用
   void refresh() {
     if (!AuthService.isLoggedIn) {

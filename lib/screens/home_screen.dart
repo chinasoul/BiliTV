@@ -258,6 +258,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (index == 0) {
       return () => _homeTabKey.currentState?.focusSelectedCategoryTab();
     }
+    // 动态页：聚焦第一个视频卡片
+    if (index == 1) {
+      return () => _dynamicTabKey.currentState?.focusFirstItem();
+    }
     // 关注页：聚焦记忆的顶部标签
     if (index == 2) {
       return () => _followingTabKey.currentState?.focusSelectedTopTab();
@@ -265,6 +269,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     // 直播页：聚焦记忆的分类标签
     if (index == 4) {
       return () => _liveTabKey.currentState?.focusFirstItem();
+    }
+    // 历史页：聚焦第一个视频卡片
+    if (index == 3) {
+      return () => _historyTabKey.currentState?.focusFirstItem();
     }
     if (index == 5 && AuthService.isLoggedIn) {
       return null; // 个人资料页不需要特殊右键导航
