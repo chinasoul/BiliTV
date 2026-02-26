@@ -1,5 +1,7 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../utils/image_url_utils.dart';
 import '../../../services/bilibili_api.dart';
 import '../../../services/settings_service.dart';
 import '../../../config/app_style.dart';
@@ -241,12 +243,24 @@ class _RelatedPanelState extends State<RelatedPanel> {
           // 封面
           ClipRRect(
             borderRadius: BorderRadius.circular(6),
-            child: Image.network(
-              video.pic,
+            child: CachedNetworkImage(
+              imageUrl: ImageUrlUtils.getResizedUrl(
+                video.pic,
+                width: 200,
+                height: 112,
+              ),
+              cacheManager: BiliCacheManager.instance,
+              memCacheWidth: 200,
+              memCacheHeight: 112,
               width: 100,
               height: 56,
               fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => Container(
+              placeholder: (_, _) => Container(
+                width: 100,
+                height: 56,
+                color: Colors.grey[800],
+              ),
+              errorWidget: (_, _, _) => Container(
                 width: 100,
                 height: 56,
                 color: Colors.grey[800],

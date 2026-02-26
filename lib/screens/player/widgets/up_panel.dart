@@ -1,6 +1,8 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:bili_tv_app/utils/toast_utils.dart';
+import 'package:bili_tv_app/utils/image_url_utils.dart';
 import '../../../services/bilibili_api.dart';
 import '../../../models/video.dart';
 import 'package:bili_tv_app/services/settings_service.dart';
@@ -302,14 +304,29 @@ class _UpPanelState extends State<UpPanel> {
                     Row(
                       children: [
                         // 头像
-                        CircleAvatar(
-                          radius: 20,
-                          backgroundImage: widget.upFace.isNotEmpty
-                              ? NetworkImage(widget.upFace)
-                              : null,
-                          child: widget.upFace.isEmpty
-                              ? const Icon(Icons.person, size: 20)
-                              : null,
+                        ClipOval(
+                          child: widget.upFace.isNotEmpty
+                              ? CachedNetworkImage(
+                                  imageUrl: ImageUrlUtils.getResizedUrl(
+                                    widget.upFace,
+                                    width: 80,
+                                    height: 80,
+                                  ),
+                                  cacheManager: BiliCacheManager.instance,
+                                  memCacheWidth: 80,
+                                  memCacheHeight: 80,
+                                  width: 40,
+                                  height: 40,
+                                  fit: BoxFit.cover,
+                                  errorWidget: (_, _, _) => const CircleAvatar(
+                                    radius: 20,
+                                    child: Icon(Icons.person, size: 20),
+                                  ),
+                                )
+                              : const CircleAvatar(
+                                  radius: 20,
+                                  child: Icon(Icons.person, size: 20),
+                                ),
                         ),
                         const SizedBox(width: 12),
                         // 名称 - 可以占用更多空间
@@ -476,12 +493,24 @@ class _UpPanelState extends State<UpPanel> {
           // 封面
           ClipRRect(
             borderRadius: BorderRadius.circular(6),
-            child: Image.network(
-              video.pic,
+            child: CachedNetworkImage(
+              imageUrl: ImageUrlUtils.getResizedUrl(
+                video.pic,
+                width: 200,
+                height: 112,
+              ),
+              cacheManager: BiliCacheManager.instance,
+              memCacheWidth: 200,
+              memCacheHeight: 112,
               width: 100,
               height: 56,
               fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => Container(
+              placeholder: (_, _) => Container(
+                width: 100,
+                height: 56,
+                color: Colors.grey[800],
+              ),
+              errorWidget: (_, _, _) => Container(
                 width: 100,
                 height: 56,
                 color: Colors.grey[800],

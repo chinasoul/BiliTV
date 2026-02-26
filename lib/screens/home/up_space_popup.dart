@@ -595,8 +595,14 @@ class _UpSpacePopupState extends State<UpSpacePopup> {
               // 头像
               ClipOval(
                 child: CachedNetworkImage(
-                  imageUrl: widget.user.face,
+                  imageUrl: ImageUrlUtils.getResizedUrl(
+                    widget.user.face,
+                    width: 96,
+                    height: 96,
+                  ),
                   cacheManager: BiliCacheManager.instance,
+                  memCacheWidth: 96,
+                  memCacheHeight: 96,
                   width: 48,
                   height: 48,
                   fit: BoxFit.cover,
@@ -884,6 +890,8 @@ class _UpSpacePopupState extends State<UpSpacePopup> {
                 CachedNetworkImage(
                   imageUrl: ImageUrlUtils.getResizedUrl(video.pic, width: 480),
                   cacheManager: BiliCacheManager.instance,
+                  memCacheWidth: 480,
+                  memCacheHeight: 270,
                   fit: BoxFit.cover,
                   placeholder: (_, _) => Container(color: Colors.grey[850]),
                   errorWidget: (_, _, _) => Container(

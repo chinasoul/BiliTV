@@ -222,10 +222,67 @@
 - 本轮未引入 `clearLiveImages()` 这类全局强清理，避免当前页闪白与重解码抖动
 - 以内存上限 + LRU 自然淘汰为主
 
-### 7.8 当前状态小结
+### 7.8 播放器侧边面板 & UP主弹窗图片优化
+
+**问题现象**：播放时内存 ~450MB，打开 UP主面板后飙升至 ~600MB（+150MB），打开更多视频面板后 ~500+MB。
+
+**根因分析**：
+
+三个页面的封面图使用 `Image.network(video.pic)` 直接加载，存在两个致命问题：
+
+1. **无 CDN 缩图**：`video.pic` 是原始 URL，B站 CDN 返回原图（通常 1280×720 或 1920×1080）
+2. **无解码尺寸限制**：没有 `memCacheWidth/memCacheHeight`，全分辨率解码进内存
+
+单张图内存占用对比：
+
+| 分辨率 | 单张 RGBA 解码 | 30张 |
+|---|---|---|
+| 1280×720（原图） | 3.7MB | 111MB |
+| 1920×1080（原图） | 8.3MB | 249MB |
+| 200×112（修后） | 90KB | 2.7MB |
+
+加上 UP主面板的 `_cachedVideos` 会同时缓存「最新」和「最热」两种排序的视频列表，最坏情况下有 60 张原图解码，足以解释 +150MB 的飙升。
+
+**修复内容**：
+
+生效文件：
+
+- `lib/screens/player/widgets/up_panel.dart`
+- `lib/screens/player/widgets/related_panel.dart`
+- `lib/screens/home/up_space_popup.dart`
+
+改动点（三个文件统一处理）：
+
+| 组件 | 修前 | 修后 |
+|---|---|---|
+| UP面板头像 | `NetworkImage(url)` | `CachedNetworkImage` + `getResizedUrl(80×80)` + `memCacheWidth/Height` |
+| UP面板封面 | `Image.network(url)` | `CachedNetworkImage` + `getResizedUrl(200×112)` + `memCacheWidth/Height` |
+| 更多视频封面 | `Image.network(url)` | `CachedNetworkImage` + `getResizedUrl(200×112)` + `memCacheWidth/Height` |
+| UP弹窗头像 | `CachedNetworkImage(url)` 无缩图 | 补 `getResizedUrl(96×96)` + `memCacheWidth/Height` |
+| UP弹窗封面 | `CachedNetworkImage` + `getResizedUrl(480)` 无解码限制 | 补 `memCacheWidth: 480` / `memCacheHeight: 270` |
+
+两层压缩机制：
+
+1. **服务端缩图**（`ImageUrlUtils.getResizedUrl`）：让 CDN 只返回小尺寸图片，减少网络传输
+2. **客户端解码限制**（`memCacheWidth/memCacheHeight`）：即使拿到大图也只按指定尺寸解码进内存
+
+**修后效果**：打开 UP主面板 / 更多视频面板后内存几乎不增长。
+
+**与三档缓存的关系**：
+
+`imageCacheMaxSize`（高60/中40/低20）控制的是全局图片缓存池容量，所有页面共享：
+
+```
+总图片内存 = 单张解码大小 × 缓存池上限
+```
+
+修前三档差距巨大（低档 74MB vs 高档 222MB），修后单张仅 90KB，60 张也才 5.4MB，三档之间差距不到 4MB。图片缓存不再是内存瓶颈，三档差异主要体现在播放器缓冲区大小（15s / 30s / 50s）。
+
+### 7.9 当前状态小结
 
 - 已完成：播放三档联动（原生缓冲 + Flutter 定时与预加载策略）
 - 已完成：image cache 动态化与运行时即时生效
 - 已完成：BiliCacheManager 启动生效档位化
 - 已完成：弹幕 typed class 改造
 - 已完成：标签页切换策略与省内存模式对齐
+- 已完成：播放器侧边面板 & UP主弹窗图片解码优化（消除 +150MB 峰值）
