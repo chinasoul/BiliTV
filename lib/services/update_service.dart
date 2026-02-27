@@ -15,6 +15,7 @@ class UpdateInfo {
   final String version;
   final int versionCode;
   final String downloadUrl;
+  final List<String> fallbackUrls;
   final String changelog;
   final bool forceUpdate;
 
@@ -22,6 +23,7 @@ class UpdateInfo {
     required this.version,
     required this.versionCode,
     required this.downloadUrl,
+    this.fallbackUrls = const [],
     required this.changelog,
     required this.forceUpdate,
   });
@@ -31,6 +33,11 @@ class UpdateInfo {
       version: json['version'] ?? '',
       versionCode: json['versionCode'] ?? 0,
       downloadUrl: json['download_url'] ?? '',
+      fallbackUrls: (json['fallback_urls'] as List?)
+              ?.map((e) => e.toString())
+              .where((e) => e.isNotEmpty)
+              .toList() ??
+          const [],
       changelog: json['changelog'] ?? '',
       forceUpdate: json['force_update'] ?? false,
     );
@@ -273,7 +280,6 @@ class UpdateService {
       }
     }
 
-    // 若 body 里只有单个 APK 链接，兜底返回第一个
     return urls.first;
   }
 
@@ -344,8 +350,18 @@ class UpdateService {
       final body = (release['body'] ?? '').toString();
       final bodyApkUrl = _pickApkUrlFromBody(body, arch);
       final assets = (release['assets'] as List?) ?? const [];
-      final apkUrl = bodyApkUrl ?? _pickApkAssetUrl(assets, arch);
+      final assetApkUrl = _pickApkAssetUrl(assets, arch);
+      final apkUrl = bodyApkUrl ?? assetApkUrl;
       if (apkUrl == null || apkUrl.isEmpty) return null;
+
+      // body 链接优先；若主链接不可达，立即回退到 assets
+      final fallbackUrls = <String>[];
+      if (assetApkUrl != null &&
+          assetApkUrl.isNotEmpty &&
+          assetApkUrl != apkUrl &&
+          !fallbackUrls.contains(assetApkUrl)) {
+        fallbackUrls.add(assetApkUrl);
+      }
 
       return UpdateCheckResult(
         hasUpdate: true,
@@ -353,6 +369,7 @@ class UpdateService {
           version: tagName,
           versionCode: 0,
           downloadUrl: apkUrl,
+          fallbackUrls: fallbackUrls,
           changelog: body,
           forceUpdate: false,
         ),
@@ -470,25 +487,36 @@ class UpdateService {
       }
 
       final url = updateInfo.downloadUrl;
+      final fallbackUrl = updateInfo.fallbackUrls.isNotEmpty
+          ? updateInfo.fallbackUrls.first
+          : '';
+
+      Future<(http.StreamedResponse, String)> startDownload(String candidate) async {
+        if (candidate.contains('github.com')) {
+          return _downloadWithGitHubFallback(candidate, headers: _githubHeaders());
+        }
+        final request = http.Request('GET', Uri.parse(candidate));
+        request.headers.addAll(const {'User-Agent': 'BiliTV-UpdateChecker'});
+        final resp = await request.send().timeout(const Duration(seconds: 30));
+        if (resp.statusCode != 200) {
+          throw Exception('HTTP ${resp.statusCode}');
+        }
+        return (resp, candidate);
+      }
+
       http.StreamedResponse streamedResponse;
       String actualUrl;
-
-      if (url.contains('github.com')) {
-        // GitHub URL: 直连 → 代理镜像自动回退
-        (streamedResponse, actualUrl) = await _downloadWithGitHubFallback(
-          url,
-          headers: _githubHeaders(),
-        );
-      } else {
-        // Gitee 或其他 URL: 直接下载
-        actualUrl = url;
-        final request = http.Request('GET', Uri.parse(url));
-        request.headers.addAll(const {'User-Agent': 'BiliTV-UpdateChecker'});
-        streamedResponse = await request
-            .send()
-            .timeout(const Duration(seconds: 30));
-        if (streamedResponse.statusCode != 200) {
-          onError?.call('下载失败: ${streamedResponse.statusCode}');
+      try {
+        (streamedResponse, actualUrl) = await startDownload(url);
+      } catch (e) {
+        if (fallbackUrl.isEmpty || fallbackUrl == url) {
+          onError?.call('下载安装失败: $e');
+          return;
+        }
+        try {
+          (streamedResponse, actualUrl) = await startDownload(fallbackUrl);
+        } catch (fallbackError) {
+          onError?.call('下载安装失败: $fallbackError');
           return;
         }
       }
