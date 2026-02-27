@@ -588,6 +588,8 @@ mixin PlayerEventMixin on PlayerActionMixin {
         startHideTimer();
       } else if (settingsMenuType == SettingsMenuType.danmaku) {
         adjustDanmakuSetting(-1);
+      } else if (settingsMenuType == SettingsMenuType.subtitle) {
+        adjustSubtitleSetting(-1);
       } else if (settingsMenuType == SettingsMenuType.speed) {
         setState(() => settingsMenuType = SettingsMenuType.main);
       }
@@ -603,12 +605,19 @@ mixin PlayerEventMixin on PlayerActionMixin {
           });
         } else if (focusedSettingIndex == 2) {
           setState(() {
+            settingsMenuType = SettingsMenuType.subtitle;
+            focusedSettingIndex = 0;
+          });
+        } else if (focusedSettingIndex == 3) {
+          setState(() {
             settingsMenuType = SettingsMenuType.speed;
             focusedSettingIndex = 0;
           });
         }
       } else if (settingsMenuType == SettingsMenuType.danmaku) {
         adjustDanmakuSetting(1);
+      } else if (settingsMenuType == SettingsMenuType.subtitle) {
+        adjustSubtitleSetting(1);
       }
       return KeyEventResult.handled;
     }
@@ -641,9 +650,11 @@ mixin PlayerEventMixin on PlayerActionMixin {
   int _getSettingsMaxIndex() {
     switch (settingsMenuType) {
       case SettingsMenuType.main:
-        return 2;
+        return 3;
       case SettingsMenuType.danmaku:
         return 6;
+      case SettingsMenuType.subtitle:
+        return subtitleTrackLabels.isEmpty ? 1 : subtitleTrackLabels.length;
       case SettingsMenuType.speed:
         return availableSpeeds.length - 1;
       default:

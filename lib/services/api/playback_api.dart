@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'base_api.dart';
 import 'sign_utils.dart';
 import '../../models/danmaku_item.dart';
+import '../../models/subtitle_item.dart';
 import '../auth_service.dart';
 import '../codec_service.dart';
 import '../settings_service.dart';
@@ -82,6 +83,170 @@ class PlaybackApi {
       // print('getVideoCid error: $e');
     }
     return null;
+  }
+
+  static List<BiliSubtitleTrack> _parseSubtitleTracks(dynamic subtitleData) {
+    if (subtitleData is! Map) return const [];
+    final subtitles = subtitleData['subtitles'] ?? subtitleData['list'];
+    if (subtitles is! List) return const [];
+    return subtitles
+        .whereType<Map>()
+        .map((raw) => BiliSubtitleTrack.fromJson(Map<String, dynamic>.from(raw)))
+        .where((e) => e.subtitleUrl.isNotEmpty)
+        .toList();
+  }
+
+  static Future<BiliSubtitleTracksResult?> _fetchSubtitleTracksFromUrl(
+    String url,
+  ) async {
+    final response = await http.get(
+      Uri.parse(url),
+      headers: {
+        ...BaseApi.getHeaders(withCookie: true),
+        'Referer': 'https://www.bilibili.com/',
+        'Origin': 'https://www.bilibili.com',
+      },
+    );
+    if (response.statusCode != 200) return null;
+
+    final json = jsonDecode(response.body);
+    if (json['code'] != 0 || json['data'] == null) return null;
+    final data = json['data'] as Map<String, dynamic>;
+    return BiliSubtitleTracksResult(
+      tracks: _parseSubtitleTracks(data['subtitle']),
+      needLoginSubtitle: data['need_login_subtitle'] == true,
+    );
+  }
+
+  static Future<List<BiliSubtitleTrack>> _fetchSubtitleTracksFromView(
+    String bvid,
+    int cid,
+  ) async {
+    final url = 'https://api.bilibili.com/x/web-interface/view?bvid=$bvid';
+    final response = await http.get(
+      Uri.parse(url),
+      headers: {
+        ...BaseApi.getHeaders(withCookie: true),
+        'Referer': 'https://www.bilibili.com/',
+        'Origin': 'https://www.bilibili.com',
+      },
+    );
+    if (response.statusCode != 200) return const [];
+    final json = jsonDecode(response.body);
+    if (json['code'] != 0 || json['data'] == null) return const [];
+    final data = json['data'] as Map<String, dynamic>;
+    final viewCid = _toInt(data['cid']);
+    // 仅在 cid 一致时使用 view 接口字幕，避免跨分P误取。
+    if (viewCid > 0 && viewCid != cid) return const [];
+    return _parseSubtitleTracks(data['subtitle']);
+  }
+
+  /// 获取字幕轨道列表（仅返回轨道）
+  static Future<List<BiliSubtitleTrack>> getSubtitleTracks({
+    required String bvid,
+    required int cid,
+    int? aid,
+  }) async {
+    final result = await getSubtitleTracksWithMeta(bvid: bvid, cid: cid, aid: aid);
+    return result.tracks;
+  }
+
+  /// 获取字幕轨道列表（含是否需登录）
+  static Future<BiliSubtitleTracksResult> getSubtitleTracksWithMeta({
+    required String bvid,
+    required int cid,
+    int? aid,
+  }) async {
+    try {
+      final aidQuery = aid != null ? '&aid=$aid' : '';
+      final v2Url =
+          'https://api.bilibili.com/x/player/v2?bvid=$bvid&cid=$cid$aidQuery';
+      final primary = await _fetchSubtitleTracksFromUrl(v2Url);
+      if (primary != null &&
+          (primary.tracks.isNotEmpty || primary.needLoginSubtitle)) {
+        return primary;
+      }
+
+      await BaseApi.ensureWbiKeys();
+      final hasWbiKey =
+          (BaseApi.imgKey?.isNotEmpty ?? false) &&
+          (BaseApi.subKey?.isNotEmpty ?? false);
+      if (!hasWbiKey) {
+        return primary ??
+            const BiliSubtitleTracksResult(
+              tracks: [],
+              needLoginSubtitle: false,
+            );
+      }
+
+      final params = <String, String>{'bvid': bvid, 'cid': cid.toString()};
+      if (aid != null) {
+        params['aid'] = aid.toString();
+      }
+      final signedParams = SignUtils.signWithWbi(
+        params,
+        BaseApi.imgKey!,
+        BaseApi.subKey!,
+      );
+      final wbiUrl =
+          'https://api.bilibili.com/x/player/wbi/v2?${_toQueryString(signedParams)}';
+      final fallback = await _fetchSubtitleTracksFromUrl(wbiUrl);
+      if (fallback != null && fallback.tracks.isNotEmpty) return fallback;
+
+      final viewTracks = await _fetchSubtitleTracksFromView(bvid, cid);
+      if (viewTracks.isNotEmpty) {
+        return BiliSubtitleTracksResult(
+          tracks: viewTracks,
+          needLoginSubtitle:
+              fallback?.needLoginSubtitle ?? primary?.needLoginSubtitle ?? false,
+        );
+      }
+
+      return fallback ??
+          primary ??
+          const BiliSubtitleTracksResult(
+            tracks: [],
+            needLoginSubtitle: false,
+          );
+    } catch (_) {
+      return const BiliSubtitleTracksResult(
+        tracks: [],
+        needLoginSubtitle: false,
+      );
+    }
+  }
+
+  /// 下载并解析字幕 JSON
+  static Future<List<BiliSubtitleItem>> getSubtitleItems(String subtitleUrl) async {
+    if (subtitleUrl.isEmpty) return const [];
+    try {
+      final normalizedUrl = subtitleUrl.startsWith('//')
+          ? 'https:$subtitleUrl'
+          : subtitleUrl.startsWith('/')
+          ? 'https://api.bilibili.com$subtitleUrl'
+          : subtitleUrl;
+      final response = await http.get(
+        Uri.parse(normalizedUrl),
+        headers: {
+          ...BaseApi.getHeaders(withCookie: true),
+          'Referer': 'https://www.bilibili.com/',
+          'Origin': 'https://www.bilibili.com',
+        },
+      );
+      if (response.statusCode != 200) return const [];
+      final json = jsonDecode(response.body);
+      final body = json['body'];
+      if (body is! List) return const [];
+      final items = body
+          .whereType<Map>()
+          .map((raw) => BiliSubtitleItem.fromJson(Map<String, dynamic>.from(raw)))
+          .where((e) => e.content.trim().isNotEmpty)
+          .toList()
+        ..sort((a, b) => a.from.compareTo(b.from));
+      return items;
+    } catch (_) {
+      return const [];
+    }
   }
 
   /// 获取视频播放地址

@@ -9,6 +9,7 @@ import '../../models/video.dart';
 import '../../services/settings_service.dart';
 import 'widgets/video_layer.dart';
 import 'widgets/danmaku_layer.dart';
+import 'widgets/subtitle_layer.dart';
 import 'widgets/controls_overlay.dart';
 import 'widgets/settings_panel.dart';
 import 'widgets/episode_panel.dart';
@@ -147,6 +148,16 @@ class _PlayerScreenState extends State<PlayerScreen>
                     hideTop: hideTopDanmaku,
                     hideBottom: hideBottomDanmaku,
                   ),
+                ),
+
+              // 字幕层
+              if (!isLoading &&
+                  videoController != null &&
+                  subtitleEnabled &&
+                  currentSubtitleText.isNotEmpty)
+                SubtitleLayer(
+                  text: currentSubtitleText,
+                  showControls: showControls,
                 ),
 
               // 暂停指示器
@@ -328,6 +339,7 @@ class _PlayerScreenState extends State<PlayerScreen>
 
                         videoController!.seekTo(target);
                         resetDanmakuIndex(target);
+                        resetSubtitleIndex(target);
                         setState(() {
                           showControls = true;
                           isProgressBarFocused = false;
@@ -446,6 +458,9 @@ class _PlayerScreenState extends State<PlayerScreen>
                   playbackSpeed: playbackSpeed,
                   availableSpeeds: availableSpeeds,
                   danmakuEnabled: danmakuEnabled,
+                  subtitleEnabled: subtitleEnabled,
+                  subtitleTrackDesc: currentSubtitleTrackDesc,
+                  subtitleTrackLabels: subtitleTrackLabels,
                   danmakuOpacity: danmakuOpacity,
                   danmakuFontSize: danmakuFontSize,
                   danmakuArea: danmakuArea,
@@ -745,6 +760,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     if (skipToMs is! int) return;
     videoController!.seekTo(Duration(milliseconds: skipToMs));
     resetDanmakuIndex(Duration(milliseconds: skipToMs));
+    resetSubtitleIndex(Duration(milliseconds: skipToMs));
     setState(() {
       currentSkipAction = null;
     });

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:bili_tv_app/services/settings_service.dart';
 import 'package:bili_tv_app/config/app_style.dart';
 
-enum SettingsMenuType { main, quality, danmaku, speed }
+enum SettingsMenuType { main, quality, danmaku, subtitle, speed }
 
 class SettingsPanel extends StatefulWidget {
   final SettingsMenuType menuType;
@@ -13,6 +13,9 @@ class SettingsPanel extends StatefulWidget {
 
   // Danmaku Settings
   final bool danmakuEnabled;
+  final bool subtitleEnabled;
+  final String subtitleTrackDesc;
+  final List<String> subtitleTrackLabels;
   final double danmakuOpacity;
   final double danmakuFontSize;
   final double danmakuArea;
@@ -32,6 +35,9 @@ class SettingsPanel extends StatefulWidget {
     required this.playbackSpeed,
     required this.availableSpeeds,
     required this.danmakuEnabled,
+    required this.subtitleEnabled,
+    required this.subtitleTrackDesc,
+    required this.subtitleTrackLabels,
     required this.danmakuOpacity,
     required this.danmakuFontSize,
     required this.danmakuArea,
@@ -52,7 +58,8 @@ class _SettingsPanelState extends State<SettingsPanel> {
   @override
   void didUpdateWidget(SettingsPanel oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.menuType == SettingsMenuType.danmaku &&
+    if ((widget.menuType == SettingsMenuType.danmaku ||
+            widget.menuType == SettingsMenuType.subtitle) &&
         widget.focusedIndex != oldWidget.focusedIndex) {
       _scrollToFocused();
     }
@@ -93,6 +100,7 @@ class _SettingsPanelState extends State<SettingsPanel> {
   Widget build(BuildContext context) {
     String title = '设置';
     if (widget.menuType == SettingsMenuType.danmaku) title = '弹幕设置';
+    if (widget.menuType == SettingsMenuType.subtitle) title = '字幕设置';
     if (widget.menuType == SettingsMenuType.speed) title = '倍速播放';
     if (widget.menuType == SettingsMenuType.quality) title = '画质选择';
 
@@ -152,6 +160,8 @@ class _SettingsPanelState extends State<SettingsPanel> {
     switch (widget.menuType) {
       case SettingsMenuType.danmaku:
         return _buildDanmakuSettingsList();
+      case SettingsMenuType.subtitle:
+        return _buildSubtitleSettingsList();
       case SettingsMenuType.speed:
         return _buildSpeedSettingsList();
       case SettingsMenuType.main:
@@ -180,6 +190,13 @@ class _SettingsPanelState extends State<SettingsPanel> {
         ),
         _buildSettingItem(
           index: 2,
+          icon: Icons.closed_caption,
+          title: '字幕设置',
+          value: widget.subtitleEnabled ? widget.subtitleTrackDesc : '关',
+          onTap: () => widget.onNavigate(SettingsMenuType.subtitle, 0),
+        ),
+        _buildSettingItem(
+          index: 3,
           icon: Icons.speed,
           title: '播放速度',
           value: '${widget.playbackSpeed}x',
@@ -253,6 +270,46 @@ class _SettingsPanelState extends State<SettingsPanel> {
           value: !widget.hideBottomDanmaku ? '开' : '关',
           onTap: () {},
         ),
+      ],
+    );
+  }
+
+  Widget _buildSubtitleSettingsList() {
+    return ListView(
+      controller: _scrollController,
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      children: [
+        _buildSettingItem(
+          index: 0,
+          icon: widget.subtitleEnabled
+              ? Icons.closed_caption
+              : Icons.closed_caption_disabled,
+          title: '字幕开关',
+          value: widget.subtitleEnabled ? '开' : '关',
+          onTap: () {},
+        ),
+        if (widget.subtitleTrackLabels.isEmpty)
+          _buildSettingItem(
+            index: 1,
+            icon: Icons.info_outline,
+            title: '字幕轨道',
+            value: '无可用字幕',
+            onTap: () {},
+          )
+        else
+          ...widget.subtitleTrackLabels.asMap().entries.map((entry) {
+            final idx = entry.key;
+            final title = entry.value;
+            final isCurrent = widget.subtitleEnabled &&
+                widget.subtitleTrackDesc == title;
+            return _buildSettingItem(
+              index: idx + 1,
+              icon: Icons.translate,
+              title: title,
+              value: isCurrent ? '当前' : '',
+              onTap: () {},
+            );
+          }),
       ],
     );
   }

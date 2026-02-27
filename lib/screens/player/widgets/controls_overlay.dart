@@ -89,6 +89,33 @@ class ControlsOverlay extends StatelessWidget {
     return count.toString();
   }
 
+  String _controlHintTextFor(int index) {
+    switch (index) {
+      case 0:
+        return controller.value.isPlaying ? '暂停' : '播放';
+      case 1:
+        return '评论';
+      case 2:
+        return '选集';
+      case 3:
+        return 'UP主';
+      case 4:
+        return '更多视频';
+      case 5:
+        return '设置';
+      case 6:
+        return showStatsForNerds ? '关闭监测' : '开启监测';
+      case 7:
+        return '互动操作';
+      case 8:
+        return isLoopMode ? '单集循环' : '循环播放';
+      case 9:
+        return '关闭播放器';
+      default:
+        return '';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // 计算缓冲时长
@@ -234,6 +261,8 @@ class ControlsOverlay extends StatelessWidget {
                               : Icons.play_arrow,
                           iconSize: iconSize,
                           padding: padding,
+                          buttonExtent: buttonSize,
+                          hintText: _controlHintTextFor(0),
                         ),
                         SizedBox(width: spacing),
                         // 评论 (index 1)
@@ -242,6 +271,8 @@ class ControlsOverlay extends StatelessWidget {
                           icon: Icons.comment_outlined,
                           iconSize: iconSize,
                           padding: padding,
+                          buttonExtent: buttonSize,
+                          hintText: _controlHintTextFor(1),
                         ),
                         SizedBox(width: spacing),
                         // 选集 (index 2)
@@ -250,6 +281,8 @@ class ControlsOverlay extends StatelessWidget {
                           icon: Icons.playlist_play,
                           iconSize: iconSize,
                           padding: padding,
+                          buttonExtent: buttonSize,
+                          hintText: _controlHintTextFor(2),
                         ),
                         SizedBox(width: spacing),
                         // UP主 (index 3)
@@ -258,6 +291,8 @@ class ControlsOverlay extends StatelessWidget {
                           icon: Icons.person,
                           iconSize: iconSize,
                           padding: padding,
+                          buttonExtent: buttonSize,
+                          hintText: _controlHintTextFor(3),
                         ),
                         SizedBox(width: spacing),
                         // 更多视频 (index 4)
@@ -266,6 +301,8 @@ class ControlsOverlay extends StatelessWidget {
                           icon: Icons.expand_more,
                           iconSize: iconSize,
                           padding: padding,
+                          buttonExtent: buttonSize,
+                          hintText: _controlHintTextFor(4),
                         ),
                         SizedBox(width: spacing),
                         // 设置 (index 5)
@@ -274,6 +311,8 @@ class ControlsOverlay extends StatelessWidget {
                           icon: Icons.tune,
                           iconSize: iconSize,
                           padding: padding,
+                          buttonExtent: buttonSize,
+                          hintText: _controlHintTextFor(5),
                         ),
                         SizedBox(width: spacing),
                         // 视频数据实时监测开关 (index 6)
@@ -284,6 +323,8 @@ class ControlsOverlay extends StatelessWidget {
                               : Icons.monitor_heart_outlined,
                           iconSize: iconSize,
                           padding: padding,
+                          buttonExtent: buttonSize,
+                          hintText: _controlHintTextFor(6),
                         ),
                         SizedBox(width: spacing),
                         // 点赞/投币/收藏 (index 7)
@@ -292,6 +333,8 @@ class ControlsOverlay extends StatelessWidget {
                           icon: Icons.thumb_up_outlined,
                           iconSize: iconSize,
                           padding: padding,
+                          buttonExtent: buttonSize,
+                          hintText: _controlHintTextFor(7),
                         ),
                         SizedBox(width: spacing),
                         // 循环播放 (index 8)
@@ -300,6 +343,8 @@ class ControlsOverlay extends StatelessWidget {
                           icon: isLoopMode ? Icons.repeat_one : Icons.repeat,
                           iconSize: iconSize,
                           padding: padding,
+                          buttonExtent: buttonSize,
+                          hintText: _controlHintTextFor(8),
                         ),
                         SizedBox(width: spacing),
                         // 关闭视频 (index 9)
@@ -308,6 +353,8 @@ class ControlsOverlay extends StatelessWidget {
                           icon: Icons.close,
                           iconSize: iconSize,
                           padding: padding,
+                          buttonExtent: buttonSize,
+                          hintText: _controlHintTextFor(9),
                         ),
                         const Spacer(),
                         // 右侧信息区
@@ -329,6 +376,8 @@ class ControlsOverlay extends StatelessWidget {
     required IconData icon,
     required double iconSize,
     required double padding,
+    required double buttonExtent,
+    required String hintText,
   }) {
     final isFocused =
         !isProgressBarFocused && focusedIndex == index && showControls;
@@ -337,19 +386,70 @@ class ControlsOverlay extends StatelessWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () => onControlTap(index),
-        child: Container(
-          padding: EdgeInsets.all(padding),
-          decoration: BoxDecoration(
-            color: isFocused
-                ? SettingsService.themeColor.withValues(alpha: 0.8)
-                : Colors.white.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: isFocused ? Colors.white : Colors.transparent,
-              width: 3,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              padding: EdgeInsets.all(padding),
+              decoration: BoxDecoration(
+                color: isFocused
+                    ? SettingsService.themeColor.withValues(alpha: 0.8)
+                    : Colors.white.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: isFocused ? Colors.white : Colors.transparent,
+                  width: 3,
+                ),
+              ),
+              child: Icon(icon, color: Colors.white, size: iconSize),
             ),
-          ),
-          child: Icon(icon, color: Colors.white, size: iconSize),
+            Positioned(
+              left: 0,
+              right: 0,
+              top: -(buttonExtent * 0.9),
+              child: IgnorePointer(
+                child: Center(
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeOut,
+                    opacity: isFocused ? 1.0 : 0.0,
+                    child: AnimatedScale(
+                      duration: const Duration(milliseconds: 220),
+                      curve: Curves.easeOut,
+                      scale: isFocused ? 1.0 : 0.96,
+                      child: UnconstrainedBox(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.78),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.25),
+                              width: 1,
+                            ),
+                          ),
+                          child: Text(
+                            hintText,
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            softWrap: false,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

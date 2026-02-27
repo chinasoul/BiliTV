@@ -6,6 +6,7 @@ import '../player_screen.dart';
 import '../widgets/settings_panel.dart';
 import '../../../models/videoshot.dart';
 import '../../../models/danmaku_item.dart';
+import '../../../models/subtitle_item.dart';
 
 /// 播放器状态 Mixin
 /// 包含所有 State 变量
@@ -97,6 +98,16 @@ mixin PlayerStateMixin on State<PlayerScreen> {
   // 弹幕数据
   List<BiliDanmakuItem> danmakuList = [];
   int lastDanmakuIndex = 0;
+  bool subtitleEnabled = false;
+  List<BiliSubtitleTrack> subtitleTracks = [];
+  List<BiliSubtitleItem> subtitleItems = [];
+  int selectedSubtitleTrackIndex = -1;
+  int lastSubtitleIndex = 0;
+  String currentSubtitleText = '';
+  bool subtitleNeedLogin = false;
+  int subtitleRequestSeq = 0;
+  String? subtitleOwnerBvid;
+  int? subtitleOwnerCid;
   DateTime? lastUiRebuildAt;
   DateTime? lastPluginHandleAt;
   Timer? danmakuSyncTimer;
@@ -177,5 +188,22 @@ mixin PlayerStateMixin on State<PlayerScreen> {
       return '$desc ($_codecLabel)';
     }
     return desc;
+  }
+
+  List<String> get subtitleTrackLabels {
+    return subtitleTracks
+        .map((t) => t.label.isNotEmpty ? t.label : (t.lang.isNotEmpty ? t.lang : '未知字幕'))
+        .toList();
+  }
+
+  String get currentSubtitleTrackDesc {
+    if (selectedSubtitleTrackIndex < 0 ||
+        selectedSubtitleTrackIndex >= subtitleTracks.length) {
+      return subtitleTracks.isEmpty ? '无' : '自动';
+    }
+    final track = subtitleTracks[selectedSubtitleTrackIndex];
+    if (track.label.isNotEmpty) return track.label;
+    if (track.lang.isNotEmpty) return track.lang;
+    return '未知字幕';
   }
 }

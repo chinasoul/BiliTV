@@ -25,6 +25,7 @@ import '../models/favorite_folder.dart';
 import '../models/video.dart';
 import '../models/videoshot.dart';
 import '../models/danmaku_item.dart';
+import '../models/subtitle_item.dart';
 
 /// Bilibili API 服务 (门面模式)
 /// 保持与原有接口完全兼容
@@ -152,6 +153,24 @@ class BilibiliApi {
   /// 获取弹幕数据
   static Future<List<BiliDanmakuItem>> getDanmaku(int cid) =>
       PlaybackApi.getDanmaku(cid);
+
+  /// 获取字幕轨道列表
+  static Future<List<BiliSubtitleTrack>> getSubtitleTracks({
+    required String bvid,
+    required int cid,
+    int? aid,
+  }) => PlaybackApi.getSubtitleTracks(bvid: bvid, cid: cid, aid: aid);
+
+  /// 获取字幕轨道列表（含是否需登录）
+  static Future<BiliSubtitleTracksResult> getSubtitleTracksWithMeta({
+    required String bvid,
+    required int cid,
+    int? aid,
+  }) => PlaybackApi.getSubtitleTracksWithMeta(bvid: bvid, cid: cid, aid: aid);
+
+  /// 下载并解析字幕条目
+  static Future<List<BiliSubtitleItem>> getSubtitleItems(String subtitleUrl) =>
+      PlaybackApi.getSubtitleItems(subtitleUrl);
 
   /// 上报播放进度
   static Future<bool> reportProgress({

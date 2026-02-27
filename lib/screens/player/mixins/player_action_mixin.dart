@@ -24,6 +24,12 @@ import '../../../services/playback_progress_cache.dart';
 
 /// 播放器逻辑 Mixin
 mixin PlayerActionMixin on PlayerStateMixin {
+  int _toInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
   // 初始化
   Future<void> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
@@ -36,6 +42,7 @@ mixin PlayerActionMixin on PlayerStateMixin {
       hideTopDanmaku = prefs.getBool('hide_top_danmaku') ?? false;
       hideBottomDanmaku = prefs.getBool('hide_bottom_danmaku') ?? false;
       preferNativeDanmaku = prefs.getBool('prefer_native_danmaku') ?? false;
+      subtitleEnabled = prefs.getBool('subtitle_enabled') ?? false;
       // 根据设置决定是否显示控制栏
       showControls = !SettingsService.hideControlsOnStart;
     });
@@ -56,6 +63,15 @@ mixin PlayerActionMixin on PlayerStateMixin {
       errorMessage = null;
       hasHandledVideoComplete = false; // 重置播放完成标志
       isUserInitiatedPause = false;
+      subtitleNeedLogin = false;
+      subtitleRequestSeq++;
+      subtitleTracks = [];
+      subtitleItems = [];
+      selectedSubtitleTrackIndex = -1;
+      lastSubtitleIndex = 0;
+      currentSubtitleText = '';
+      subtitleOwnerBvid = null;
+      subtitleOwnerCid = null;
     });
 
     try {
@@ -92,6 +108,18 @@ mixin PlayerActionMixin on PlayerStateMixin {
           });
           if (cid == null && episodes.isNotEmpty) {
             cid = episodes[0]['cid'];
+          }
+          final pages = videoInfo['pages'] as List?;
+          if (pages != null && pages.isNotEmpty && cid != null) {
+            final pageCidSet = pages
+                .whereType<Map>()
+                .map((e) => _toInt(e['cid']))
+                .where((v) => v > 0)
+                .toSet();
+            if (pageCidSet.isNotEmpty && !pageCidSet.contains(cid)) {
+              final fallbackCid = _toInt(videoInfo['cid']);
+              cid = fallbackCid > 0 ? fallbackCid : pageCidSet.first;
+            }
           }
 
           // 🔥 轻量预计算：只提取"是否有多集"和"下一集信息"，用于自动连播
@@ -443,6 +471,7 @@ mixin PlayerActionMixin on PlayerStateMixin {
           startHideTimer();
 
           await loadDanmaku();
+          await loadSubtitles();
           return; // 成功，退出
         } // qualityLoop 结束
       } // codecLoop 结束
@@ -512,6 +541,7 @@ mixin PlayerActionMixin on PlayerStateMixin {
           await videoController!.play();
           startHideTimer();
           await loadDanmaku();
+          await loadSubtitles();
           return; // 兜底成功
         } catch (e) {
           await videoController?.dispose();
@@ -548,6 +578,126 @@ mixin PlayerActionMixin on PlayerStateMixin {
     }
   }
 
+  bool _isSubtitleRequestStale({
+    required int requestSeq,
+    required String requestBvid,
+    required int requestCid,
+  }) {
+    return !mounted ||
+        subtitleRequestSeq != requestSeq ||
+        widget.video.bvid != requestBvid ||
+        cid != requestCid;
+  }
+
+  void _clearSubtitleState({required bool bumpRequestSeq}) {
+    if (bumpRequestSeq) {
+      subtitleRequestSeq++;
+    }
+    subtitleTracks = [];
+    subtitleItems = [];
+    selectedSubtitleTrackIndex = -1;
+    lastSubtitleIndex = 0;
+    currentSubtitleText = '';
+    subtitleNeedLogin = false;
+    subtitleOwnerBvid = null;
+    subtitleOwnerCid = null;
+  }
+
+  Future<void> loadSubtitles() async {
+    if (cid == null) return;
+    final requestBvid = widget.video.bvid;
+    final requestCid = cid!;
+    final requestSeq = ++subtitleRequestSeq;
+
+    if (mounted) {
+      setState(() {
+        _clearSubtitleState(bumpRequestSeq: false);
+      });
+    }
+
+    try {
+      final trackResult = await BilibiliApi.getSubtitleTracksWithMeta(
+        bvid: requestBvid,
+        cid: requestCid,
+        aid: aid,
+      );
+      if (_isSubtitleRequestStale(
+        requestSeq: requestSeq,
+        requestBvid: requestBvid,
+        requestCid: requestCid,
+      )) {
+        return;
+      }
+
+      int trackIndex = -1;
+      setState(() {
+        subtitleNeedLogin = trackResult.needLoginSubtitle;
+        subtitleTracks = trackResult.tracks;
+        subtitleItems = [];
+        currentSubtitleText = '';
+        lastSubtitleIndex = 0;
+        subtitleOwnerBvid = null;
+        subtitleOwnerCid = null;
+
+        if (subtitleTracks.isEmpty) {
+          selectedSubtitleTrackIndex = -1;
+          trackIndex = -1;
+        } else {
+          if (selectedSubtitleTrackIndex < 0 ||
+              selectedSubtitleTrackIndex >= subtitleTracks.length) {
+            selectedSubtitleTrackIndex = 0;
+          }
+          trackIndex = selectedSubtitleTrackIndex;
+        }
+      });
+
+      if (trackIndex >= 0) {
+        await _loadSubtitleTrack(
+          index: trackIndex,
+          requestSeq: requestSeq,
+          requestBvid: requestBvid,
+          requestCid: requestCid,
+        );
+      }
+    } catch (e) {
+      debugPrint('Failed to load subtitles: $e');
+    }
+  }
+
+  Future<void> _loadSubtitleTrack({
+    required int index,
+    required int requestSeq,
+    required String requestBvid,
+    required int requestCid,
+  }) async {
+    if (index < 0 || index >= subtitleTracks.length) return;
+    final track = subtitleTracks[index];
+    final items = await BilibiliApi.getSubtitleItems(track.subtitleUrl);
+    if (_isSubtitleRequestStale(
+      requestSeq: requestSeq,
+      requestBvid: requestBvid,
+      requestCid: requestCid,
+    )) {
+      return;
+    }
+    setState(() {
+      selectedSubtitleTrackIndex = index;
+      subtitleItems = items;
+      currentSubtitleText = '';
+      lastSubtitleIndex = 0;
+      subtitleOwnerBvid = widget.video.bvid;
+      subtitleOwnerCid = requestCid;
+    });
+    if (videoController != null && videoController!.value.isInitialized) {
+      resetSubtitleIndex(videoController!.value.position);
+    }
+  }
+
+  Future<void> _persistSubtitleEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('subtitle_enabled', subtitleEnabled);
+  }
+
   /// 设置播放器监听器
   void _setupPlayerListeners() {
     if (videoController == null) return;
@@ -569,6 +719,7 @@ mixin PlayerActionMixin on PlayerStateMixin {
 
     // 检查是否需要预加载下一张雪碧图
     _checkSpritePreload(value.position);
+    _syncSubtitle(value.position);
 
     // 下一集预览倒计时（多集/合集 + 自动连播开启时）
     _updateNextEpisodePreview(value);
@@ -826,6 +977,15 @@ mixin PlayerActionMixin on PlayerStateMixin {
     videoController = null;
     danmakuController = null;
     LocalServer.instance.clearMpdContent();
+    subtitleRequestSeq++;
+    subtitleTracks = [];
+    subtitleItems = [];
+    selectedSubtitleTrackIndex = -1;
+    lastSubtitleIndex = 0;
+    currentSubtitleText = '';
+    subtitleNeedLogin = false;
+    subtitleOwnerBvid = null;
+    subtitleOwnerCid = null;
   }
 
   /// 获取在线观看人数
@@ -1238,6 +1398,82 @@ mixin PlayerActionMixin on PlayerStateMixin {
     lastDanmakuIndex = index;
   }
 
+  void resetSubtitleIndex(Duration position) {
+    if (subtitleItems.isEmpty) {
+      if (currentSubtitleText.isNotEmpty) {
+        setState(() => currentSubtitleText = '');
+      }
+      return;
+    }
+    final seconds = position.inMilliseconds / 1000.0;
+    int index = subtitleItems.indexWhere((item) => item.to > seconds);
+    if (index < 0) {
+      index = subtitleItems.length;
+    }
+    lastSubtitleIndex = index;
+    _syncSubtitle(position);
+  }
+
+  void _syncSubtitle(Duration position) {
+    final ownerMatched =
+        subtitleOwnerBvid == widget.video.bvid && subtitleOwnerCid == cid;
+    if (!ownerMatched) {
+      if (subtitleItems.isNotEmpty || currentSubtitleText.isNotEmpty) {
+        setState(() {
+          subtitleItems = [];
+          currentSubtitleText = '';
+          lastSubtitleIndex = 0;
+        });
+      }
+      return;
+    }
+
+    if (!subtitleEnabled || subtitleItems.isEmpty) {
+      if (currentSubtitleText.isNotEmpty) {
+        setState(() => currentSubtitleText = '');
+      }
+      return;
+    }
+
+    final now = position.inMilliseconds / 1000.0;
+    if (lastSubtitleIndex >= subtitleItems.length) {
+      if (currentSubtitleText.isNotEmpty) {
+        setState(() => currentSubtitleText = '');
+      }
+      return;
+    }
+
+    while (lastSubtitleIndex < subtitleItems.length &&
+        subtitleItems[lastSubtitleIndex].to <= now) {
+      lastSubtitleIndex++;
+    }
+
+    String nextText = '';
+    if (lastSubtitleIndex < subtitleItems.length) {
+      final item = subtitleItems[lastSubtitleIndex];
+      if (now >= item.from && now < item.to) {
+        nextText = item.content;
+      } else if (now < item.from && lastSubtitleIndex > 0) {
+        // 回退 seek 时尝试向前纠正索引。
+        int i = lastSubtitleIndex - 1;
+        while (i >= 0 && subtitleItems[i].to > now) {
+          if (now >= subtitleItems[i].from) {
+            lastSubtitleIndex = i;
+            nextText = subtitleItems[i].content;
+            break;
+          }
+          i--;
+        }
+      }
+    }
+
+    if (nextText != currentSubtitleText) {
+      setState(() {
+        currentSubtitleText = nextText;
+      });
+    }
+  }
+
   /// 获取进度条显示位置
   /// 优先级：播放完成 > pendingSeekTarget > lastCommittedSeekTarget（2秒内）> 播放器实际位置
   Duration getDisplayPosition() {
@@ -1307,6 +1543,7 @@ mixin PlayerActionMixin on PlayerStateMixin {
         hasHandledVideoComplete = false;
         videoController!.seekTo(Duration.zero);
         resetDanmakuIndex(Duration.zero);
+        resetSubtitleIndex(Duration.zero);
       }
       videoController!.play();
       NativePlayerDanmakuService.resume(videoController);
@@ -1454,6 +1691,7 @@ mixin PlayerActionMixin on PlayerStateMixin {
 
     videoController!.seekTo(target);
     resetDanmakuIndex(target);
+    resetSubtitleIndex(target);
 
     if (wasPlayingBeforeSeek) {
       videoController!.play();
@@ -1538,6 +1776,7 @@ mixin PlayerActionMixin on PlayerStateMixin {
       videoController!.seekTo(previewPosition!);
       videoController!.play(); // 确认后恢复播放
       resetDanmakuIndex(previewPosition!);
+      resetSubtitleIndex(previewPosition!);
     }
     _endPreviewMode();
   }
@@ -1657,6 +1896,7 @@ mixin PlayerActionMixin on PlayerStateMixin {
       }
       videoController!.seekTo(previewPosition!);
       resetDanmakuIndex(previewPosition!);
+      resetSubtitleIndex(previewPosition!);
     }
     setState(() {
       isProgressBarFocused = false;
@@ -1687,6 +1927,7 @@ mixin PlayerActionMixin on PlayerStateMixin {
     if (previewPosition != null && videoController != null) {
       videoController!.seekTo(previewPosition!);
       resetDanmakuIndex(previewPosition!);
+      resetSubtitleIndex(previewPosition!);
       setState(() => previewPosition = null);
     }
   }
@@ -1896,6 +2137,76 @@ mixin PlayerActionMixin on PlayerStateMixin {
     });
   }
 
+  void adjustSubtitleSetting(int direction) {
+    if (focusedSettingIndex == 0) {
+      setState(() {
+        subtitleEnabled = !subtitleEnabled;
+        if (!subtitleEnabled) {
+          currentSubtitleText = '';
+        }
+      });
+      _persistSubtitleEnabled();
+      if (subtitleEnabled &&
+          subtitleTracks.isNotEmpty &&
+          selectedSubtitleTrackIndex >= 0 &&
+          subtitleItems.isEmpty) {
+        final requestCid = cid;
+        if (requestCid != null) {
+          final requestSeq = ++subtitleRequestSeq;
+          _loadSubtitleTrack(
+            index: selectedSubtitleTrackIndex,
+            requestSeq: requestSeq,
+            requestBvid: widget.video.bvid,
+            requestCid: requestCid,
+          );
+        }
+      }
+      ToastUtils.dismiss();
+      ToastUtils.show(context, subtitleEnabled ? '字幕已开启' : '字幕已关闭');
+      return;
+    }
+
+    if (subtitleTracks.isEmpty) {
+      ToastUtils.dismiss();
+      ToastUtils.show(
+        context,
+        subtitleNeedLogin ? '该视频字幕需登录后可用' : '当前视频无字幕',
+      );
+      return;
+    }
+
+    final targetIndex = (focusedSettingIndex - 1).clamp(0, subtitleTracks.length - 1);
+    if (targetIndex == selectedSubtitleTrackIndex && subtitleItems.isNotEmpty) {
+      return;
+    }
+    final requestCid = cid;
+    if (requestCid != null) {
+      final requestSeq = ++subtitleRequestSeq;
+      setState(() {
+        subtitleItems = [];
+        currentSubtitleText = '';
+        lastSubtitleIndex = 0;
+        subtitleOwnerBvid = null;
+        subtitleOwnerCid = null;
+      });
+      _loadSubtitleTrack(
+        index: targetIndex,
+        requestSeq: requestSeq,
+        requestBvid: widget.video.bvid,
+        requestCid: requestCid,
+      );
+    }
+    if (!subtitleEnabled) {
+      setState(() => subtitleEnabled = true);
+      _persistSubtitleEnabled();
+    }
+    final label = subtitleTracks[targetIndex].label.isNotEmpty
+        ? subtitleTracks[targetIndex].label
+        : subtitleTracks[targetIndex].lang;
+    ToastUtils.dismiss();
+    ToastUtils.show(context, '已切换字幕: $label');
+  }
+
   /// 切换选集。对于合集 (ugc_season)，传入目标 episode 的 Map；
   /// 对于普通分P，传入 cid。
   Future<void> switchEpisode(int newCid, {String? targetBvid}) async {
@@ -1928,6 +2239,7 @@ mixin PlayerActionMixin on PlayerStateMixin {
     if (newCid == cid) return;
 
     setState(() {
+      subtitleRequestSeq++;
       cid = newCid;
       isLoading = true;
       errorMessage = null;
@@ -1935,6 +2247,14 @@ mixin PlayerActionMixin on PlayerStateMixin {
       lastDanmakuIndex = 0;
       danmakuList = [];
       hasHandledVideoComplete = false; // 重置播放完成标志，确保下一集播完后能继续触发自动播放
+      subtitleTracks = [];
+      subtitleItems = [];
+      selectedSubtitleTrackIndex = -1;
+      currentSubtitleText = '';
+      lastSubtitleIndex = 0;
+      subtitleNeedLogin = false;
+      subtitleOwnerBvid = null;
+      subtitleOwnerCid = null;
     });
 
     // 清理旧播放器
@@ -2007,6 +2327,7 @@ mixin PlayerActionMixin on PlayerStateMixin {
 
         startHideTimer();
         await loadDanmaku();
+        await loadSubtitles();
 
         // 🔥 重新加载当前 P 的雪碧图数据
         _clearSpritesFromMemory();
@@ -2044,6 +2365,12 @@ mixin PlayerActionMixin on PlayerStateMixin {
           break;
         case 2:
           setState(() {
+            settingsMenuType = SettingsMenuType.subtitle;
+            focusedSettingIndex = 0;
+          });
+          break;
+        case 3:
+          setState(() {
             settingsMenuType = SettingsMenuType.speed;
             focusedSettingIndex = 0;
           });
@@ -2055,6 +2382,8 @@ mixin PlayerActionMixin on PlayerStateMixin {
           focusedSettingIndex == 6) {
         adjustDanmakuSetting(1);
       }
+    } else if (settingsMenuType == SettingsMenuType.subtitle) {
+      adjustSubtitleSetting(1);
     } else if (settingsMenuType == SettingsMenuType.speed) {
       final speed = availableSpeeds[focusedSettingIndex];
       setState(() => playbackSpeed = speed);
@@ -2133,6 +2462,7 @@ mixin PlayerActionMixin on PlayerStateMixin {
       await videoController!.initialize();
       await videoController!.seekTo(position);
       resetDanmakuIndex(position);
+      resetSubtitleIndex(position);
 
       _setupPlayerListeners();
       _startStatsTimer();

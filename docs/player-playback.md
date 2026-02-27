@@ -46,9 +46,10 @@
 ### 3.1 设置面板子栏目
 
 - 面板组件：`lib/screens/player/widgets/settings_panel.dart`
-- 菜单类型：`SettingsMenuType.main / danmaku / speed`
-- 主菜单项：画质、弹幕设置、倍速
+- 菜单类型：`SettingsMenuType.main / danmaku / subtitle / speed`
+- 主菜单项：画质、弹幕设置、字幕设置、倍速
 - 弹幕子菜单：开关、透明度、字号、区域、速度、隐藏顶部、隐藏底部
+- 字幕子菜单：开关、轨道选择（若当前视频提供多语言字幕）
 - 倍速子菜单：0.5x~2.0x
 - 导航处理：`handleSettingsKeyEvent()`
 
