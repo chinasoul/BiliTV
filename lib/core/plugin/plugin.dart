@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-/// BiliTV 插件基础抽象类
+/// BT 插件基础抽象类
 /// 所有插件必须继承此类
 abstract class Plugin {
   /// 唯一标识符，建议使用反向域名风格，如 "com.example.plugin"

@@ -39,16 +39,16 @@ Future<void> main() async {
   // 初始化逻辑已移交至 SplashScreen 处理，这里仅启动 APP
   // 这样可以确保启动画面迅速出现，无需等待初始化完成
 
-  runApp(const BiliTvApp());
+  runApp(const BtApp());
 }
 
-class BiliTvApp extends StatelessWidget {
-  const BiliTvApp({super.key});
+class BtApp extends StatelessWidget {
+  const BtApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'BiliTV',
+      title: 'BT',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,

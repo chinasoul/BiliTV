@@ -483,7 +483,7 @@ class LocalServer {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BiliTV 插件管理</title>
+  <title>BT 插件管理</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { 
@@ -661,7 +661,7 @@ class LocalServer {
 </head>
 <body>
   <div class="container">
-    <h1>📺 BiliTV 插件管理</h1>
+    <h1>📺 BT 插件管理</h1>
     
     <!-- 去广告插件 -->
     <div class="card">

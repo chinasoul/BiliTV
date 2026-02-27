@@ -176,7 +176,7 @@ class UpdateService {
 
   static Map<String, String> _githubHeaders({bool asJson = false}) {
     final headers = <String, String>{
-      'User-Agent': 'BiliTV-UpdateChecker',
+      'User-Agent': 'BT-UpdateChecker',
       if (asJson) 'Accept': 'application/vnd.github+json',
     };
     final token = githubToken.trim();
@@ -443,7 +443,7 @@ class UpdateService {
       if (_isGiteeConfigured) {
         final result = await _checkRelease(
           _giteeApiUrl('releases/latest'),
-          const {'User-Agent': 'BiliTV-UpdateChecker'},
+          const {'User-Agent': 'BT-UpdateChecker'},
           timeout: const Duration(seconds: 10),
         );
         if (result != null) {
@@ -496,7 +496,7 @@ class UpdateService {
           return _downloadWithGitHubFallback(candidate, headers: _githubHeaders());
         }
         final request = http.Request('GET', Uri.parse(candidate));
-        request.headers.addAll(const {'User-Agent': 'BiliTV-UpdateChecker'});
+        request.headers.addAll(const {'User-Agent': 'BT-UpdateChecker'});
         final resp = await request.send().timeout(const Duration(seconds: 30));
         if (resp.statusCode != 200) {
           throw Exception('HTTP ${resp.statusCode}');
@@ -542,7 +542,7 @@ class UpdateService {
         return;
       }
 
-      final apkFile = File('${dir.path}/bilitv_update.apk');
+      final apkFile = File('${dir.path}/bt_update.apk');
       await apkFile.writeAsBytes(bytes);
 
       // 先调用系统安装 Intent，再关闭对话框

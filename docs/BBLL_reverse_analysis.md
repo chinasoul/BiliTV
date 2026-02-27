@@ -1,6 +1,6 @@
 # BBLL 1.5.2 逆向分析摘要（播放流畅度相关）
 
-仅基于 DEX 内字符串与类名分析，未使用 jadx 等完整反编译。用于理解 BBLL 在电视上为何更流畅、供 BiliTV 参考。
+仅基于 DEX 内字符串与类名分析，未使用 jadx 等完整反编译。用于理解 BBLL 在电视上为何更流畅、供 BT 参考。
 
 ---
 
@@ -57,7 +57,7 @@
 
 ---
 
-## 4. 对 BiliTV 的可行借鉴（不抄代码，只借鉴思路）
+## 4. 对 BT 的可行借鉴（不抄代码，只借鉴思路）
 
 1. **帧率与显示同步**  
    在 Android 原生层（或 fork video_player_android 后）对 ExoPlayer/Media3 做：
@@ -71,10 +71,10 @@
    例如适当加大 `minBufferMs`、`bufferForPlaybackMs`，减少高码率/快速运动时的卡顿。
 
 3. **渲染路径**  
-   BBLL 为原生 PlayerView，无 Flutter 嵌入；BiliTV 当前为 Flutter + Platform View。若在 TV 上仍感觉不如 BBLL 顺滑，可考虑在 TV 构建中让视频全屏时走**原生全屏 Surface**，减少一层合成（需改插件或原生集成）。
+   BBLL 为原生 PlayerView，无 Flutter 嵌入；BT 当前为 Flutter + Platform View。若在 TV 上仍感觉不如 BBLL 顺滑，可考虑在 TV 构建中让视频全屏时走**原生全屏 Surface**，减少一层合成（需改插件或原生集成）。
 
 4. **依赖版本**  
-   BBLL 使用 **Media3 1.5.1**。BiliTV 已通过 **video_player_android ^2.9.0** 使用 **androidx.media3**（ExoPlayer 1.8.0），不再使用 exoplayer2；与 BBLL 同属 Media3 体系。若需进一步接近 BBLL 的流畅度，需在原生层或 fork 插件中配置 LoadControl、帧率匹配等（见上）。
+   BBLL 使用 **Media3 1.5.1**。BT 已通过 **video_player_android ^2.9.0** 使用 **androidx.media3**（ExoPlayer 1.8.0），不再使用 exoplayer2；与 BBLL 同属 Media3 体系。若需进一步接近 BBLL 的流畅度，需在原生层或 fork 插件中配置 LoadControl、帧率匹配等（见上）。
 
 ---
 
@@ -82,6 +82,6 @@
 
 - **APK**：BBLL 1.5.2（来自用户提供的安装包）。
 - **方法**：仅对 `classes.dex` / `classes2.dex` 做 `strings` 提取与类名检索，**未使用 jadx 等反编译**，故无具体方法体、无精确缓冲数值、无调用链。
-- **目的**：仅用于技术学习与 BiliTV 播放体验优化参考，不涉及对 BBLL 代码的复制或再发布。
+- **目的**：仅用于技术学习与 BT 播放体验优化参考，不涉及对 BBLL 代码的复制或再发布。
 
 如需得到**具体缓冲毫秒数**或 **setVideoChangeFrameRateStrategy 的调用处**，需在本机用 jadx 打开同一 APK，在 `com.xx.blbl.ui.view.exoplayer` 与 `androidx.media3` 包下搜索上述关键字再阅读反编译代码。
