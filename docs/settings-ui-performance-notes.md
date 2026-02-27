@@ -228,7 +228,7 @@
 
 **根因分析**：
 
-三个页面的封面图使用 `Image.network(video.pic)` 直接加载，存在两个致命问题：
+播放器侧边面板 + 弹窗 + 连播预览的封面图使用原图/无限制解码时，存在两个致命问题：
 
 1. **无 CDN 缩图**：`video.pic` 是原始 URL，B站 CDN 返回原图（通常 1280×720 或 1920×1080）
 2. **无解码尺寸限制**：没有 `memCacheWidth/memCacheHeight`，全分辨率解码进内存
@@ -250,6 +250,7 @@
 - `lib/screens/player/widgets/up_panel.dart`
 - `lib/screens/player/widgets/related_panel.dart`
 - `lib/screens/home/up_space_popup.dart`
+- `lib/screens/player/widgets/next_episode_preview.dart`
 
 改动点（三个文件统一处理）：
 
@@ -260,13 +261,14 @@
 | 更多视频封面 | `Image.network(url)` | `CachedNetworkImage` + `getResizedUrl(200×112)` + `memCacheWidth/Height` |
 | UP弹窗头像 | `CachedNetworkImage(url)` 无缩图 | 补 `getResizedUrl(96×96)` + `memCacheWidth/Height` |
 | UP弹窗封面 | `CachedNetworkImage` + `getResizedUrl(480)` 无解码限制 | 补 `memCacheWidth: 480` / `memCacheHeight: 270` |
+| 右下角“下一集即将播放”预览图 | `Image.network(pic)` 原图直解 | `CachedNetworkImage` + `getResizedUrl(160×90)` + `memCacheWidth: 160` / `memCacheHeight: 90` |
 
 两层压缩机制：
 
 1. **服务端缩图**（`ImageUrlUtils.getResizedUrl`）：让 CDN 只返回小尺寸图片，减少网络传输
 2. **客户端解码限制**（`memCacheWidth/memCacheHeight`）：即使拿到大图也只按指定尺寸解码进内存
 
-**修后效果**：打开 UP主面板 / 更多视频面板后内存几乎不增长。
+**修后效果**：打开 UP主面板 / 更多视频面板 / 右下角连播预览时内存增长显著收敛。
 
 **与三档缓存的关系**：
 
@@ -285,7 +287,7 @@
 - 已完成：BiliCacheManager 启动生效档位化
 - 已完成：弹幕 typed class 改造
 - 已完成：标签页切换策略与省内存模式对齐
-- 已完成：播放器侧边面板 & UP主弹窗图片解码优化（消除 +150MB 峰值）
+- 已完成：播放器侧边面板 & UP主弹窗 & 连播预览图片解码优化（覆盖 +150MB / +20MB 场景）
 
 ## 8. 新增设置语义与默认值调整（2026-02）
 

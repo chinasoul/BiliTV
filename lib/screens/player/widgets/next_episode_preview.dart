@@ -1,5 +1,7 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:bili_tv_app/services/settings_service.dart';
+import 'package:bili_tv_app/utils/image_url_utils.dart';
 
 /// 下一集预览卡片 — 从右下角滑入
 class NextEpisodePreview extends StatelessWidget {
@@ -39,12 +41,24 @@ class NextEpisodePreview extends StatelessWidget {
             if (pic != null && pic!.isNotEmpty)
               ClipRRect(
                 borderRadius: BorderRadius.circular(6),
-                child: Image.network(
-                  pic!,
+                child: CachedNetworkImage(
+                  imageUrl: ImageUrlUtils.getResizedUrl(
+                    pic!,
+                    width: 160,
+                    height: 90,
+                  ),
+                  cacheManager: BiliCacheManager.instance,
+                  memCacheWidth: 160,
+                  memCacheHeight: 90,
                   width: 80,
                   height: 45,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => Container(
+                  placeholder: (_, _) => Container(
+                    width: 80,
+                    height: 45,
+                    color: Colors.grey[800],
+                  ),
+                  errorWidget: (_, _, _) => Container(
                     width: 80,
                     height: 45,
                     decoration: BoxDecoration(
