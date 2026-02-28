@@ -1,0 +1,93 @@
+name: Bug Report
+description: 报告一个问题，帮助我们定位并修复
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢你的反馈！请尽可能完整填写以下信息，便于我们快速定位问题。
+
+  - type: input
+    id: tv_brand
+    attributes:
+      label: 电视品牌
+      description: 请输入电视品牌
+      placeholder: 例如：小米、海信、Sony
+    validations:
+      required: false
+
+  - type: input
+    id: tv_model
+    attributes:
+      label: 电视型号
+      description: 例如：Xiaomi TV A55、Sony KD-55X85K
+      placeholder: 请输入电视型号
+    validations:
+      required: false
+
+  - type: input
+    id: android_version
+    attributes:
+      label: 安卓版本
+      description: 例如：Android 9 / Android 11 / Android TV 12
+      placeholder: 请输入安卓版本
+    validations:
+      required: false
+
+  - type: input
+    id: app_version
+    attributes:
+      label: App 版本
+      description: 请填写完整版本号
+      placeholder: 例如：v1.2.3 (10023)
+    validations:
+      required: false
+
+  - type: textarea
+    id: bug_description
+    attributes:
+      label: 问题描述
+      description: 简要说明你遇到的问题
+      placeholder: 描述实际发生了什么
+    validations:
+      required: false
+
+  - type: textarea
+    id: reproduce_steps
+    attributes:
+      label: 复现步骤
+      description: 请按顺序描述如何复现
+      placeholder: |
+        1. 打开 ...
+        2. 点击 ...
+        3. 出现 ...
+    validations:
+      required: false
+
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: 预期行为
+      description: 你期望发生什么
+      placeholder: 描述你期望的结果
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志或截图（可选）
+      description: 可粘贴日志、错误信息或上传截图
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: 补充信息（可选）
+      description: 其他可能有帮助的信息
+    validations:
+      required: false
