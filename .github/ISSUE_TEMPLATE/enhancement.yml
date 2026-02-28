@@ -19,20 +19,11 @@ body:
       required: false
 
   - type: input
-    id: tv_brand
+    id: tv_brand_model
     attributes:
-      label: 电视品牌
-      description: 请输入电视品牌
-      placeholder: 例如：小米、海信、Sony
-    validations:
-      required: false
-
-  - type: input
-    id: tv_model
-    attributes:
-      label: 电视型号
-      description: 例如：Xiaomi TV A55、Sony KD-55X85K
-      placeholder: 请输入电视型号
+      label: 电视品牌和型号
+      description: 请输入电视品牌和型号
+      placeholder: 例如：小米 TV A55、Sony KD-55X85K
     validations:
       required: false
 
@@ -40,7 +31,7 @@ body:
     id: android_version
     attributes:
       label: 安卓版本
-      description: 例如：Android 9 / Android 11 / Android TV 12
+      description: 例如：Android 9 / Android 11 / 安卓 TV 12
       placeholder: 请输入安卓版本
     validations:
       required: false
@@ -50,41 +41,20 @@ body:
     attributes:
       label: App 版本
       description: 请填写当前使用的版本号
-      placeholder: 例如：v1.2.3 (10023)
+      placeholder: 例如：v1.2.3
     validations:
       required: false
 
   - type: textarea
-    id: pain_point
+    id: enhancement_details
     attributes:
-      label: 当前痛点
-      description: 当前功能有什么问题或不便
-      placeholder: 描述现状和痛点
-    validations:
-      required: false
-
-  - type: textarea
-    id: proposal
-    attributes:
-      label: 建议方案
-      description: 你希望如何改进
-      placeholder: 描述你建议的功能或交互方式
-    validations:
-      required: false
-
-  - type: textarea
-    id: expected_value
-    attributes:
-      label: 预期收益
-      description: 该优化会带来什么价值
-      placeholder: 例如提升启动效率、减少操作步骤等
-    validations:
-      required: false
-
-  - type: textarea
-    id: references
-    attributes:
-      label: 参考信息（可选）
-      description: 可提供竞品截图、链接或其他参考资料
+      label: 需求详情
+      description: 请在一个输入框里描述当前痛点、建议方案、预期收益及参考信息
+      placeholder: |
+        例如：
+        - 当前痛点：...
+        - 建议方案：...
+        - 预期收益：...
+        - 参考信息：...
     validations:
       required: false
