@@ -228,6 +228,25 @@ class SettingsService {
     await _prefs!.setBool(_tunnelModeHintShownKey, value);
   }
 
+  // 隧道模式下倍速支持检测结果缓存
+  static const String _tunnelSpeedSupportedKey = 'tunnel_speed_supported';
+
+  /// null = 尚未检测，true = 设备支持隧道+倍速，false = 不支持
+  static bool? get tunnelSpeedSupported {
+    if (_prefs?.containsKey(_tunnelSpeedSupportedKey) != true) return null;
+    return _prefs!.getBool(_tunnelSpeedSupportedKey);
+  }
+
+  static Future<void> setTunnelSpeedSupported(bool value) async {
+    await init();
+    await _prefs!.setBool(_tunnelSpeedSupportedKey, value);
+  }
+
+  static Future<void> clearTunnelSpeedSupported() async {
+    await init();
+    await _prefs!.remove(_tunnelSpeedSupportedKey);
+  }
+
   // 迷你进度条设置
   static const String _showMiniProgressKey = 'show_mini_progress';
 

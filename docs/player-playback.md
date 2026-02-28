@@ -114,9 +114,61 @@
 - `bufferHideTimer`：seek 后缓冲条延时恢复
 - `statsTimer`：Stats for Nerds 指标刷新
 
-## 8. 维护建议
+## 8. 隧道播放模式与倍速兼容
+
+### 8.1 背景
+
+ExoPlayer 的隧道播放（Tunnel Mode）将解码帧直通显示硬件，绕过 Flutter PlatformView 合成层，是 TV 上保证流畅播放的关键。但隧道模式下 `setPlaybackSpeed()` 能否生效取决于设备 SoC 的 AudioTrack HAL 实现——部分设备会静默忽略非 1x 的速率设置。
+
+### 8.2 运行时探测机制
+
+由于 Android 没有 API 直接查询"隧道模式是否支持倍速"，采用**运行时探测 + 持久化缓存**策略：
+
+1. 用户首次在隧道模式下切到非 1x 倍速时触发探测
+2. `_probeTunnelSpeedSupport(speed)`：
+   - 设好倍速后等待 ~1.2 秒
+   - 对比 `position 推进量 / 墙钟时间` 计算实际播放速率
+   - 与目标速率对比（±30% 容差）
+3. 结果持久化到 `SharedPreferences`（`tunnel_speed_supported`），后续直接读缓存
+
+### 8.3 自动切换流程
+
+```
+用户选择非 1x 倍速
+  ├─ 隧道模式关闭 → 直接设速度，不做额外操作
+  └─ 隧道模式开启
+       ├─ 缓存 = true（设备支持）→ 直接设速度，保持隧道
+       ├─ 缓存 = null（未知）→ 运行探测
+       │    ├─ 探测通过 → 缓存 true，保持隧道
+       │    └─ 探测失败 → 缓存 false，走下方降级
+       └─ 缓存 = false（不支持）
+            → 临时关闭隧道，重建播放器（保留进度），Toast 提示
+
+用户切回 1x 倍速
+  └─ 若隧道是因倍速被临时关闭的 → 恢复隧道，重建播放器
+```
+
+### 8.4 关键函数
+
+| 函数 | 位置 | 职责 |
+|------|------|------|
+| `_probeTunnelSpeedSupport(speed)` | `player_action_mixin.dart` | 运行时探测隧道模式下倍速是否生效 |
+| `_syncTunnelModeWithPlaybackSpeed(speed)` | `player_action_mixin.dart` | 根据探测/缓存结果决定是否关闭/恢复隧道 |
+| `_rebuildCurrentPlaybackForTunnelModeChange()` | `player_action_mixin.dart` | 保留进度重建播放器（隧道开关变更后） |
+| `selectPlaybackSpeedByIndex(index)` | `player_action_mixin.dart` | 倍速选择入口，触发上述流程 |
+| `tunnelSpeedSupported` | `settings_service.dart` | 探测结果持久化缓存（`bool?`） |
+
+### 8.5 状态变量
+
+| 变量 | 位置 | 说明 |
+|------|------|------|
+| `tunnelModeTemporarilyDisabledForSpeed` | `player_state_mixin.dart` | 标记隧道是否因倍速被临时关闭 |
+| `isSwitchingTunnelModeForSpeed` | `player_state_mixin.dart` | 防止重入的锁 |
+
+## 9. 维护建议
 
 1. 改按钮行为：先改 `_activateControlButton()`，再核对 UI 图标与 `focusedButtonIndex` 顺序
 2. 改进度条行为：统一在 `enter/adjust/commit/exitProgressBarMode` 一组函数内改
 3. 改快进体验：优先看 `seekForward/seekBackward/_batchSeek/commitSeek`
 4. 改返回键行为：只在 `onPopInvoked()` 与 `handleGlobalKeyEvent()` 收口
+5. 隧道+倍速兼容：若需重置探测缓存（如用户换了设备固件），调用 `SettingsService.clearTunnelSpeedSupported()`

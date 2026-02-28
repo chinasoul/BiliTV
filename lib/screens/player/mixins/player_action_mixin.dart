@@ -143,32 +143,78 @@ mixin PlayerActionMixin on PlayerStateMixin {
     }
   }
 
+  /// Probe whether the current device supports non-1x playback speed while
+  /// tunnel mode is active. Measures actual position advancement over ~1.2s
+  /// and compares to expected advancement at the requested speed.
+  /// Returns true if the device honors the speed, false otherwise.
+  Future<bool> _probeTunnelSpeedSupport(double speed) async {
+    final vc = videoController;
+    if (vc == null || !vc.value.isInitialized || !vc.value.isPlaying) {
+      return false;
+    }
+
+    final startPos = vc.value.position;
+    final wallStart = DateTime.now();
+
+    await Future.delayed(const Duration(milliseconds: 1200));
+
+    if (!mounted || videoController == null) return false;
+
+    final endPos = videoController!.value.position;
+    final wallElapsed =
+        DateTime.now().difference(wallStart).inMilliseconds.toDouble();
+    final posElapsed =
+        (endPos - startPos).inMilliseconds.toDouble();
+
+    if (wallElapsed < 200) return false;
+
+    final measuredSpeed = posElapsed / wallElapsed;
+    // If the speed ratio is within 30 % of the target, consider it supported.
+    // e.g. target=2.0 → accept 1.4..2.6 ; target=1.5 → accept 1.05..1.95
+    final tolerance = speed * 0.3;
+    return (measuredSpeed - speed).abs() <= tolerance;
+  }
+
   Future<void> _syncTunnelModeWithPlaybackSpeed(double speed) async {
     if (defaultTargetPlatform != TargetPlatform.android) return;
     if (isSwitchingTunnelModeForSpeed) return;
 
-    final shouldDisableTunnel = speed != 1.0 && SettingsService.tunnelModeEnabled;
-    final shouldRestoreTunnel = speed == 1.0 && tunnelModeTemporarilyDisabledForSpeed;
-    if (!shouldDisableTunnel && !shouldRestoreTunnel) return;
+    final shouldRestoreTunnel =
+        speed == 1.0 && tunnelModeTemporarilyDisabledForSpeed;
+    final needsCheck = speed != 1.0 && SettingsService.tunnelModeEnabled;
+    if (!needsCheck && !shouldRestoreTunnel) return;
 
     isSwitchingTunnelModeForSpeed = true;
     try {
-      if (shouldDisableTunnel) {
-        await SettingsService.setTunnelModeEnabled(false);
-        tunnelModeTemporarilyDisabledForSpeed = true;
-      } else if (shouldRestoreTunnel) {
+      if (shouldRestoreTunnel) {
         await SettingsService.setTunnelModeEnabled(true);
         tunnelModeTemporarilyDisabledForSpeed = false;
+        await _rebuildCurrentPlaybackForTunnelModeChange();
+        ToastUtils.show(context, '已恢复隧道播放模式');
+        return;
       }
 
-      await _rebuildCurrentPlaybackForTunnelModeChange();
+      // ── Non-1x speed while tunnel is on ──
+      final cached = SettingsService.tunnelSpeedSupported;
+      if (cached == true) {
+        // Device known to support tunnel + speed — no action needed.
+        return;
+      }
 
-      ToastUtils.show(
-        context,
-        shouldDisableTunnel
-            ? '检测到非 1x 倍速，已临时关闭隧道播放'
-            : '已恢复隧道播放模式',
-      );
+      if (cached == null) {
+        // First time: probe whether the device actually honors the speed.
+        debugPrint('🔍 Probing tunnel speed support at ${speed}x …');
+        final supported = await _probeTunnelSpeedSupport(speed);
+        await SettingsService.setTunnelSpeedSupported(supported);
+        debugPrint('🔍 Tunnel speed probe result: $supported');
+        if (supported) return;
+      }
+
+      // cached == false or probe just returned false → disable tunnel.
+      await SettingsService.setTunnelModeEnabled(false);
+      tunnelModeTemporarilyDisabledForSpeed = true;
+      await _rebuildCurrentPlaybackForTunnelModeChange();
+      ToastUtils.show(context, '当前设备隧道模式不支持倍速，已临时关闭');
     } catch (e) {
       if (mounted) {
         setState(() {
