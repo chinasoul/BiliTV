@@ -9,8 +9,8 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "要构建的 tag 名称（如 v0.3）"
-        required: true
+        description: "可选：要构建的 tag 名称（如 v0.3）"
+        required: false
         type: string
 
 permissions:
