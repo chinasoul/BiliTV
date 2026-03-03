@@ -49,6 +49,7 @@ class NativePlayerDanmakuService {
   static void updateOption(
     VideoPlayerController? controller,
     DanmakuOption option,
+    {double? nativeStrokeWidth, int? nativeStrokeAlphaMin}
   ) {
     final playerId = _playerIdOf(controller);
     if (playerId == null) return;
@@ -61,6 +62,8 @@ class NativePlayerDanmakuService {
       'hideScroll': option.hideScroll,
       'strokeWidth': option.strokeWidth,
       'lineHeight': option.lineHeight,
+      'nativeStrokeWidth': nativeStrokeWidth,
+      'nativeStrokeAlphaMin': nativeStrokeAlphaMin,
     });
   }
 

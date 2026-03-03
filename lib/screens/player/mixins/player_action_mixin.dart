@@ -2321,13 +2321,23 @@ mixin PlayerActionMixin on PlayerStateMixin {
   void _applyDanmakuOptionWithRetry({DanmakuOption? option}) {
     if (!useNativeDanmakuRender) return;
     final currentOption = option ?? _buildDanmakuOption();
-    NativePlayerDanmakuService.updateOption(videoController, currentOption);
+    NativePlayerDanmakuService.updateOption(
+      videoController,
+      currentOption,
+      nativeStrokeWidth: SettingsService.nativeDanmakuStrokeWidth,
+      nativeStrokeAlphaMin: SettingsService.nativeDanmakuStrokeAlphaMin,
+    );
     danmakuOptionApplyTimer?.cancel();
     int retries = 0;
     danmakuOptionApplyTimer = Timer.periodic(
       const Duration(milliseconds: 180),
       (timer) {
-        NativePlayerDanmakuService.updateOption(videoController, currentOption);
+        NativePlayerDanmakuService.updateOption(
+          videoController,
+          currentOption,
+          nativeStrokeWidth: SettingsService.nativeDanmakuStrokeWidth,
+          nativeStrokeAlphaMin: SettingsService.nativeDanmakuStrokeAlphaMin,
+        );
         retries++;
         if (retries >= 10 || !mounted || videoController == null) {
           timer.cancel();

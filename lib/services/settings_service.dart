@@ -1087,6 +1087,10 @@ class SettingsService {
   static const String _showAppCpuKey = 'show_app_cpu';
   static const String _showCoreFreqKey = 'show_core_freq';
   static const String _marqueeFpsKey = 'marquee_fps';
+  static const String _nativeDanmakuStrokeWidthKey =
+      'native_danmaku_stroke_width';
+  static const String _nativeDanmakuStrokeAlphaMinKey =
+      'native_danmaku_stroke_alpha_min';
 
   /// 开发者选项变更回调（用于刷新设置标签页列表）
   static VoidCallback? onDeveloperModeChanged;
@@ -1124,6 +1128,33 @@ class SettingsService {
   static Future<void> setMarqueeFps(int value) async {
     await init();
     await _prefs!.setInt(_marqueeFpsKey, value);
+  }
+
+  /// 原生弹幕描边宽度（开发者选项）
+  static double get nativeDanmakuStrokeWidth {
+    return (_prefs?.getDouble(_nativeDanmakuStrokeWidthKey) ?? 1.9).clamp(
+      1.2,
+      3.8,
+    );
+  }
+
+  static Future<void> setNativeDanmakuStrokeWidth(double value) async {
+    await init();
+    await _prefs!.setDouble(
+      _nativeDanmakuStrokeWidthKey,
+      value.clamp(1.2, 3.8),
+    );
+  }
+
+  /// 原生弹幕描边最小 alpha（开发者选项）
+  static int get nativeDanmakuStrokeAlphaMin {
+    final raw = _prefs?.getInt(_nativeDanmakuStrokeAlphaMinKey) ?? 165;
+    return raw.clamp(0, 255);
+  }
+
+  static Future<void> setNativeDanmakuStrokeAlphaMin(int value) async {
+    await init();
+    await _prefs!.setInt(_nativeDanmakuStrokeAlphaMinKey, value.clamp(0, 255));
   }
 
   // ==================== 主题色 ====================

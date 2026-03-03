@@ -151,18 +151,15 @@ class ControlsOverlay extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Expanded(
-                      child: SizedBox(
-                        height: 30, // 固定高度
-                        child: ConditionalMarquee(
-                          text: video.title.isNotEmpty ? video.title : '加载中...',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 22, // 固定字号
-                            fontWeight: FontWeight.bold,
-                          ),
-                          blankSpace: 50.0,
-                          velocity: 40.0,
+                      child: ConditionalMarquee(
+                        text: video.title.isNotEmpty ? video.title : '加载中...',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
                         ),
+                        blankSpace: 50.0,
+                        velocity: 40.0,
                       ),
                     ),
                   ],

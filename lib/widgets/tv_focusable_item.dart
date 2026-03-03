@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../services/settings_service.dart';
@@ -45,20 +46,29 @@ class TvFocusableItem extends StatelessWidget {
     focusNode: focusNode,
     autofocus: autofocus,
     onFocusChange: (f) => f ? onFocus() : null,
-    onKeyEvent: (node, event) => TvKeyHandler.handleNavigationWithRepeat(
-      event,
-      onUp: onMoveUp,
-      onDown: onMoveDown,
-      onLeft: onMoveLeft,
-      onRight: onMoveRight,
-      onSelect: onTap,
-      // 无目标时吞键，防止默认方向搜索串到内容区
-      blockUp: onMoveUp == null,
-      blockDown: onMoveDown == null,
-      blockLeft: onMoveLeft == null,
-      // 个人中心（登录/资料）依赖默认右向搜索进入内容区，保留该行为。
-      blockRight: false,
-    ),
+    onKeyEvent: (node, event) {
+      // 按约定：侧边栏到首/尾后，长按应停住，单击才允许循环到另一端。
+      if (event is KeyRepeatEvent) {
+        if ((isFirst && event.logicalKey == LogicalKeyboardKey.arrowUp) ||
+            (isLast && event.logicalKey == LogicalKeyboardKey.arrowDown)) {
+          return KeyEventResult.handled;
+        }
+      }
+      return TvKeyHandler.handleNavigationWithRepeat(
+        event,
+        onUp: onMoveUp,
+        onDown: onMoveDown,
+        onLeft: onMoveLeft,
+        onRight: onMoveRight,
+        onSelect: onTap,
+        // 无目标时吞键，防止默认方向搜索串到内容区
+        blockUp: onMoveUp == null,
+        blockDown: onMoveDown == null,
+        blockLeft: onMoveLeft == null,
+        // 个人中心（登录/资料）依赖默认右向搜索进入内容区，保留该行为。
+        blockRight: false,
+      );
+    },
     child: Builder(
       builder: (c) {
         final f = Focus.of(c).hasFocus;

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../services/settings_service.dart';
 import '../../../../config/app_style.dart';
 import '../widgets/setting_toggle_row.dart';
+import '../widgets/setting_dropdown_row.dart';
 
 class DeveloperSettings extends StatefulWidget {
   final VoidCallback onMoveUp;
@@ -23,12 +24,50 @@ class _DeveloperSettingsState extends State<DeveloperSettings> {
   bool _showAppCpu = false;
   bool _showCoreFreq = false;
   bool _marquee60fps = true;
+  double _nativeDanmakuStrokeWidth = 1.9;
+  int _nativeDanmakuStrokeAlphaMin = 165;
+
+  static const List<double> _nativeDanmakuStrokeWidthOptions = [
+    1.2,
+    1.4,
+    1.6,
+    1.8,
+    1.9,
+    2.0,
+    2.2,
+    2.4,
+    2.6,
+    2.8,
+    3.0,
+  ];
+  static const List<int> _nativeDanmakuStrokeAlphaMinOptions = [
+    120,
+    130,
+    140,
+    150,
+    160,
+    165,
+    170,
+    180,
+    190,
+    200,
+    210,
+    220,
+  ];
 
   final FocusNode _devToggleFocusNode = FocusNode();
   final FocusNode _memoryToggleFocusNode = FocusNode();
   final FocusNode _appCpuToggleFocusNode = FocusNode();
   final FocusNode _coreFreqToggleFocusNode = FocusNode();
   final FocusNode _fpsToggleFocusNode = FocusNode();
+  final FocusNode _nativeStrokeWidthFocusNode = FocusNode();
+  final FocusNode _nativeStrokeAlphaFocusNode = FocusNode();
+
+  T _closestValue<T extends num>(List<T> options, T value) {
+    return options.reduce(
+      (a, b) => (a - value).abs() < (b - value).abs() ? a : b,
+    );
+  }
 
   @override
   void initState() {
@@ -38,6 +77,14 @@ class _DeveloperSettingsState extends State<DeveloperSettings> {
     _showAppCpu = SettingsService.showAppCpu;
     _showCoreFreq = SettingsService.showCoreFreq;
     _marquee60fps = SettingsService.marqueeFps == 60;
+    _nativeDanmakuStrokeWidth = _closestValue(
+      _nativeDanmakuStrokeWidthOptions,
+      SettingsService.nativeDanmakuStrokeWidth,
+    );
+    _nativeDanmakuStrokeAlphaMin = _closestValue(
+      _nativeDanmakuStrokeAlphaMinOptions,
+      SettingsService.nativeDanmakuStrokeAlphaMin,
+    );
   }
 
   @override
@@ -47,6 +94,8 @@ class _DeveloperSettingsState extends State<DeveloperSettings> {
     _appCpuToggleFocusNode.dispose();
     _coreFreqToggleFocusNode.dispose();
     _fpsToggleFocusNode.dispose();
+    _nativeStrokeWidthFocusNode.dispose();
+    _nativeStrokeAlphaFocusNode.dispose();
     super.dispose();
   }
 
@@ -127,12 +176,50 @@ class _DeveloperSettingsState extends State<DeveloperSettings> {
           subtitle: '关闭后降至30帧，减少CPU占用',
           value: _marquee60fps,
           focusNode: _fpsToggleFocusNode,
-          isLast: true,
           onMoveUp: () => _coreFreqToggleFocusNode.requestFocus(),
+          onMoveDown: () => _nativeStrokeWidthFocusNode.requestFocus(),
           sidebarFocusNode: widget.sidebarFocusNode,
           onChanged: (v) {
             setState(() => _marquee60fps = v);
             SettingsService.setMarqueeFps(v ? 60 : 30);
+          },
+        ),
+        const SizedBox(height: AppSpacing.settingItemGap),
+
+        // 6. 原生弹幕描边宽度
+        SettingDropdownRow<double>(
+          label: '原生弹幕描边宽度',
+          subtitle: '仅原生弹幕模式生效，值越大描边越粗',
+          value: _nativeDanmakuStrokeWidth,
+          items: _nativeDanmakuStrokeWidthOptions,
+          itemLabel: (v) => v.toStringAsFixed(1),
+          focusNode: _nativeStrokeWidthFocusNode,
+          onMoveUp: () => _fpsToggleFocusNode.requestFocus(),
+          onMoveDown: () => _nativeStrokeAlphaFocusNode.requestFocus(),
+          sidebarFocusNode: widget.sidebarFocusNode,
+          onChanged: (value) async {
+            if (value == null) return;
+            setState(() => _nativeDanmakuStrokeWidth = value);
+            await SettingsService.setNativeDanmakuStrokeWidth(value);
+          },
+        ),
+        const SizedBox(height: AppSpacing.settingItemGap),
+
+        // 7. 原生弹幕描边最小 alpha
+        SettingDropdownRow<int>(
+          label: '原生弹幕描边最小Alpha',
+          subtitle: '仅原生弹幕模式生效，值越大描边越深',
+          value: _nativeDanmakuStrokeAlphaMin,
+          items: _nativeDanmakuStrokeAlphaMinOptions,
+          itemLabel: (v) => '$v',
+          focusNode: _nativeStrokeAlphaFocusNode,
+          isLast: true,
+          onMoveUp: () => _nativeStrokeWidthFocusNode.requestFocus(),
+          sidebarFocusNode: widget.sidebarFocusNode,
+          onChanged: (value) async {
+            if (value == null) return;
+            setState(() => _nativeDanmakuStrokeAlphaMin = value);
+            await SettingsService.setNativeDanmakuStrokeAlphaMin(value);
           },
         ),
       ],

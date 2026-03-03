@@ -56,6 +56,8 @@ final class DanmakuOverlayView extends View {
   private float areaRatio = 0.25f;
   private float durationSec = 10f;
   private float lineHeight = 1.6f;
+  private float nativeStrokeWidthPx = 1.9f;
+  private int nativeStrokeAlphaMin = 165;
   private long droppedByTrackBusy = 0;
   private long pauseStartMs = 0;
 
@@ -91,15 +93,19 @@ final class DanmakuOverlayView extends View {
       double duration,
       boolean hideScroll,
       double strokeWidth,
-      double lineHeight) {
+      double lineHeight,
+      double nativeStrokeWidth,
+      int nativeStrokeAlphaMin) {
     this.opacity = clamp((float) opacity, 0.0f, 1.0f);
     this.fontSizeSp = clamp((float) fontSize, 8.0f, 64.0f);
     this.areaRatio = clamp((float) area, 0.05f, 1.0f);
     this.durationSec = Math.max((float) duration, 3.0f);
     this.hideScroll = hideScroll;
     this.lineHeight = clamp((float) lineHeight, 1.0f, 2.2f);
-    final float baseStrokeWidth = clamp((float) strokeWidth, 1.5f, 3.5f);
-    strokePaint.setStrokeWidth(Math.min(3.7f, baseStrokeWidth + 0.30f));
+    final float fallbackStrokeWidth = clamp((float) strokeWidth, 1.5f, 3.5f);
+    this.nativeStrokeWidthPx = clamp((float) nativeStrokeWidth, 1.2f, 4.0f);
+    this.nativeStrokeAlphaMin = clampInt(nativeStrokeAlphaMin, 0, 255);
+    strokePaint.setStrokeWidth(nativeStrokeWidthPx > 0f ? nativeStrokeWidthPx : fallbackStrokeWidth);
     invalidate();
   }
 
@@ -208,12 +214,14 @@ final class DanmakuOverlayView extends View {
         final int fillColor = applyOpacity(item.color, opacityScale);
         textPaint.setColor(fillColor);
         final int fillAlpha = Color.alpha(fillColor);
+        final int dynamicMinStrokeAlpha =
+            clampInt((int) Math.round(nativeStrokeAlphaMin * opacityScale), 0, 255);
         final int strokeAlpha =
             opacityScale < 0.10f
                 ? 0
                 : Math.min(
                     250,
-                    Math.max(165, (int) Math.round(fillAlpha * 1.00f)));
+                    Math.max(dynamicMinStrokeAlpha, (int) Math.round(fillAlpha * 1.00f)));
         final float drawX = Math.round(x);
         final float drawY = Math.round(item.y);
         strokePaint.setColor(Color.argb(strokeAlpha, 0, 0, 0));

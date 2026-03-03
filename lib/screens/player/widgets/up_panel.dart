@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:bili_tv_app/core/focus/focus_navigation.dart';
 import 'package:bili_tv_app/utils/toast_utils.dart';
 import 'package:bili_tv_app/utils/image_url_utils.dart';
@@ -142,7 +143,7 @@ class _UpPanelState extends State<UpPanel> {
     }
   }
 
-  void _scrollToFocused() {
+  void _scrollToFocused({required bool animate}) {
     if (_videos.isEmpty || _focusedIndex < 0) return;
     if (!_scrollController.hasClients) return;
 
@@ -198,28 +199,42 @@ class _UpPanelState extends State<UpPanel> {
 
     if ((position.pixels - target).abs() < 4.0) return;
 
-    position.animateTo(
-      target,
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOut,
-    );
+    if (animate) {
+      position.animateTo(
+        target,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+      );
+    } else {
+      position.jumpTo(target);
+    }
   }
 
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
-    return TvKeyHandler.handleNavigation(
+    final isRepeat = event is KeyRepeatEvent;
+    // 上下支持长按连续移动
+    final upDownResult = TvKeyHandler.handleNavigationWithRepeat(
       event,
       onUp: () {
         if (_focusedIndex > -3) {
           setState(() => _focusedIndex--);
-          if (_focusedIndex >= 0) _scrollToFocused();
+          if (_focusedIndex >= 0) _scrollToFocused(animate: !isRepeat);
         }
       },
       onDown: () {
         if (_focusedIndex < _videos.length - 1) {
           setState(() => _focusedIndex++);
-          if (_focusedIndex >= 0) _scrollToFocused();
+          if (_focusedIndex >= 0) _scrollToFocused(animate: !isRepeat);
         }
       },
+      blockUp: true,
+      blockDown: true,
+    );
+    if (upDownResult == KeyEventResult.handled) return upDownResult;
+
+    // 左右/确认保持单击触发，避免长按误切排序/误关闭
+    return TvKeyHandler.handleSinglePress(
+      event,
       onLeft: () {
         if (_focusedIndex == -2) {
           setState(() => _focusedIndex = -1);
@@ -255,8 +270,6 @@ class _UpPanelState extends State<UpPanel> {
           widget.onVideoSelect(_videos[_focusedIndex]);
         }
       },
-      blockUp: true,
-      blockDown: true,
       blockLeft: true,
       blockRight: true,
     );
@@ -465,20 +478,28 @@ class _UpPanelState extends State<UpPanel> {
   }
 
   Widget _buildVideoItem(Video video, bool isFocused, int index) {
+    final themeColor = SettingsService.themeColor;
+    final textScale = MediaQuery.textScalerOf(context).scale(1.0).clamp(1.0, 1.4);
+    final itemHeight = 70.0 + (textScale - 1.0) * 42.0;
+    final thumbHeight = 56.0 + (textScale - 1.0) * 10.0;
+    final thumbWidth = thumbHeight * 16.0 / 9.0;
+    final metaGap = textScale > 1.2 ? 2.0 : 4.0;
+
     return Container(
       key: _itemKeys[index],
-      height: 70,
+      height: itemHeight,
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: isFocused
-            ? Colors.white.withValues(alpha: 0.15)
-            : Colors.transparent,
+            ? themeColor.withValues(alpha: 0.45)
+            : Colors.white.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: isFocused ? Colors.white : Colors.transparent,
           width: 2,
         ),
       ),
+      clipBehavior: Clip.hardEdge,
       child: Row(
         children: [
           // 封面
@@ -493,17 +514,17 @@ class _UpPanelState extends State<UpPanel> {
               cacheManager: BiliCacheManager.instance,
               memCacheWidth: 200,
               memCacheHeight: 112,
-              width: 100,
-              height: 56,
+              width: thumbWidth,
+              height: thumbHeight,
               fit: BoxFit.cover,
               placeholder: (_, _) => Container(
-                width: 100,
-                height: 56,
+                width: thumbWidth,
+                height: thumbHeight,
                 color: Colors.grey[800],
               ),
               errorWidget: (_, _, _) => Container(
-                width: 100,
-                height: 56,
+                width: thumbWidth,
+                height: thumbHeight,
                 color: Colors.grey[800],
                 child: const Icon(Icons.error, color: Colors.grey),
               ),
@@ -525,21 +546,15 @@ class _UpPanelState extends State<UpPanel> {
                     fontSize: 14,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Text(
-                      '${video.viewFormatted} 播放',
-                      style: TextStyle(color: Colors.grey[500], fontSize: 12),
-                    ),
-                    if (video.pubdateFormatted.isNotEmpty) ...[
-                      const SizedBox(width: 8),
-                      Text(
-                        video.pubdateFormatted,
-                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                      ),
-                    ],
-                  ],
+                SizedBox(height: metaGap),
+                Text(
+                  [
+                    '${video.viewFormatted}播放',
+                    if (video.pubdateFormatted.isNotEmpty) video.pubdateFormatted,
+                  ].join(' · '),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: Colors.grey[500], fontSize: 12),
                 ),
               ],
             ),

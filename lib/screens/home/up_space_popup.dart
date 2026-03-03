@@ -509,7 +509,7 @@ class _UpSpacePopupState extends State<UpSpacePopup> {
                                       gridDelegate:
                                           SliverGridDelegateWithFixedCrossAxisCount(
                                             crossAxisCount: gridColumns,
-                                            childAspectRatio: GridStyle.videoCardAspectRatio(context),
+                                            childAspectRatio: GridStyle.videoCardAspectRatio(context, gridColumns),
                                             crossAxisSpacing: 16,
                                             mainAxisSpacing: 8,
                                           ),

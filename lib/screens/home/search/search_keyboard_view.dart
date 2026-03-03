@@ -41,6 +41,7 @@ class SearchKeyboardView extends StatefulWidget {
 class SearchKeyboardViewState extends State<SearchKeyboardView> {
   String _searchText = '';
   List<String> _suggestions = [];
+  bool _preferKeyboardOnNextInputDown = false;
   List<HotSearchItem> _hotSearchItems = [];
   bool _isLoadingHotSearch = false;
   final TextEditingController _searchController = TextEditingController();
@@ -58,6 +59,10 @@ class SearchKeyboardViewState extends State<SearchKeyboardView> {
   final FocusNode _keyboardBackFocusNode = FocusNode();
   // 字母数字键盘 FocusNode
   final List<FocusNode> _gridFocusNodes = [];
+  // 联想词 FocusNode
+  final List<FocusNode> _suggestionFocusNodes = [];
+
+  bool get _isSuggestionMode => _searchText.trim().isNotEmpty;
 
   final List<String> _gridKeys = [
     'A',
@@ -119,6 +124,9 @@ class SearchKeyboardViewState extends State<SearchKeyboardView> {
     for (final node in _gridFocusNodes) {
       node.dispose();
     }
+    for (final node in _suggestionFocusNodes) {
+      node.dispose();
+    }
     _clearButtonFocusNode.dispose();
     _keyboardFirstFocusNode.dispose();
     _keyboardBackFocusNode.dispose();
@@ -155,6 +163,9 @@ class SearchKeyboardViewState extends State<SearchKeyboardView> {
       if (node.hasFocus) return true;
     }
     for (final node in _historyFocusNodes) {
+      if (node.hasFocus) return true;
+    }
+    for (final node in _suggestionFocusNodes) {
       if (node.hasFocus) return true;
     }
     return false;
@@ -208,6 +219,15 @@ class SearchKeyboardViewState extends State<SearchKeyboardView> {
     }
   }
 
+  void _updateSuggestionFocusNodes() {
+    while (_suggestionFocusNodes.length > _suggestions.length) {
+      _suggestionFocusNodes.removeLast().dispose();
+    }
+    while (_suggestionFocusNodes.length < _suggestions.length) {
+      _suggestionFocusNodes.add(FocusNode());
+    }
+  }
+
   void _handleKeyboardTap(String key) {
     if (key == '后退') {
       if (_searchText.isNotEmpty) {
@@ -229,6 +249,7 @@ class SearchKeyboardViewState extends State<SearchKeyboardView> {
   void _setSearchText(String value) {
     setState(() {
       _searchText = value;
+      _preferKeyboardOnNextInputDown = false;
       _searchController.value = TextEditingValue(
         text: value,
         selection: TextSelection.collapsed(offset: value.length),
@@ -238,14 +259,16 @@ class SearchKeyboardViewState extends State<SearchKeyboardView> {
   }
 
   Future<void> _fetchSuggestions() async {
-    if (_searchText.isEmpty) {
+    final keyword = _searchText.trim();
+    if (keyword.isEmpty) {
       setState(() => _suggestions = []);
       return;
     }
 
-    final suggestions = await BilibiliApi.getSearchSuggestions(_searchText);
+    final suggestions = await BilibiliApi.getSearchSuggestions(keyword);
 
     if (!mounted) return;
+    if (_searchText.trim() != keyword) return;
     setState(() {
       _suggestions = suggestions;
     });
@@ -257,9 +280,19 @@ class SearchKeyboardViewState extends State<SearchKeyboardView> {
     widget.onSearch(suggestion);
   }
 
+  void _focusInputFromSuggestion() {
+    _preferKeyboardOnNextInputDown = true;
+    _searchInputFocusNode.requestFocus();
+  }
+
+  void _handleBackAction() {
+    widget.onBackToHome?.call();
+  }
+
   @override
   Widget build(BuildContext context) {
     _updateHistoryFocusNodes();
+    _updateSuggestionFocusNodes();
     final history = SearchHistoryService.getAll();
 
     return Row(
@@ -301,7 +334,7 @@ class SearchKeyboardViewState extends State<SearchKeyboardView> {
                             event.logicalKey == LogicalKeyboardKey.goBack ||
                             event.logicalKey == LogicalKeyboardKey.browserBack) &&
                         widget.onBackToHome != null) {
-                      widget.onBackToHome!();
+                      _handleBackAction();
                       return KeyEventResult.handled;
                     }
                   }
@@ -336,7 +369,17 @@ class SearchKeyboardViewState extends State<SearchKeyboardView> {
                           _SearchInputMoveDownIntent
                         >(
                           onInvoke: (_) {
-                            _keyboardFirstFocusNode.requestFocus();
+                            if (_preferKeyboardOnNextInputDown) {
+                              _preferKeyboardOnNextInputDown = false;
+                              _keyboardFirstFocusNode.requestFocus();
+                              return null;
+                            }
+                            if (_isSuggestionMode &&
+                                _suggestionFocusNodes.isNotEmpty) {
+                              _suggestionFocusNodes.first.requestFocus();
+                            } else {
+                              _keyboardFirstFocusNode.requestFocus();
+                            }
                             return null;
                           },
                         ),
@@ -383,7 +426,10 @@ class SearchKeyboardViewState extends State<SearchKeyboardView> {
                               'TextInput.show',
                             ),
                         onChanged: (value) {
-                          setState(() => _searchText = value);
+                          setState(() {
+                            _searchText = value;
+                            _preferKeyboardOnNextInputDown = false;
+                          });
                           _fetchSuggestions();
                         },
                         onSubmitted: (_) {
@@ -414,7 +460,7 @@ class SearchKeyboardViewState extends State<SearchKeyboardView> {
                         onMoveLeft: () =>
                             widget.sidebarFocusNode?.requestFocus(),
                         onMoveUp: focusSearchInput,
-                        onBack: widget.onBackToHome,
+                        onBack: _handleBackAction,
                       ),
                     ),
                   ),
@@ -427,7 +473,7 @@ class SearchKeyboardViewState extends State<SearchKeyboardView> {
                         focusNode: _keyboardBackFocusNode,
                         onTap: () => _handleKeyboardTap('后退'),
                         onMoveUp: focusSearchInput,
-                        onBack: widget.onBackToHome,
+                        onBack: _handleBackAction,
                       ),
                     ),
                   ),
@@ -465,7 +511,7 @@ class SearchKeyboardViewState extends State<SearchKeyboardView> {
                           }
                         }
                       : null,
-                  onBack: widget.onBackToHome,
+                  onBack: _handleBackAction,
                 ),
               ),
             ),
@@ -481,7 +527,7 @@ class SearchKeyboardViewState extends State<SearchKeyboardView> {
                   color: SettingsService.themeColor,
                   onTap: () => _handleKeyboardTap('搜索'),
                   onMoveLeft: () => widget.sidebarFocusNode?.requestFocus(),
-                  onBack: widget.onBackToHome,
+                  onBack: _handleBackAction,
                 ),
               ),
             ),
@@ -493,6 +539,13 @@ class SearchKeyboardViewState extends State<SearchKeyboardView> {
 
   /// 构建热门搜索区域
   Widget _buildHotSearchSection() {
+    if (_isSuggestionMode) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 25),
+        child: _buildSuggestionSection(),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 25),
       child: Column(
@@ -545,14 +598,12 @@ class SearchKeyboardViewState extends State<SearchKeyboardView> {
                           onMoveUp: isFirst
                               ? () {}
                               : () {
-                                  _hotSearchFocusNodes[index - 1]
-                                      .requestFocus();
+                                  _hotSearchFocusNodes[index - 1].requestFocus();
                                 },
                           onMoveDown: isLast
                               ? () {}
                               : () {
-                                  _hotSearchFocusNodes[index + 1]
-                                      .requestFocus();
+                                  _hotSearchFocusNodes[index + 1].requestFocus();
                                 },
                           onMoveLeft: () =>
                               _keyboardFirstFocusNode.requestFocus(),
@@ -596,8 +647,10 @@ class SearchKeyboardViewState extends State<SearchKeyboardView> {
                   await SearchHistoryService.clear();
                   setState(() {});
                 },
-                onBack: widget.onBackToHome,
-                onMoveLeft: _hotSearchFocusNodes.isNotEmpty
+                onBack: _handleBackAction,
+                onMoveLeft: _isSuggestionMode && _suggestionFocusNodes.isNotEmpty
+                    ? () => _suggestionFocusNodes[0].requestFocus()
+                    : _hotSearchFocusNodes.isNotEmpty
                     ? () => _hotSearchFocusNodes[0].requestFocus()
                     : () => _keyboardFirstFocusNode.requestFocus(),
               ),
@@ -618,7 +671,7 @@ class SearchKeyboardViewState extends State<SearchKeyboardView> {
                     text: item,
                     focusNode: _historyFocusNodes[index],
                     onTap: () => _selectSuggestion(item),
-                    onBack: widget.onBackToHome,
+                    onBack: _handleBackAction,
                     onMoveUp: isFirst
                         ? () => _clearButtonFocusNode.requestFocus()
                         : () => _historyFocusNodes[index - 1].requestFocus(),
@@ -627,7 +680,15 @@ class SearchKeyboardViewState extends State<SearchKeyboardView> {
                         : () {
                             _historyFocusNodes[index + 1].requestFocus();
                           },
-                    onMoveLeft: _hotSearchFocusNodes.isNotEmpty
+                    onMoveLeft: _isSuggestionMode &&
+                            _suggestionFocusNodes.isNotEmpty
+                        ? () =>
+                              _suggestionFocusNodes[index.clamp(
+                                    0,
+                                    _suggestionFocusNodes.length - 1,
+                                  )]
+                                  .requestFocus()
+                        : _hotSearchFocusNodes.isNotEmpty
                         ? () =>
                               _hotSearchFocusNodes[index.clamp(
                                     0,
@@ -641,6 +702,38 @@ class SearchKeyboardViewState extends State<SearchKeyboardView> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSuggestionSection() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: ListView.separated(
+        shrinkWrap: true,
+        itemCount: _suggestions.length,
+        separatorBuilder: (_, _) => const SizedBox(height: 6),
+        itemBuilder: (context, index) {
+          final suggestion = _suggestions[index];
+          final isFirst = index == 0;
+          final isLast = index == _suggestions.length - 1;
+          return _SuggestionItem(
+            text: suggestion,
+            focusNode: _suggestionFocusNodes[index],
+            onTap: () => _selectSuggestion(suggestion),
+            onBack: _handleBackAction,
+            onMoveUp: isFirst
+                ? () {}
+                : () => _suggestionFocusNodes[index - 1].requestFocus(),
+            onMoveDown: isLast
+                ? () {}
+                : () => _suggestionFocusNodes[index + 1].requestFocus(),
+            onMoveLeft: _focusInputFromSuggestion,
+            onMoveRight: _historyFocusNodes.isNotEmpty
+                ? () => _historyFocusNodes.first.requestFocus()
+                : null,
+          );
+        },
       ),
     );
   }
@@ -918,6 +1011,98 @@ class _HistoryItemState extends State<_HistoryItem> {
               Icon(
                 Icons.history,
                 size: 16,
+                color: _isFocused ? Colors.white : Colors.white54,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  widget.text,
+                  style: TextStyle(
+                    color: _isFocused ? Colors.white : Colors.white70,
+                    fontSize: 14,
+                    fontWeight: _isFocused
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SuggestionItem extends StatefulWidget {
+  final String text;
+  final FocusNode focusNode;
+  final VoidCallback onTap;
+  final VoidCallback? onBack;
+  final VoidCallback? onMoveUp;
+  final VoidCallback? onMoveDown;
+  final VoidCallback? onMoveLeft;
+  final VoidCallback? onMoveRight;
+
+  const _SuggestionItem({
+    required this.text,
+    required this.focusNode,
+    required this.onTap,
+    this.onBack,
+    this.onMoveUp,
+    this.onMoveDown,
+    this.onMoveLeft,
+    this.onMoveRight,
+  });
+
+  @override
+  State<_SuggestionItem> createState() => _SuggestionItemState();
+}
+
+class _SuggestionItemState extends State<_SuggestionItem> {
+  bool _isFocused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: Focus(
+        focusNode: widget.focusNode,
+        onFocusChange: (focused) => setState(() => _isFocused = focused),
+        onKeyEvent: (node, event) {
+          final result = TvKeyHandler.handleNavigationWithRepeat(
+            event,
+            onUp: widget.onMoveUp,
+            onDown: widget.onMoveDown,
+            onLeft: widget.onMoveLeft,
+            onRight: widget.onMoveRight,
+            onSelect: widget.onTap,
+          );
+          if (result == KeyEventResult.handled) return result;
+          if (_isKeyDownOrRepeat(event)) {
+            if ((event.logicalKey == LogicalKeyboardKey.escape ||
+                    event.logicalKey == LogicalKeyboardKey.goBack ||
+                    event.logicalKey == LogicalKeyboardKey.browserBack) &&
+                widget.onBack != null) {
+              widget.onBack!();
+              return KeyEventResult.handled;
+            }
+          }
+          return KeyEventResult.ignored;
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: _isFocused ? SettingsService.themeColor : Colors.white12,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.search,
+                size: 14,
                 color: _isFocused ? Colors.white : Colors.white54,
               ),
               const SizedBox(width: 8),

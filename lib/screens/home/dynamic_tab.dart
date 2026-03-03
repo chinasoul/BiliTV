@@ -418,7 +418,7 @@ class DynamicTabState extends State<DynamicTab> {
                       sliver: SliverGrid(
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: gridColumns,
-                          childAspectRatio: GridStyle.videoCardAspectRatio(context),
+                          childAspectRatio: GridStyle.videoCardAspectRatio(context, gridColumns),
                           crossAxisSpacing: 20,
                           mainAxisSpacing: 10,
                         ),

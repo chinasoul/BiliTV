@@ -165,15 +165,29 @@ abstract final class GridStyle {
   /// 默认视频卡片宽高比
   static const double videoAspectRatio = 320 / 280;
 
-  /// 根据字体缩放动态计算视频卡片宽高比，避免大字号时信息区被挤压/溢出。
-  static double videoCardAspectRatio(BuildContext context) {
+  /// 根据字体缩放和网格列数动态计算视频卡片宽高比。
+  /// 列数越多（卡片越窄）时，自动增加高度，防止底部文字区被挤压。
+  static double videoCardAspectRatio(BuildContext context, int gridColumns) {
     final textScale = MediaQuery.textScalerOf(context).scale(1.0).clamp(1.0, 1.4);
-    final t = ((textScale - 1.0) / 0.4).clamp(0.0, 1.0);
-    const baseWidth = 320.0;
-    const baseHeight = 250.0;
-    const extraHeightAtMaxScale = 24.0;
-    final height = baseHeight + extraHeightAtMaxScale * t;
-    return baseWidth / height;
+    final cols = gridColumns.clamp(3, 6);
+
+    // 估算当前网格单卡宽度（使用偏保守的水平 padding），
+    // 再由“封面高度 + 文字区最小高度”反推安全比例。
+    final viewportWidth = MediaQuery.sizeOf(context).width;
+    const horizontalPadding = 60.0;
+    const crossAxisSpacing = 20.0;
+    final availableWidth =
+        (viewportWidth - horizontalPadding - crossAxisSpacing * (cols - 1))
+            .clamp(120.0, viewportWidth);
+    final cardWidth = availableWidth / cols;
+
+    final imageHeight = cardWidth * 9.0 / 16.0;
+    final textScaleProgress = ((textScale - 1.0) / 0.4).clamp(0.0, 1.0);
+    // 底部信息区预算：标题 + 间距 + UP 主行 + 上下内边距 + 大字号冗余
+    final infoHeight = 58.0 + 20.0 * textScaleProgress;
+    final cardHeight = imageHeight + infoHeight;
+
+    return cardWidth / cardHeight;
   }
 
   /// 网格列间距

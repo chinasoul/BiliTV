@@ -125,9 +125,19 @@ public final class PlatformVideoView implements PlatformView {
       double duration,
       boolean hideScroll,
       double strokeWidth,
-      double lineHeight) {
+      double lineHeight,
+      double nativeStrokeWidth,
+      int nativeStrokeAlphaMin) {
     danmakuOverlayView.updateOption(
-        opacity, fontSize, area, duration, hideScroll, strokeWidth, lineHeight);
+        opacity,
+        fontSize,
+        area,
+        duration,
+        hideScroll,
+        strokeWidth,
+        lineHeight,
+        nativeStrokeWidth,
+        nativeStrokeAlphaMin);
   }
 
   public void clearDanmaku() {

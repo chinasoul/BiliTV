@@ -256,7 +256,9 @@ public class VideoPlayerPlugin implements FlutterPlugin, AndroidVideoPlayerApi {
             toDouble(args.get("duration"), 10.0),
             toBoolean(args.get("hideScroll"), false),
             toDouble(args.get("strokeWidth"), 1.9),
-            toDouble(args.get("lineHeight"), 1.6));
+            toDouble(args.get("lineHeight"), 1.6),
+            toDouble(args.get("nativeStrokeWidth"), 1.9),
+            toInt(args.get("nativeStrokeAlphaMin"), 165));
         result.success(null);
         return;
       }
@@ -283,6 +285,10 @@ public class VideoPlayerPlugin implements FlutterPlugin, AndroidVideoPlayerApi {
 
   private static boolean toBoolean(@Nullable Object value, boolean defaultValue) {
     return value instanceof Boolean ? (Boolean) value : defaultValue;
+  }
+
+  private static int toInt(@Nullable Object value, int defaultValue) {
+    return value instanceof Number ? ((Number) value).intValue() : defaultValue;
   }
 
   @Override

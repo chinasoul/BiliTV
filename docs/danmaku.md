@@ -84,7 +84,7 @@ syncDanmaku(currentTime)
 |------|------|------|
 | `addDanmaku` | `{playerId, text, color}` | 添加单条弹幕 |
 | `addDanmakuBatch` | `{playerId, items: [{text, color}, ...]}` | 批量添加（推荐） |
-| `updateOption` | `{playerId, opacity, fontSize, area, duration, hideScroll, strokeWidth, lineHeight}` | 更新渲染参数 |
+| `updateOption` | `{playerId, opacity, fontSize, area, duration, hideScroll, strokeWidth, lineHeight, nativeStrokeWidth, nativeStrokeAlphaMin}` | 更新渲染参数 |
 | `clear` | `{playerId}` | 清空所有在屏弹幕 |
 | `pause` | `{playerId}` | 暂停弹幕滚动 |
 | `resume` | `{playerId}` | 恢复弹幕滚动（含暂停补偿） |
@@ -125,14 +125,14 @@ syncDanmaku(currentTime)
 
 - `opacityScale = clamp(0.05 + 0.95 * opacity, 0, 1)` — 近线性曲线
 - 填充色 alpha = `sourceAlpha * opacityScale`
-- 描边 alpha = `max(165, fillAlpha * 1.00)`（opacityScale < 0.10 时隐藏描边）
+- 描边 alpha = `max(nativeStrokeAlphaMin * opacityScale, fillAlpha * 1.00)`（opacityScale < 0.10 时隐藏描边）
 
 ### 4.5 字体清晰度策略
 
 - `textPaint` 与 `strokePaint` 使用同一字体：`sans-serif-medium`
 - 开启 `setHinting(Paint.HINTING_ON)`，关闭 `setSubpixelText(false)`，减少滚动时边缘发虚
 - 先将绘制坐标对齐到整数像素（`drawX = round(x)`, `drawY = round(y)`），再执行 `drawText`
-- 描边宽度会在 `updateOption` 中做增强：`clamp(strokeWidth, 1.5, 3.5)` 后再 `+0.30`（上限 3.7）
+- 描边宽度由开发者选项直接控制：`nativeStrokeWidth`（有效范围 1.2 ~ 4.0）
 
 ### 4.6 绘制循环
 
@@ -196,3 +196,14 @@ DanmakuOption(
 3. **修改同步逻辑**：改 `syncDanmaku()` 或 `_startDanmakuSyncTimer()`
 4. **修改生命周期**：改 `player_action_mixin.dart` 中对应的 toggle/pause/resume 方法
 5. **更新本文档**
+
+---
+
+## 9. 开发者模式调参（原生弹幕）
+
+在「设置 → 开发者选项」中提供两个仅对原生弹幕生效的调参项：
+
+1. `原生弹幕描边宽度` → 下发 `nativeStrokeWidth`
+2. `原生弹幕描边最小Alpha` → 下发 `nativeStrokeAlphaMin`
+
+这两个参数会通过 `NativePlayerDanmakuService.updateOption()` 进入 MethodChannel，并由 `DanmakuOverlayView.updateOption()` 实时应用到绘制。
