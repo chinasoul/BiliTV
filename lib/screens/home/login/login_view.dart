@@ -5,6 +5,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../../../services/bilibili_api.dart';
 import '../../../services/auth_service.dart';
 import 'package:bili_tv_app/services/settings_service.dart';
+import 'package:bili_tv_app/config/app_style.dart';
 
 class LoginView extends StatefulWidget {
   final FocusNode? sidebarFocusNode;
@@ -149,11 +150,11 @@ class _LoginViewState extends State<LoginView> {
     switch (_status) {
       case 'loading':
         text = '正在加载...';
-        color = Colors.white54;
+        color = AppColors.textHint;
         break;
       case 'waiting':
         text = '请使用 Bilibili 手机客户端扫描二维码';
-        color = Colors.white54;
+        color = AppColors.textHint;
         break;
       case 'scanned':
         text = '已扫描，请在手机上确认登录';
@@ -176,7 +177,7 @@ class _LoginViewState extends State<LoginView> {
 
     return Text(
       text,
-      style: TextStyle(color: color, fontSize: 16),
+      style: TextStyle(color: color, fontSize: AppFonts.sizeLG),
       textAlign: TextAlign.center,
     );
   }
@@ -191,7 +192,7 @@ class _LoginViewState extends State<LoginView> {
             'TV 扫码登录',
             style: TextStyle(
               color: Colors.white,
-              fontSize: 24,
+              fontSize: AppFonts.sizeXXL,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -231,7 +232,7 @@ class _LoginViewState extends State<LoginView> {
                         '刷新二维码',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 16,
+                          fontSize: AppFonts.sizeLG,
                           fontWeight: FontWeight.bold,
                         ),
                       ),

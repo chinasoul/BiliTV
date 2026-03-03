@@ -11,6 +11,7 @@ import '../../services/live_socket_service.dart';
 import '../../services/settings_service.dart';
 import '../../widgets/time_display.dart';
 import 'widgets/live_settings_panel.dart';
+import 'package:bili_tv_app/config/app_style.dart';
 
 class LivePlayerScreen extends StatefulWidget {
   final int roomId;
@@ -989,7 +990,7 @@ class _LivePlayerScreenState extends State<LivePlayerScreen>
                           widget.title,
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 24,
+                            fontSize: AppFonts.sizeXXL,
                             fontWeight: FontWeight.bold,
                           ),
                           maxLines: 1,
@@ -1001,15 +1002,15 @@ class _LivePlayerScreenState extends State<LivePlayerScreen>
                           children: [
                             const Icon(
                               Icons.people,
-                              color: Colors.white70,
+                              color: AppColors.textTertiary,
                               size: 14,
                             ),
                             const SizedBox(width: 4),
                             Text(
                               '$_onlineCount人正在观看',
                               style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 13,
+                                color: AppColors.textTertiary,
+                                fontSize: AppFonts.sizeSM,
                               ),
                             ),
                           ],
@@ -1112,7 +1113,7 @@ class _LivePlayerScreenState extends State<LivePlayerScreen>
             style: TextStyle(
               color: isFocused ? Colors.white : (textColor ?? Colors.white),
               fontWeight: FontWeight.bold,
-              fontSize: 16,
+              fontSize: AppFonts.sizeLG,
             ),
           ),
         ],

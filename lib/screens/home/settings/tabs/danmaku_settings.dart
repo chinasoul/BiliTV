@@ -63,7 +63,7 @@ class _DanmakuSettingsState extends State<DanmakuSettings> {
   Widget build(BuildContext context) {
     final baseSubtitleStyle = TextStyle(
       color: Colors.white.withValues(alpha: 0.55),
-      fontSize: 12,
+      fontSize: AppFonts.sizeSM,
       height: 1.45,
     );
     return Column(
@@ -80,7 +80,7 @@ class _DanmakuSettingsState extends State<DanmakuSettings> {
                   text: '若卡顿可开启',
                   style: TextStyle(
                     color: Colors.amber.shade300,
-                    fontSize: 12,
+                    fontSize: AppFonts.sizeSM,
                   ),
                 ),
               ],

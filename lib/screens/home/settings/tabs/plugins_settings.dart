@@ -5,6 +5,7 @@ import 'package:bili_tv_app/core/plugin/plugin_store.dart';
 import 'package:bili_tv_app/core/focus/focus_navigation.dart';
 import 'package:bili_tv_app/services/local_server.dart';
 import 'package:bili_tv_app/services/settings_service.dart';
+import 'package:bili_tv_app/config/app_style.dart';
 
 /// 插件设置页
 class PluginsSettingsTab extends StatefulWidget {
@@ -24,7 +25,7 @@ class _PluginsSettingsTabState extends State<PluginsSettingsTab> {
   Widget build(BuildContext context) {
     if (_pluginManager.plugins.isEmpty) {
       return const Center(
-        child: Text('暂无插件', style: TextStyle(color: Colors.white70)),
+        child: Text('暂无插件', style: TextStyle(color: AppColors.textTertiary)),
       );
     }
 
@@ -51,7 +52,7 @@ class _PluginsSettingsTabState extends State<PluginsSettingsTab> {
               Expanded(
                 child: Text(
                   '使用手机或电脑访问 $serverAddress 设置去广告增强和弹幕屏蔽功能',
-                  style: const TextStyle(color: Colors.white70, fontSize: 13),
+                  style: const TextStyle(color: AppColors.textTertiary, fontSize: AppFonts.sizeSM),
                 ),
               ),
             ],
@@ -139,7 +140,7 @@ class _PluginCardState extends State<_PluginCard> {
                 children: [
                   Icon(
                     widget.plugin.icon ?? Icons.extension,
-                    color: isEnabled ? SettingsService.themeColor : Colors.white54,
+                    color: isEnabled ? SettingsService.themeColor : AppColors.textHint,
                     size: 28,
                   ),
                   const SizedBox(width: 16),
@@ -150,8 +151,8 @@ class _PluginCardState extends State<_PluginCard> {
                         Text(
                           widget.plugin.name,
                           style: TextStyle(
-                            color: _focused ? Colors.white : Colors.white70,
-                            fontSize: 16,
+                            color: _focused ? Colors.white : AppColors.textTertiary,
+                            fontSize: AppFonts.sizeLG,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -161,8 +162,8 @@ class _PluginCardState extends State<_PluginCard> {
                             child: Text(
                               widget.plugin.description,
                               style: const TextStyle(
-                                color: Colors.white38,
-                                fontSize: 12,
+                                color: AppColors.textDisabled,
+                                fontSize: AppFonts.sizeSM,
                               ),
                             ),
                           ),
@@ -172,7 +173,7 @@ class _PluginCardState extends State<_PluginCard> {
                             'v${widget.plugin.version} • ${widget.plugin.author}',
                             style: const TextStyle(
                               color: Colors.white24,
-                              fontSize: 10,
+                              fontSize: AppFonts.sizeXS,
                             ),
                           ),
                         ),

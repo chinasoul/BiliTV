@@ -52,7 +52,7 @@ class TvVideoCard extends StatelessWidget {
   Widget _buildFocusedTitle() {
     const focusedStyle = TextStyle(
       color: Colors.white,
-      fontSize: 14,
+      fontSize: AppFonts.sizeMD,
       fontWeight: FontWeight.bold,
     );
     final mode = SettingsService.focusedTitleDisplayMode;
@@ -116,7 +116,7 @@ class TvVideoCard extends StatelessWidget {
                   video.badge,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 10,
+                    fontSize: AppFonts.sizeXS,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -151,18 +151,18 @@ class TvVideoCard extends StatelessWidget {
                 const Icon(
                   Icons.play_arrow_rounded,
                   size: 14,
-                  color: Colors.white70,
+                  color: AppColors.textTertiary,
                 ),
                 Text(
                   video.viewFormatted,
-                  style: const TextStyle(color: Colors.white, fontSize: 11),
+                  style: const TextStyle(color: Colors.white, fontSize: AppFonts.sizeXS),
                 ),
                 const Spacer(),
                 Text(
                   _durationText,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 11,
+                    fontSize: AppFonts.sizeXS,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -189,9 +189,9 @@ class TvVideoCard extends StatelessWidget {
                   : Text(
                       video.title,
                       style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
+                        color: AppColors.textSecondary,
+                        fontSize: AppFonts.sizeMD,
+                        fontWeight: AppFonts.semibold,
                       ),
                       maxLines:
                           SettingsService.focusedTitleDisplayMode ==
@@ -209,7 +209,7 @@ class TvVideoCard extends StatelessWidget {
                 const Icon(
                   Icons.person_outline,
                   size: 12,
-                  color: Colors.white54,
+                  color: AppColors.textTertiary,
                 ),
                 const SizedBox(width: 4),
                 // UP主名字 - 可省略
@@ -217,9 +217,9 @@ class TvVideoCard extends StatelessWidget {
                   child: Text(
                     video.ownerName,
                     style: const TextStyle(
-                      color: Colors.white54,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
+                      color: AppColors.textTertiary,
+                      fontSize: AppFonts.sizeSM,
+                      fontWeight: AppFonts.medium,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -230,9 +230,9 @@ class TvVideoCard extends StatelessWidget {
                   Text(
                     video.pubdateFormatted,
                     style: const TextStyle(
-                      color: Colors.white54,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
+                      color: AppColors.textTertiary,
+                      fontSize: AppFonts.sizeSM,
+                      fontWeight: AppFonts.medium,
                     ),
                   ),
               ],

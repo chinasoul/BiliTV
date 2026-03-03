@@ -6,6 +6,7 @@ import 'base_tv_card.dart';
 import 'conditional_marquee.dart';
 import '../utils/image_url_utils.dart';
 import '../screens/live/live_player_screen.dart';
+import 'package:bili_tv_app/config/app_style.dart';
 
 /// 历史记录专用视频卡片
 /// 特点：
@@ -75,7 +76,7 @@ class HistoryVideoCard extends StatelessWidget {
   Widget _buildFocusedTitle() {
     const focusedStyle = TextStyle(
       color: Colors.white,
-      fontSize: 14,
+      fontSize: AppFonts.sizeMD,
       fontWeight: FontWeight.bold,
     );
     final mode = SettingsService.focusedTitleDisplayMode;
@@ -165,7 +166,7 @@ class HistoryVideoCard extends StatelessWidget {
                   video.badge,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 10,
+                    fontSize: AppFonts.sizeXS,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -211,7 +212,7 @@ class HistoryVideoCard extends StatelessWidget {
                           '已看至 P${video.historyPage}',
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 11,
+                            fontSize: AppFonts.sizeXS,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -226,7 +227,7 @@ class HistoryVideoCard extends StatelessWidget {
                             color: _isCompleted
                                 ? SettingsService.themeColor
                                 : Colors.white,
-                            fontSize: 11,
+                            fontSize: AppFonts.sizeXS,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -273,9 +274,9 @@ class HistoryVideoCard extends StatelessWidget {
                   : Text(
                       video.title,
                       style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
+                        color: AppColors.textSecondary,
+                        fontSize: AppFonts.sizeMD,
+                        fontWeight: AppFonts.semibold,
                       ),
                       maxLines:
                           SettingsService.focusedTitleDisplayMode ==
@@ -292,7 +293,7 @@ class HistoryVideoCard extends StatelessWidget {
                 const Icon(
                   Icons.person_outline,
                   size: 12,
-                  color: Colors.white54,
+                  color: AppColors.textTertiary,
                 ),
                 const SizedBox(width: 4),
                 // UP主名字 - 可省略
@@ -300,9 +301,9 @@ class HistoryVideoCard extends StatelessWidget {
                   child: Text(
                     video.ownerName,
                     style: const TextStyle(
-                      color: Colors.white54,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
+                      color: AppColors.textTertiary,
+                      fontSize: AppFonts.sizeSM,
+                      fontWeight: AppFonts.medium,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -313,9 +314,9 @@ class HistoryVideoCard extends StatelessWidget {
                   Text(
                     video.viewAtFormatted,
                     style: const TextStyle(
-                      color: Colors.white54,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
+                      color: AppColors.textTertiary,
+                      fontSize: AppFonts.sizeSM,
+                      fontWeight: AppFonts.medium,
                     ),
                   ),
               ],

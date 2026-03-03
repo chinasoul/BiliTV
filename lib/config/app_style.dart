@@ -22,17 +22,20 @@ abstract final class AppColors {
   static const Color surfaceBackground = Color(0xFF2A2A2A);
 
   // ── 文字色 ────────────────────────────────────────────────
-  /// 主文字色（标题、重要内容）
+  /// 主文字色（聚焦标题、强调内容）
   static const Color textPrimary = Colors.white;
 
-  /// 二级文字色（描述、正文）
-  static const Color textSecondary = Colors.white70;
+  /// 二级文字色（未聚焦卡片标题、正文）
+  static const Color textSecondary = Color(0xDEFFFFFF); // 87% white
 
-  /// 三级文字色（辅助信息：作者、时间、副标题）
-  static const Color textTertiary = Colors.white54;
+  /// 三级文字色（UP 主、时间、副标题）
+  static const Color textTertiary = Colors.white70;
 
   /// 四级文字色（提示、占位文字、弱信息）
-  static const Color textHint = Colors.white38;
+  static const Color textHint = Colors.white54;
+
+  /// 五级文字色（禁用、极弱提示）
+  static const Color textDisabled = Colors.white38;
 
   /// 非活跃/未选中文字色
   static const Color textInactive = Colors.grey;
@@ -67,30 +70,36 @@ abstract final class AppColors {
 
 /// 全局文字样式
 abstract final class AppFonts {
-  // ── 字号 ──────────────────────────────────────────────────
-  /// 极小字号（徽章、角标）
+  // ── 字号（6 档，TV 观看距离下每档间距 ≥ 2px 确保可辨）──
+  /// 角标、弱提示信息
   static const double sizeXS = 10;
 
-  /// 小字号（副标题、辅助信息、进度条标签）
+  /// 辅助信息、副标题、进度条标签
   static const double sizeSM = 12;
 
-  /// 正文字号（描述、列表项内容）
+  /// 正文、列表项内容
   static const double sizeMD = 14;
 
-  /// 中大字号（按钮、Tab 标签、设置项标题）
+  /// 按钮、Tab 标签、设置项标题
   static const double sizeLG = 16;
 
-  /// 大字号（空状态提示、面板标题）
+  /// 面板标题、空状态提示
   static const double sizeXL = 20;
 
-  /// 超大字号（页面标题、强调文字）
+  /// 页面大标题、强调文字
   static const double sizeXXL = 24;
 
   // ── 字重 ──────────────────────────────────────────────────
-  /// 半粗（卡片辅助信息加粗）
+  /// 常规（辅助信息）
+  static const FontWeight regular = FontWeight.w400;
+
+  /// 半粗（未聚焦卡片标题）
   static const FontWeight medium = FontWeight.w500;
 
-  /// 粗体（标题、选中项）
+  /// 次粗（卡片辅助信息、强调正文）
+  static const FontWeight semibold = FontWeight.w600;
+
+  /// 粗体（聚焦标题、选中项）
   static const FontWeight bold = FontWeight.bold;
 }
 

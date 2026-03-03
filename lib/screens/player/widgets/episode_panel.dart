@@ -121,11 +121,11 @@ class _EpisodePanelState extends State<EpisodePanel> {
                           style: TextStyle(
                             color: !widget.showingPagesTab
                                 ? SettingsService.themeColor
-                                : Colors.white54,
-                            fontSize: 20,
+                                : AppColors.textHint,
+                            fontSize: AppFonts.sizeXL,
                             fontWeight: !widget.showingPagesTab
                                 ? FontWeight.bold
-                                : FontWeight.normal,
+                                : AppFonts.regular,
                           ),
                         ),
                         Padding(
@@ -134,7 +134,7 @@ class _EpisodePanelState extends State<EpisodePanel> {
                             '|',
                             style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.2),
-                              fontSize: 20,
+                              fontSize: AppFonts.sizeXL,
                             ),
                           ),
                         ),
@@ -143,11 +143,11 @@ class _EpisodePanelState extends State<EpisodePanel> {
                           style: TextStyle(
                             color: widget.showingPagesTab
                                 ? SettingsService.themeColor
-                                : Colors.white54,
-                            fontSize: 20,
+                                : AppColors.textHint,
+                            fontSize: AppFonts.sizeXL,
                             fontWeight: widget.showingPagesTab
                                 ? FontWeight.bold
-                                : FontWeight.normal,
+                                : AppFonts.regular,
                           ),
                         ),
                         const Spacer(),
@@ -155,7 +155,7 @@ class _EpisodePanelState extends State<EpisodePanel> {
                           '◀▶ 切换',
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.3),
-                            fontSize: 12,
+                            fontSize: AppFonts.sizeSM,
                           ),
                         ),
                       ],
@@ -166,7 +166,7 @@ class _EpisodePanelState extends State<EpisodePanel> {
                           widget.isUgcSeason ? '合集' : '分P',
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 20,
+                            fontSize: AppFonts.sizeXL,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -254,10 +254,10 @@ class _EpisodeItem extends StatelessWidget {
         title,
         style: TextStyle(
           color: isSelected ? SettingsService.themeColor : Colors.white,
-          fontSize: 16,
+          fontSize: AppFonts.sizeLG,
           fontWeight: isSelected || isFocused
               ? FontWeight.bold
-              : FontWeight.normal,
+              : AppFonts.regular,
         ),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,

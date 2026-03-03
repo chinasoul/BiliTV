@@ -326,15 +326,15 @@ class DynamicTabState extends State<DynamicTab> {
                 children: [
                   Icon(
                     Icons.expand_more,
-                    color: isFocused ? Colors.white : Colors.white54,
+                    color: isFocused ? Colors.white : AppColors.textHint,
                     size: 20,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     '已加载 ${_videos.length} 条，按确认键加载更多',
                     style: TextStyle(
-                      color: isFocused ? Colors.white : Colors.white54,
-                      fontSize: 14,
+                      color: isFocused ? Colors.white : AppColors.textHint,
+                      fontSize: AppFonts.sizeMD,
                     ),
                   ),
                 ],
@@ -363,12 +363,12 @@ class DynamicTabState extends State<DynamicTab> {
           children: [
             const Text(
               '请先登录',
-              style: TextStyle(color: Colors.white70, fontSize: 20),
+              style: TextStyle(color: AppColors.textTertiary, fontSize: AppFonts.sizeXL),
             ),
             const SizedBox(height: 10),
             const Text(
               '登录后可查看关注的动态',
-              style: TextStyle(color: Colors.white38, fontSize: 14),
+              style: TextStyle(color: AppColors.textDisabled, fontSize: AppFonts.sizeMD),
             ),
           ],
         ),
@@ -396,7 +396,7 @@ class DynamicTabState extends State<DynamicTab> {
             const SizedBox(height: 20),
             const Text(
               '暂无动态',
-              style: TextStyle(color: Colors.white70, fontSize: 20),
+              style: TextStyle(color: AppColors.textTertiary, fontSize: AppFonts.sizeXL),
             ),
           ],
         ),

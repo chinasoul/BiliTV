@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:bili_tv_app/services/settings_service.dart';
+import 'package:bili_tv_app/config/app_style.dart';
 
 enum LiveSettingsMenuType { main, quality, danmaku, line }
 
@@ -132,13 +133,13 @@ class _LiveSettingsPanelState extends State<LiveSettingsPanel> {
                     title,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 20,
+                      fontSize: AppFonts.sizeXL,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const Spacer(),
                   if (widget.menuType == LiveSettingsMenuType.main)
-                    const Icon(Icons.settings, color: Colors.white54),
+                    const Icon(Icons.settings, color: AppColors.textHint),
                 ],
               ),
             ),
@@ -209,7 +210,7 @@ class _LiveSettingsPanelState extends State<LiveSettingsPanel> {
             '仅对当前直播生效，全局默认值请在 设置→弹幕设置 中修改',
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.4),
-              fontSize: 12,
+              fontSize: AppFonts.sizeSM,
             ),
           ),
         ),
@@ -395,10 +396,10 @@ class _LiveSettingsPanelState extends State<LiveSettingsPanel> {
                         color: isFocused
                             ? Colors.white
                             : Colors.white.withValues(alpha: 0.9),
-                        fontSize: 15,
+                        fontSize: AppFonts.sizeLG,
                         fontWeight: isFocused
                             ? FontWeight.bold
-                            : FontWeight.normal,
+                            : AppFonts.regular,
                       ),
                     ),
                     if (value.isNotEmpty) ...[
@@ -407,7 +408,7 @@ class _LiveSettingsPanelState extends State<LiveSettingsPanel> {
                         value,
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.6),
-                          fontSize: 13,
+                          fontSize: AppFonts.sizeSM,
                         ),
                       ),
                     ],

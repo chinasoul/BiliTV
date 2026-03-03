@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/plugin/plugin_types.dart';
 import '../core/plugin/plugin_store.dart';
+import 'package:bili_tv_app/config/app_style.dart';
 
 class SponsorBlockPlugin extends PlayerPlugin {
   @override
@@ -222,7 +223,7 @@ class _SponsorBlockSettingsState extends State<_SponsorBlockSettings> {
             title: const Text('自动跳过', style: TextStyle(color: Colors.white)),
             subtitle: const Text(
               '关闭后将显示手动跳过按钮',
-              style: TextStyle(color: Colors.white70),
+              style: TextStyle(color: AppColors.textTertiary),
             ),
             value: _autoSkip,
             onChanged: (val) {

@@ -101,8 +101,9 @@ class SettingDropdownRow<T> extends StatelessWidget {
                           Text(
                             label,
                             style: TextStyle(
-                              color: isFocused ? Colors.white : Colors.white70,
+                              color: isFocused ? AppColors.textPrimary : AppColors.textSecondary,
                               fontSize: AppFonts.sizeMD,
+                              fontWeight: AppFonts.medium,
                             ),
                           ),
                           if (subtitleWidget != null)
@@ -115,9 +116,9 @@ class SettingDropdownRow<T> extends StatelessWidget {
                               padding: const EdgeInsets.only(top: 2),
                               child: Text(
                                 subtitle!,
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.5),
-                                  fontSize: 12,
+                                style: const TextStyle(
+                                  color: AppColors.textHint,
+                                  fontSize: AppFonts.sizeSM,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -144,16 +145,16 @@ class SettingDropdownRow<T> extends StatelessWidget {
                               itemLabel(value),
                               style: TextStyle(
                                 color: isFocused
-                                    ? Colors.white
-                                    : Colors.white70,
-                                fontSize: 14,
+                                    ? AppColors.textPrimary
+                                    : AppColors.textSecondary,
+                                fontSize: AppFonts.sizeMD,
                               ),
                             ),
                             const SizedBox(width: 4),
                             Icon(
                               Icons.unfold_more,
                               size: 16,
-                              color: isFocused ? Colors.white : Colors.white54,
+                              color: isFocused ? AppColors.textPrimary : AppColors.textHint,
                             ),
                           ],
                         ),

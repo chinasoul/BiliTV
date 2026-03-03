@@ -339,7 +339,7 @@ class _UpPanelState extends State<UpPanel> {
                             widget.upName,
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 16,
+                              fontSize: AppFonts.sizeLG,
                               fontWeight: FontWeight.bold,
                             ),
                             maxLines: 1,
@@ -437,9 +437,9 @@ class _UpPanelState extends State<UpPanel> {
                 ? Colors.white
                 : isActive
                 ? Colors.white
-                : Colors.white54,
-            fontSize: 13,
-            fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+                : AppColors.textHint,
+            fontSize: AppFonts.sizeSM,
+            fontWeight: isActive ? AppFonts.semibold : AppFonts.regular,
           ),
         ),
       ),
@@ -470,7 +470,7 @@ class _UpPanelState extends State<UpPanel> {
           const SizedBox(width: 4),
           Text(
             _isFollowing ? '已关注' : '关注',
-            style: const TextStyle(color: Colors.white, fontSize: 13),
+            style: const TextStyle(color: Colors.white, fontSize: AppFonts.sizeSM),
           ),
         ],
       ),
@@ -543,7 +543,7 @@ class _UpPanelState extends State<UpPanel> {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: isFocused ? Colors.white : Colors.grey[300],
-                    fontSize: 14,
+                    fontSize: AppFonts.sizeMD,
                   ),
                 ),
                 SizedBox(height: metaGap),
@@ -554,7 +554,7 @@ class _UpPanelState extends State<UpPanel> {
                   ].join(' · '),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                  style: TextStyle(color: Colors.grey[500], fontSize: AppFonts.sizeSM),
                 ),
               ],
             ),

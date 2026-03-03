@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../services/settings_service.dart';
+import 'package:bili_tv_app/config/app_style.dart';
 
 /// 全局内存/CPU 监控覆盖层
 /// 始终显示在屏幕最上层，用于调试
@@ -27,7 +28,7 @@ class _GlobalMemoryOverlayState extends State<GlobalMemoryOverlay> {
 
   static const TextStyle _overlayTextStyle = TextStyle(
     color: Color(0xFFFFC107), // amber, 比纯黄在白底上更稳
-    fontSize: 9,
+    fontSize: AppFonts.sizeXS,
     fontFamily: 'monospace',
     fontFeatures: [FontFeature.tabularFigures()],
     height: 1.5,

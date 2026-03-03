@@ -112,7 +112,7 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
   Widget _buildTabSwitchPolicyDescription(TabSwitchPolicy mode) {
     final baseStyle = TextStyle(
       color: Colors.white.withValues(alpha: 0.55),
-      fontSize: 12,
+      fontSize: AppFonts.sizeSM,
       height: 1.45,
     );
     switch (mode) {
@@ -140,7 +140,7 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
                 text: '低内存设备推荐',
                 style: TextStyle(
                   color: Colors.amber.shade300,
-                  fontSize: 12,
+                  fontSize: AppFonts.sizeSM,
                 ),
               ),
             ],
@@ -309,7 +309,7 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
             '主题色',
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.7),
-              fontSize: 14,
+              fontSize: AppFonts.sizeMD,
             ),
           ),
         ),
@@ -361,7 +361,7 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
                                 color: focused
                                     ? Colors.white
                                     : (isSelected
-                                          ? Colors.white70
+                                          ? AppColors.textTertiary
                                           : Colors.transparent),
                                 width: focused ? 3 : (isSelected ? 2 : 0),
                               ),
@@ -379,7 +379,7 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
                             label,
                             style: TextStyle(
                               color: focused ? Colors.white : Colors.white60,
-                              fontSize: 10,
+                              fontSize: AppFonts.sizeXS,
                             ),
                           ),
                         ],
@@ -402,7 +402,7 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
                 '分区开关 (确认键切换)',
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.7),
-                  fontSize: 14,
+                  fontSize: AppFonts.sizeMD,
                 ),
               ),
               const SizedBox(width: 12),
@@ -471,10 +471,10 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
                           color: isEnabled
                               ? Colors.white
                               : Colors.white.withValues(alpha: 0.5),
-                          fontSize: 12,
+                          fontSize: AppFonts.sizeSM,
                           fontWeight: focused
                               ? FontWeight.bold
-                              : FontWeight.normal,
+                              : AppFonts.regular,
                         ),
                       ),
                     );
@@ -494,7 +494,7 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
                 '分区排序 (仅显示已启用)',
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.7),
-                  fontSize: 14,
+                  fontSize: AppFonts.sizeMD,
                 ),
               ),
               const SizedBox(width: 12),
@@ -510,7 +510,7 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
               color: _isDragging
                   ? SettingsService.themeColor
                   : Colors.white.withValues(alpha: 0.5),
-              fontSize: 12,
+              fontSize: AppFonts.sizeSM,
             ),
           ),
         ),
@@ -667,7 +667,7 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
                                 color: Colors.white,
                                 fontWeight: focused
                                     ? FontWeight.bold
-                                    : FontWeight.normal,
+                                    : AppFonts.regular,
                               ),
                             ),
                           );
@@ -688,7 +688,7 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
                 '直播分区开关 (确认键切换)',
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.7),
-                  fontSize: 14,
+                  fontSize: AppFonts.sizeMD,
                 ),
               ),
               const SizedBox(width: 12),
@@ -768,10 +768,10 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
                           color: isEnabled
                               ? Colors.white
                               : Colors.white.withValues(alpha: 0.5),
-                          fontSize: 12,
+                          fontSize: AppFonts.sizeSM,
                           fontWeight: focused
                               ? FontWeight.bold
-                              : FontWeight.normal,
+                              : AppFonts.regular,
                         ),
                       ),
                     );
@@ -791,7 +791,7 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
                 '直播分区排序 (仅显示已启用)',
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.7),
-                  fontSize: 14,
+                  fontSize: AppFonts.sizeMD,
                 ),
               ),
               const SizedBox(width: 12),
@@ -807,7 +807,7 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
               color: _isLiveDragging
                   ? SettingsService.themeColor
                   : Colors.white.withValues(alpha: 0.5),
-              fontSize: 12,
+              fontSize: AppFonts.sizeSM,
             ),
           ),
         ),
@@ -985,7 +985,7 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
                                     color: Colors.white,
                                     fontWeight: focused
                                         ? FontWeight.bold
-                                        : FontWeight.normal,
+                                        : AppFonts.regular,
                                   ),
                                 ),
                               );
@@ -1017,7 +1017,7 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
             '修改后需重启APP生效',
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.9),
-              fontSize: 14,
+              fontSize: AppFonts.sizeMD,
             ),
           ),
         ],

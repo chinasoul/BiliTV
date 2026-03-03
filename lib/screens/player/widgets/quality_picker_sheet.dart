@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:bili_tv_app/core/focus/focus_navigation.dart';
 import 'package:bili_tv_app/services/settings_service.dart';
+import 'package:bili_tv_app/config/app_style.dart';
 
 class QualityPickerSheet extends StatefulWidget {
   final List<Map<String, dynamic>> qualities;
@@ -91,7 +92,7 @@ class _QualityPickerSheetState extends State<QualityPickerSheet> {
                 '画质',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 18,
+                  fontSize: AppFonts.sizeXL,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -119,7 +120,7 @@ class _QualityPickerSheetState extends State<QualityPickerSheet> {
                               : Colors.white,
                           fontWeight: isCurrent || isFocused
                               ? FontWeight.bold
-                              : FontWeight.normal,
+                              : AppFonts.regular,
                         ),
                       ),
                       trailing: isCurrent

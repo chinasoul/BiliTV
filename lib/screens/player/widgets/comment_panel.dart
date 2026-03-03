@@ -370,7 +370,7 @@ class _CommentPanelState extends State<CommentPanel> {
             '评论 $_totalCount',
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 16,
+              fontSize: AppFonts.sizeLG,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -413,9 +413,9 @@ class _CommentPanelState extends State<CommentPanel> {
                 ? Colors.white
                 : isActive
                 ? Colors.white
-                : Colors.white54,
-            fontSize: 13,
-            fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+                : AppColors.textHint,
+            fontSize: AppFonts.sizeSM,
+            fontWeight: isActive ? AppFonts.semibold : AppFonts.regular,
           ),
         ),
       ),
@@ -431,7 +431,7 @@ class _CommentPanelState extends State<CommentPanel> {
       return const Center(
         child: Text(
           '暂无评论',
-          style: TextStyle(color: Colors.white54, fontSize: 14),
+          style: TextStyle(color: AppColors.textHint, fontSize: AppFonts.sizeMD),
         ),
       );
     }
@@ -525,8 +525,8 @@ class _CommentPanelState extends State<CommentPanel> {
                               comment.uname,
                               style: TextStyle(
                                 color: isFocused ? themeColor : Colors.white60,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
+                                fontSize: AppFonts.sizeSM,
+                                fontWeight: AppFonts.medium,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -537,7 +537,7 @@ class _CommentPanelState extends State<CommentPanel> {
                             comment.timeText,
                             style: const TextStyle(
                               color: Colors.white30,
-                              fontSize: 11,
+                              fontSize: AppFonts.sizeXS,
                             ),
                           ),
                         ],
@@ -548,7 +548,7 @@ class _CommentPanelState extends State<CommentPanel> {
                         comment.content,
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 13,
+                          fontSize: AppFonts.sizeSM,
                           height: 1.4,
                         ),
                         maxLines: 6,
@@ -560,15 +560,15 @@ class _CommentPanelState extends State<CommentPanel> {
                         children: [
                           Icon(
                             Icons.thumb_up_outlined,
-                            color: Colors.white38,
+                            color: AppColors.textDisabled,
                             size: 13,
                           ),
                           const SizedBox(width: 3),
                           Text(
                             comment.likeText,
                             style: const TextStyle(
-                              color: Colors.white38,
-                              fontSize: 11,
+                              color: AppColors.textDisabled,
+                              fontSize: AppFonts.sizeXS,
                             ),
                           ),
                           if (hasReplies) ...[
@@ -577,15 +577,15 @@ class _CommentPanelState extends State<CommentPanel> {
                               isExpanded
                                   ? Icons.expand_less
                                   : Icons.expand_more,
-                              color: isFocused ? themeColor : Colors.white38,
+                              color: isFocused ? themeColor : AppColors.textDisabled,
                               size: 15,
                             ),
                             const SizedBox(width: 2),
                             Text(
                               isExpanded ? '收起回复' : '${comment.rcount}条回复',
                               style: TextStyle(
-                                color: isFocused ? themeColor : Colors.white38,
-                                fontSize: 11,
+                                color: isFocused ? themeColor : AppColors.textDisabled,
+                                fontSize: AppFonts.sizeXS,
                               ),
                             ),
                           ],
@@ -617,7 +617,7 @@ class _CommentPanelState extends State<CommentPanel> {
                         padding: const EdgeInsets.only(top: 6),
                         child: Text(
                           '查看更多回复',
-                          style: TextStyle(color: themeColor, fontSize: 12),
+                          style: TextStyle(color: themeColor, fontSize: AppFonts.sizeSM),
                         ),
                       ),
                     ),
@@ -657,16 +657,16 @@ class _CommentPanelState extends State<CommentPanel> {
                   TextSpan(
                     text: '${reply.uname}  ',
                     style: const TextStyle(
-                      color: Colors.white54,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
+                      color: AppColors.textHint,
+                      fontSize: AppFonts.sizeSM,
+                      fontWeight: AppFonts.medium,
                     ),
                   ),
                   TextSpan(
                     text: reply.content,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 12,
+                      fontSize: AppFonts.sizeSM,
                       height: 1.3,
                     ),
                   ),

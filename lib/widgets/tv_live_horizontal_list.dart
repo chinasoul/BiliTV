@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'tv_live_card.dart';
+import 'package:bili_tv_app/config/app_style.dart';
 
 class TvLiveHorizontalList extends StatefulWidget {
   final String title;
@@ -39,7 +40,7 @@ class _TvLiveHorizontalListState extends State<TvLiveHorizontalList> {
               widget.title,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 20,
+                fontSize: AppFonts.sizeXL,
                 fontWeight: FontWeight.bold,
               ),
             ),

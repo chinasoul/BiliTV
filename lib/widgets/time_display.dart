@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:bili_tv_app/config/app_style.dart';
 
 class TimeDisplay extends StatefulWidget {
   final TextStyle? textStyle;
@@ -49,7 +50,7 @@ class _TimeDisplayState extends State<TimeDisplay> {
           widget.textStyle ??
           const TextStyle(
             color: Colors.white,
-            fontSize: 24,
+            fontSize: AppFonts.sizeXXL,
             fontWeight: FontWeight.bold,
             shadows: [
               Shadow(blurRadius: 4, color: Colors.black, offset: Offset(0, 1)),

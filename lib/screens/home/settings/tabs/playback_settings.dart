@@ -36,7 +36,7 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
   Widget _buildPerformanceModeDescription(PlaybackPerformanceMode mode) {
     final baseStyle = TextStyle(
       color: Colors.white.withValues(alpha: 0.55),
-      fontSize: 12,
+      fontSize: AppFonts.sizeSM,
       height: 1.45,
     );
     switch (mode) {
@@ -66,7 +66,7 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
                 text: '低内存设备推荐',
                 style: TextStyle(
                   color: Colors.amber.shade300,
-                  fontSize: 12,
+                  fontSize: AppFonts.sizeSM,
                 ),
               ),
             ],

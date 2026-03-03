@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:bili_tv_app/services/settings_service.dart';
+import 'package:bili_tv_app/config/app_style.dart';
 
 class VideoLayer extends StatelessWidget {
   final VideoPlayerController? controller;
@@ -20,7 +21,7 @@ class VideoLayer extends StatelessWidget {
       return Center(
         child: Text(
           errorMessage!,
-          style: const TextStyle(color: Colors.white, fontSize: 16),
+          style: const TextStyle(color: Colors.white, fontSize: AppFonts.sizeLG),
         ),
       );
     }

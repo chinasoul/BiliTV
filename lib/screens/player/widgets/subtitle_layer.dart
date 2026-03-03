@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:bili_tv_app/config/app_style.dart';
 
 class SubtitleLayer extends StatelessWidget {
   final String text;
@@ -33,8 +34,8 @@ class SubtitleLayer extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.w500,
+                fontSize: AppFonts.sizeXXL,
+                fontWeight: AppFonts.medium,
                 shadows: [
                   Shadow(
                     color: Colors.black,

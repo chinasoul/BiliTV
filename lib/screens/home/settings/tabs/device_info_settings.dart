@@ -199,15 +199,15 @@ class _DeviceInfoSettingsState extends State<DeviceInfoSettings> {
                   child: Text(
                     label,
                     style: TextStyle(
-                      color: focused ? Colors.white : Colors.white70,
-                      fontSize: 14,
+                      color: focused ? Colors.white : AppColors.textTertiary,
+                      fontSize: AppFonts.sizeMD,
                     ),
                   ),
                 ),
                 Expanded(
                   child: Text(
                     value,
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    style: const TextStyle(color: Colors.white, fontSize: AppFonts.sizeMD),
                   ),
                 ),
               ],

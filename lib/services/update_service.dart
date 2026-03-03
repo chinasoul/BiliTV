@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../config/env.dart';
 import 'settings_service.dart';
+import 'package:bili_tv_app/config/app_style.dart';
 
 /// 更新信息模型
 class UpdateInfo {
@@ -635,7 +636,7 @@ class UpdateService {
             const SizedBox(height: 8),
             Text(
               updateInfo.changelog,
-              style: const TextStyle(color: Colors.white70),
+              style: const TextStyle(color: AppColors.textTertiary),
               maxLines: 10,
               overflow: TextOverflow.ellipsis,
             ),
@@ -650,7 +651,7 @@ class UpdateService {
               },
               child: const Text(
                 '稍后再说',
-                style: TextStyle(color: Colors.white54),
+                style: TextStyle(color: AppColors.textHint),
               ),
             ),
           TextButton(
@@ -765,7 +766,7 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
             const SizedBox(height: 16),
             const Text(
               '下载完成，正在调起安装...',
-              style: TextStyle(color: Colors.white70),
+              style: TextStyle(color: AppColors.textTertiary),
             ),
           ] else ...[
             LinearProgressIndicator(
@@ -776,15 +777,15 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
             const SizedBox(height: 16),
             Text(
               '${(_progress * 100).toStringAsFixed(1)}%',
-              style: const TextStyle(color: Colors.white70),
+              style: const TextStyle(color: AppColors.textTertiary),
             ),
           ],
           const SizedBox(height: 12),
           Text(
             _connecting ? '正在连接下载源...' : _downloadUrl,
             style: TextStyle(
-              color: _connecting ? Colors.white54 : Colors.white38,
-              fontSize: 11,
+              color: _connecting ? AppColors.textHint : AppColors.textDisabled,
+              fontSize: AppFonts.sizeXS,
             ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
@@ -796,7 +797,7 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
           TextButton(
             autofocus: true,
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('关闭', style: TextStyle(color: Colors.white54)),
+            child: const Text('关闭', style: TextStyle(color: AppColors.textHint)),
           ),
       ],
     );

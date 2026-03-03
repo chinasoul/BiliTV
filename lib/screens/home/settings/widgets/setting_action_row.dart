@@ -114,8 +114,9 @@ class SettingActionRow extends StatelessWidget {
                         Text(
                           label,
                           style: TextStyle(
-                            color: isFocused ? Colors.white : Colors.white70,
+                            color: isFocused ? AppColors.textPrimary : AppColors.textSecondary,
                             fontSize: AppFonts.sizeMD,
+                            fontWeight: AppFonts.medium,
                           ),
                         ),
                         if (value.isNotEmpty)
@@ -124,8 +125,8 @@ class SettingActionRow extends StatelessWidget {
                             child: Text(
                               value,
                               style: const TextStyle(
-                                color: Colors.white38,
-                                fontSize: 12,
+                                color: AppColors.textHint,
+                                fontSize: AppFonts.sizeSM,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -151,8 +152,8 @@ class SettingActionRow extends StatelessWidget {
                           Text(
                             buttonLabel,
                             style: TextStyle(
-                              color: isFocused ? Colors.white : Colors.white70,
-                              fontSize: 13,
+                              color: isFocused ? AppColors.textPrimary : AppColors.textSecondary,
+                              fontSize: AppFonts.sizeSM,
                             ),
                           ),
                           if (optionLabels != null &&
@@ -161,7 +162,7 @@ class SettingActionRow extends StatelessWidget {
                             Icon(
                               Icons.unfold_more,
                               size: 14,
-                              color: isFocused ? Colors.white : Colors.white54,
+                              color: isFocused ? AppColors.textPrimary : AppColors.textHint,
                             ),
                           ],
                         ],

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/settings_service.dart';
+import 'package:bili_tv_app/config/app_style.dart';
 
 /// 轻量级自定义 Toast 工具
 ///
@@ -65,7 +66,7 @@ class ToastUtils {
                     msg,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 14,
+                      fontSize: AppFonts.sizeMD,
                     ),
                   ),
                 ),

@@ -864,11 +864,11 @@ class FollowingTabState extends State<FollowingTab> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 80, color: Colors.white38),
+          Icon(icon, size: 80, color: AppColors.textDisabled),
           const SizedBox(height: 20),
           Text(
             text,
-            style: const TextStyle(color: Colors.white70, fontSize: 20),
+            style: const TextStyle(color: AppColors.textTertiary, fontSize: AppFonts.sizeXL),
           ),
         ],
       ),
@@ -1084,11 +1084,11 @@ class FollowingTabState extends State<FollowingTab> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: const [
-            Text('请先登录', style: TextStyle(color: Colors.white70, fontSize: 20)),
+            Text('请先登录', style: TextStyle(color: AppColors.textTertiary, fontSize: AppFonts.sizeXL)),
             SizedBox(height: 10),
             Text(
               '登录后可查看关注列表',
-              style: TextStyle(color: Colors.white38, fontSize: 14),
+              style: TextStyle(color: AppColors.textDisabled, fontSize: AppFonts.sizeMD),
             ),
           ],
         ),
@@ -1187,14 +1187,14 @@ class _TopTab extends StatelessWidget {
                     label,
                     style: TextStyle(
                       color: focused
-                          ? Colors.white
+                          ? AppColors.textPrimary
                           : (isSelected
                                 ? SettingsService.themeColor
-                                : Colors.white70),
+                                : AppColors.textTertiary),
                       fontSize: TabStyle.tabFontSize,
                       fontWeight: focused || isSelected
-                          ? FontWeight.bold
-                          : FontWeight.normal,
+                          ? AppFonts.bold
+                          : AppFonts.medium,
                       height: TabStyle.tabLineHeight,
                     ),
                   ),
@@ -1280,8 +1280,8 @@ class _FolderTab extends StatelessWidget {
                       ? Colors.white
                       : (isSelected
                             ? SettingsService.themeColor
-                            : Colors.white70),
-                  fontSize: 12,
+                            : AppColors.textTertiary),
+                  fontSize: AppFonts.sizeSM,
                 ),
               ),
             ),
@@ -1371,12 +1371,12 @@ class _FollowingUserCard extends StatelessWidget {
                       placeholder: (_, _) => Container(
                         color: Colors.white12,
                         alignment: Alignment.center,
-                        child: const Icon(Icons.person, color: Colors.white54),
+                        child: const Icon(Icons.person, color: AppColors.textHint),
                       ),
                       errorWidget: (_, _, _) => Container(
                         color: Colors.white12,
                         alignment: Alignment.center,
-                        child: const Icon(Icons.person, color: Colors.white54),
+                        child: const Icon(Icons.person, color: AppColors.textHint),
                       ),
                     ),
                   ),
@@ -1392,8 +1392,8 @@ class _FollowingUserCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
+                            fontSize: AppFonts.sizeLG,
+                            fontWeight: AppFonts.semibold,
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -1403,7 +1403,7 @@ class _FollowingUserCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.75),
-                            fontSize: 10.5,
+                            fontSize: AppFonts.sizeXS,
                           ),
                         ),
                       ],

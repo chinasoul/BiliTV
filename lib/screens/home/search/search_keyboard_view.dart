@@ -5,6 +5,7 @@ import '../../../services/bilibili_api.dart';
 import '../../../services/search_history_service.dart';
 import '../../../widgets/tv_keyboard_button.dart';
 import 'package:bili_tv_app/services/settings_service.dart';
+import 'package:bili_tv_app/config/app_style.dart';
 
 /// 判断是否为按键按下或重复事件
 bool _isKeyDownOrRepeat(KeyEvent event) =>
@@ -392,7 +393,7 @@ class SearchKeyboardViewState extends State<SearchKeyboardView> {
                         focusNode: _searchInputFocusNode,
                         textInputAction: TextInputAction.search,
                         style: const TextStyle(
-                          fontSize: 22,
+                          fontSize: AppFonts.sizeXL,
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 2,
@@ -401,7 +402,7 @@ class SearchKeyboardViewState extends State<SearchKeyboardView> {
                           hintText: '输入关键词搜索...',
                           hintStyle: const TextStyle(
                             color: Colors.white24,
-                            fontSize: 22,
+                            fontSize: AppFonts.sizeXL,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 2,
                           ),
@@ -563,8 +564,8 @@ class SearchKeyboardViewState extends State<SearchKeyboardView> {
               const Text(
                 '热门搜索',
                 style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 15,
+                  color: AppColors.textTertiary,
+                  fontSize: AppFonts.sizeLG,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -579,7 +580,7 @@ class SearchKeyboardViewState extends State<SearchKeyboardView> {
                 ? const Center(
                     child: Text(
                       '暂无热搜',
-                      style: TextStyle(color: Colors.white38),
+                      style: TextStyle(color: AppColors.textDisabled),
                     ),
                   )
                 : ListView.builder(
@@ -630,13 +631,13 @@ class SearchKeyboardViewState extends State<SearchKeyboardView> {
           // 标题和清除按钮
           Row(
             children: [
-              const Icon(Icons.history, color: Colors.white54, size: 16),
+              const Icon(Icons.history, color: AppColors.textHint, size: 16),
               const SizedBox(width: 6),
               const Text(
                 '搜索历史',
                 style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 15,
+                  color: AppColors.textTertiary,
+                  fontSize: AppFonts.sizeLG,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -798,15 +799,15 @@ class _ClearButtonState extends State<_ClearButton> {
             children: [
               Icon(
                 Icons.delete_outline,
-                color: _isFocused ? Colors.white : Colors.white38,
+                color: _isFocused ? Colors.white : AppColors.textDisabled,
                 size: 14,
               ),
               const SizedBox(width: 4),
               Text(
                 '清除',
                 style: TextStyle(
-                  color: _isFocused ? Colors.white : Colors.white38,
-                  fontSize: 12,
+                  color: _isFocused ? Colors.white : AppColors.textDisabled,
+                  fontSize: AppFonts.sizeSM,
                 ),
               ),
             ],
@@ -907,7 +908,7 @@ class _HotSearchItemState extends State<_HotSearchItem> {
                     color: _isFocused
                         ? Colors.white
                         : _getRankColor(widget.item.rank),
-                    fontSize: 11,
+                    fontSize: AppFonts.sizeXS,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -918,11 +919,11 @@ class _HotSearchItemState extends State<_HotSearchItem> {
                 child: Text(
                   widget.item.showName,
                   style: TextStyle(
-                    color: _isFocused ? Colors.white : Colors.white70,
-                    fontSize: 14,
+                    color: _isFocused ? Colors.white : AppColors.textTertiary,
+                    fontSize: AppFonts.sizeMD,
                     fontWeight: _isFocused
                         ? FontWeight.bold
-                        : FontWeight.normal,
+                        : AppFonts.regular,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -1011,18 +1012,18 @@ class _HistoryItemState extends State<_HistoryItem> {
               Icon(
                 Icons.history,
                 size: 16,
-                color: _isFocused ? Colors.white : Colors.white54,
+                color: _isFocused ? Colors.white : AppColors.textHint,
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   widget.text,
                   style: TextStyle(
-                    color: _isFocused ? Colors.white : Colors.white70,
-                    fontSize: 14,
+                    color: _isFocused ? Colors.white : AppColors.textTertiary,
+                    fontSize: AppFonts.sizeMD,
                     fontWeight: _isFocused
                         ? FontWeight.bold
-                        : FontWeight.normal,
+                        : AppFonts.regular,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -1103,18 +1104,18 @@ class _SuggestionItemState extends State<_SuggestionItem> {
               Icon(
                 Icons.search,
                 size: 14,
-                color: _isFocused ? Colors.white : Colors.white54,
+                color: _isFocused ? Colors.white : AppColors.textHint,
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   widget.text,
                   style: TextStyle(
-                    color: _isFocused ? Colors.white : Colors.white70,
-                    fontSize: 14,
+                    color: _isFocused ? Colors.white : AppColors.textTertiary,
+                    fontSize: AppFonts.sizeMD,
                     fontWeight: _isFocused
                         ? FontWeight.bold
-                        : FontWeight.normal,
+                        : AppFonts.regular,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),

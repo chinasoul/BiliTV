@@ -44,7 +44,7 @@ Future<void> main() async {
 
 class BtApp extends StatelessWidget {
   const BtApp({super.key});
-  static const double _baseFontScaleMultiplier = 1.1;
+  static const double _baseFontScaleMultiplier = 1.0;
 
   @override
   Widget build(BuildContext context) {

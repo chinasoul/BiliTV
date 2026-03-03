@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../services/settings_service.dart';
 import '../core/focus/focus_navigation.dart';
 import 'vip_avatar_badge.dart';
+import 'package:bili_tv_app/config/app_style.dart';
 
 /// 侧边栏焦点项组件
 ///
@@ -119,13 +120,13 @@ class TvFocusableItem extends StatelessWidget {
               width: 36,
               height: 36,
               color: Colors.grey[700],
-              child: const Icon(Icons.person, size: 20, color: Colors.white54),
+              child: const Icon(Icons.person, size: 20, color: AppColors.textHint),
             ),
             errorWidget: (_, _, _) => Container(
               width: 36,
               height: 36,
               color: Colors.grey[700],
-              child: const Icon(Icons.person, size: 20, color: Colors.white54),
+              child: const Icon(Icons.person, size: 20, color: AppColors.textHint),
             ),
           ),
         ),

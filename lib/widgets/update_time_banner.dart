@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/settings_service.dart';
+import 'package:bili_tv_app/config/app_style.dart';
 
 /// 更新时间横幅组件
 ///
@@ -102,8 +103,8 @@ class _UpdateTimeBannerState extends State<UpdateTimeBanner> {
             widget.timeText,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
+              fontSize: AppFonts.sizeMD,
+              fontWeight: AppFonts.medium,
             ),
           ),
         ),

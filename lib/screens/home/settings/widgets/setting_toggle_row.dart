@@ -90,8 +90,9 @@ class SettingToggleRow extends StatelessWidget {
                             Text(
                               label,
                               style: TextStyle(
-                                color: isFocused ? Colors.white : Colors.white70,
+                                color: isFocused ? AppColors.textPrimary : AppColors.textSecondary,
                                 fontSize: AppFonts.sizeMD,
+                                fontWeight: AppFonts.medium,
                               ),
                             ),
                             if (subtitleWidget != null)
@@ -105,8 +106,8 @@ class SettingToggleRow extends StatelessWidget {
                                 child: Text(
                                   subtitle!,
                                   style: const TextStyle(
-                                    color: Colors.white38,
-                                    fontSize: 12,
+                                    color: AppColors.textHint,
+                                    fontSize: AppFonts.sizeSM,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,

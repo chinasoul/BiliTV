@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../services/auth_service.dart';
 import '../../services/settings_service.dart';
 import '../../widgets/vip_avatar_badge.dart';
+import 'package:bili_tv_app/config/app_style.dart';
 
 /// 个人资料页面 (登录后显示)
 class ProfileView extends StatefulWidget {
@@ -44,11 +45,11 @@ class ProfileViewState extends State<ProfileView> {
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF2A2A2A),
         title: Text(title, style: const TextStyle(color: Colors.white)),
-        content: Text(message, style: const TextStyle(color: Colors.white70)),
+        content: Text(message, style: const TextStyle(color: AppColors.textTertiary)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('取消', style: TextStyle(color: Colors.white54)),
+            child: const Text('取消', style: TextStyle(color: AppColors.textHint)),
           ),
           TextButton(
             autofocus: true,
@@ -72,7 +73,7 @@ class ProfileViewState extends State<ProfileView> {
         color: Colors.grey[700],
         shape: BoxShape.circle,
       ),
-      child: const Icon(Icons.person, size: 48, color: Colors.white54),
+      child: const Icon(Icons.person, size: 48, color: AppColors.textHint),
     );
   }
 
@@ -113,7 +114,7 @@ class ProfileViewState extends State<ProfileView> {
                     color: AuthService.isVip
                         ? SettingsService.themeColor
                         : Colors.white,
-                    fontSize: 22,
+                    fontSize: AppFonts.sizeXL,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -122,7 +123,7 @@ class ProfileViewState extends State<ProfileView> {
                 // UID
                 Text(
                   'UID: ${AuthService.mid ?? ""}',
-                  style: const TextStyle(color: Colors.white54, fontSize: 14),
+                  style: const TextStyle(color: AppColors.textHint, fontSize: AppFonts.sizeMD),
                 ),
                 const SizedBox(height: 24),
 
@@ -142,7 +143,7 @@ class ProfileViewState extends State<ProfileView> {
                   '个人空间信息将在后续版本完善',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.3),
-                    fontSize: 12,
+                    fontSize: AppFonts.sizeSM,
                   ),
                 ),
 
@@ -180,7 +181,7 @@ class ProfileViewState extends State<ProfileView> {
                             '退出登录',
                             style: TextStyle(
                               color: isFocused ? Colors.white : Colors.red[300],
-                              fontSize: 16,
+                              fontSize: AppFonts.sizeLG,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -204,14 +205,14 @@ class ProfileViewState extends State<ProfileView> {
           value,
           style: const TextStyle(
             color: Colors.white,
-            fontSize: 18,
+            fontSize: AppFonts.sizeXL,
             fontWeight: FontWeight.bold,
           ),
         ),
         const SizedBox(height: 4),
         Text(
           label,
-          style: const TextStyle(color: Colors.white54, fontSize: 13),
+          style: const TextStyle(color: AppColors.textHint, fontSize: AppFonts.sizeSM),
         ),
       ],
     );

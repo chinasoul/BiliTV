@@ -285,15 +285,15 @@ class LiveTabState extends State<LiveTab> {
                 children: [
                   Icon(
                     Icons.expand_more,
-                    color: isFocused ? Colors.white : Colors.white54,
+                    color: isFocused ? Colors.white : AppColors.textHint,
                     size: 20,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     '已加载 ${rooms.length} 条，按确认键加载更多',
                     style: TextStyle(
-                      color: isFocused ? Colors.white : Colors.white54,
-                      fontSize: 14,
+                      color: isFocused ? Colors.white : AppColors.textHint,
+                      fontSize: AppFonts.sizeMD,
                     ),
                   ),
                 ],
@@ -362,8 +362,8 @@ class LiveTabState extends State<LiveTab> {
                     child: Text(
                       "暂无开播的主播",
                       style: TextStyle(
-                        color: Colors.white54,
-                        fontSize: 24,
+                        color: AppColors.textHint,
+                        fontSize: AppFonts.sizeXXL,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -566,14 +566,14 @@ class _LiveCategoryTab extends StatelessWidget {
                       label,
                       style: TextStyle(
                         color: f
-                            ? Colors.white
+                            ? AppColors.textPrimary
                             : (isSelected
                                   ? SettingsService.themeColor
-                                  : Colors.grey),
+                                  : AppColors.textTertiary),
                         fontSize: TabStyle.tabFontSize,
                         fontWeight: f || isSelected
-                            ? FontWeight.bold
-                            : FontWeight.normal,
+                            ? AppFonts.bold
+                            : AppFonts.medium,
                         height: TabStyle.tabLineHeight,
                       ),
                     ),

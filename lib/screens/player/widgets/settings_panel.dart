@@ -140,13 +140,13 @@ class _SettingsPanelState extends State<SettingsPanel> {
                     title,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 20,
+                      fontSize: AppFonts.sizeXL,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const Spacer(),
                   if (widget.menuType == SettingsMenuType.main)
-                    const Icon(Icons.settings, color: Colors.white54),
+                    const Icon(Icons.settings, color: AppColors.textHint),
                 ],
               ),
             ),
@@ -219,7 +219,7 @@ class _SettingsPanelState extends State<SettingsPanel> {
             '仅对当前视频生效，全局默认值请在 设置→弹幕设置 中修改',
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.4),
-              fontSize: 12,
+              fontSize: AppFonts.sizeSM,
             ),
           ),
         ),
@@ -390,10 +390,10 @@ class _SettingsPanelState extends State<SettingsPanel> {
                         color: isFocused
                             ? Colors.white
                             : Colors.white.withValues(alpha: 0.9),
-                        fontSize: 15,
+                        fontSize: AppFonts.sizeLG,
                         fontWeight: isFocused
                             ? FontWeight.bold
-                            : FontWeight.normal,
+                            : AppFonts.regular,
                       ),
                     ),
                     if (value.isNotEmpty) ...[
@@ -402,7 +402,7 @@ class _SettingsPanelState extends State<SettingsPanel> {
                         value,
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.6),
-                          fontSize: 13,
+                          fontSize: AppFonts.sizeSM,
                         ),
                       ),
                     ],

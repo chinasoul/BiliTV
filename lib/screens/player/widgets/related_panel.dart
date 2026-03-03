@@ -190,7 +190,7 @@ class _RelatedPanelState extends State<RelatedPanel> {
                       '更多视频',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 18,
+                        fontSize: AppFonts.sizeXL,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -295,7 +295,7 @@ class _RelatedPanelState extends State<RelatedPanel> {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: isFocused ? Colors.white : Colors.grey[300],
-                    fontSize: 14,
+                    fontSize: AppFonts.sizeMD,
                   ),
                 ),
                 SizedBox(height: metaGap),
@@ -307,7 +307,7 @@ class _RelatedPanelState extends State<RelatedPanel> {
                   ].join(' · '),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                  style: TextStyle(color: Colors.grey[500], fontSize: AppFonts.sizeSM),
                 ),
               ],
             ),

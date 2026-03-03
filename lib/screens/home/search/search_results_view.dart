@@ -201,7 +201,7 @@ class _SearchResultsViewState extends State<SearchResultsView> {
             const SizedBox(height: 20),
             const Text(
               '未找到相关视频',
-              style: TextStyle(color: Colors.white38, fontSize: 16),
+              style: TextStyle(color: AppColors.textDisabled, fontSize: AppFonts.sizeLG),
             ),
             const SizedBox(height: 20),
             // 可聚焦的返回按钮
@@ -309,7 +309,7 @@ class _SearchResultsViewState extends State<SearchResultsView> {
                 Text(
                   '搜索结果: ${widget.query}',
                   style: const TextStyle(
-                    fontSize: 20,
+                    fontSize: AppFonts.sizeXL,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                   ),
@@ -405,10 +405,10 @@ class _SortButtonState extends State<_SortButton> {
           widget.label,
           style: TextStyle(
             color: Colors.white,
-            fontSize: 14,
+            fontSize: AppFonts.sizeMD,
             fontWeight: widget.isSelected || _isFocused
                 ? FontWeight.bold
-                : FontWeight.normal,
+                : AppFonts.regular,
           ),
         ),
       ),
@@ -470,15 +470,15 @@ class _BackToSearchButtonState extends State<_BackToSearchButton> {
               Icon(
                 Icons.arrow_back,
                 size: 18,
-                color: _isFocused ? Colors.white : Colors.white70,
+                color: _isFocused ? Colors.white : AppColors.textTertiary,
               ),
               const SizedBox(width: 8),
               Text(
                 '返回重新搜索',
                 style: TextStyle(
-                  color: _isFocused ? Colors.white : Colors.white70,
-                  fontSize: 15,
-                  fontWeight: _isFocused ? FontWeight.bold : FontWeight.normal,
+                  color: _isFocused ? Colors.white : AppColors.textTertiary,
+                  fontSize: AppFonts.sizeLG,
+                  fontWeight: _isFocused ? FontWeight.bold : AppFonts.regular,
                 ),
               ),
             ],

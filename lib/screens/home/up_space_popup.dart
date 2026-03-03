@@ -490,8 +490,8 @@ class _UpSpacePopupState extends State<UpSpacePopup> {
                                 child: Text(
                                   '该 UP 暂无投稿视频',
                                   style: TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 20,
+                                    color: AppColors.textTertiary,
+                                    fontSize: AppFonts.sizeXL,
                                   ),
                                 ),
                               )
@@ -602,12 +602,12 @@ class _UpSpacePopupState extends State<UpSpacePopup> {
                 placeholder: (_, _) => Container(
                   color: Colors.white12,
                   alignment: Alignment.center,
-                  child: const Icon(Icons.person, color: Colors.white54),
+                  child: const Icon(Icons.person, color: AppColors.textHint),
                 ),
                 errorWidget: (_, _, _) => Container(
                   color: Colors.white12,
                   alignment: Alignment.center,
-                  child: const Icon(Icons.person, color: Colors.white54),
+                  child: const Icon(Icons.person, color: AppColors.textHint),
                 ),
               ),
             ),
@@ -627,7 +627,7 @@ class _UpSpacePopupState extends State<UpSpacePopup> {
                           child: Text(
                             widget.user.uname,
                             style: const TextStyle(
-                              fontSize: 20,
+                              fontSize: AppFonts.sizeXL,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
                             ),
@@ -723,7 +723,7 @@ class _UpSpacePopupState extends State<UpSpacePopup> {
         'LV$level',
         style: TextStyle(
           color: color,
-          fontSize: 10,
+          fontSize: AppFonts.sizeXS,
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -738,7 +738,7 @@ class _UpSpacePopupState extends State<UpSpacePopup> {
           label,
           style: TextStyle(
             color: Colors.white.withValues(alpha: 0.6),
-            fontSize: 12,
+            fontSize: AppFonts.sizeSM,
           ),
         ),
         const SizedBox(width: 3),
@@ -746,8 +746,8 @@ class _UpSpacePopupState extends State<UpSpacePopup> {
           isLoading ? '--' : _formatNumber(value),
           style: const TextStyle(
             color: Colors.white,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
+            fontSize: AppFonts.sizeSM,
+            fontWeight: AppFonts.semibold,
           ),
         ),
       ],
@@ -786,16 +786,16 @@ class _UpSpacePopupState extends State<UpSpacePopup> {
           children: [
             Icon(
               index == 0 ? Icons.schedule : Icons.whatshot,
-              color: isFocused || isActive ? Colors.white : Colors.white54,
+              color: isFocused || isActive ? Colors.white : AppColors.textHint,
               size: 14,
             ),
             const SizedBox(width: 4),
             Text(
               label,
               style: TextStyle(
-                color: isFocused || isActive ? Colors.white : Colors.white54,
-                fontSize: 13,
-                fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+                color: isFocused || isActive ? Colors.white : AppColors.textHint,
+                fontSize: AppFonts.sizeSM,
+                fontWeight: isActive ? AppFonts.semibold : AppFonts.regular,
               ),
             ),
           ],
@@ -840,8 +840,8 @@ class _UpSpacePopupState extends State<UpSpacePopup> {
               label,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
+                fontSize: AppFonts.sizeSM,
+                fontWeight: AppFonts.semibold,
               ),
             ),
           ],
@@ -901,7 +901,7 @@ class _UpSpacePopupState extends State<UpSpacePopup> {
                   placeholder: (_, _) => Container(color: Colors.grey[850]),
                   errorWidget: (_, _, _) => Container(
                     color: Colors.grey[850],
-                    child: const Icon(Icons.error, color: Colors.white54),
+                    child: const Icon(Icons.error, color: AppColors.textHint),
                   ),
                 ),
                 // 时长
@@ -919,7 +919,7 @@ class _UpSpacePopupState extends State<UpSpacePopup> {
                     ),
                     child: Text(
                       video.durationFormatted,
-                      style: const TextStyle(color: Colors.white, fontSize: 11),
+                      style: const TextStyle(color: Colors.white, fontSize: AppFonts.sizeXS),
                     ),
                   ),
                 ),
@@ -933,7 +933,7 @@ class _UpSpacePopupState extends State<UpSpacePopup> {
           video.title,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(color: Colors.white, fontSize: 13),
+          style: const TextStyle(color: Colors.white, fontSize: AppFonts.sizeSM),
         ),
         const SizedBox(height: 2),
         // 播放量
@@ -941,7 +941,7 @@ class _UpSpacePopupState extends State<UpSpacePopup> {
           '${video.viewFormatted}播放',
           style: TextStyle(
             color: Colors.white.withValues(alpha: 0.6),
-            fontSize: 11,
+            fontSize: AppFonts.sizeXS,
           ),
         ),
       ],

@@ -155,7 +155,7 @@ class ControlsOverlay extends StatelessWidget {
                         text: video.title.isNotEmpty ? video.title : '加载中...',
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 22,
+                          fontSize: AppFonts.sizeXL,
                           fontWeight: FontWeight.bold,
                         ),
                         blankSpace: 50.0,
@@ -169,7 +169,7 @@ class ControlsOverlay extends StatelessWidget {
                   _buildVideoInfoText(),
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.7),
-                    fontSize: 18,
+                    fontSize: AppFonts.sizeXL,
                   ),
                 ),
               ],
@@ -216,7 +216,7 @@ class ControlsOverlay extends StatelessWidget {
                       '${_formatDuration(previewPosition ?? controller.value.position)} / ${_formatDuration(controller.value.duration)}',
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 22,
+                        fontSize: AppFonts.sizeXL,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -435,8 +435,8 @@ class ControlsOverlay extends StatelessWidget {
                             softWrap: false,
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
+                              fontSize: AppFonts.sizeMD,
+                              fontWeight: AppFonts.semibold,
                             ),
                           ),
                         ),

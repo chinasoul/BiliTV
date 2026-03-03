@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/plugin/plugin_types.dart';
 import '../models/video.dart';
+import 'package:bili_tv_app/config/app_style.dart';
 
 class AdFilterPlugin extends FeedPlugin {
   @override
@@ -415,7 +416,7 @@ class _AdFilterSettingsState extends State<_AdFilterSettings> {
               '过滤开关',
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 18,
+                fontSize: AppFonts.sizeXL,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -428,7 +429,7 @@ class _AdFilterSettingsState extends State<_AdFilterSettings> {
               ),
               subtitle: const Text(
                 '隐藏商业合作、恰饭、推广等内容',
-                style: TextStyle(color: Colors.white70),
+                style: TextStyle(color: AppColors.textTertiary),
               ),
               value: config.filterSponsored,
               onChanged: (val) {
@@ -440,7 +441,7 @@ class _AdFilterSettingsState extends State<_AdFilterSettings> {
               title: const Text('过滤标题党', style: TextStyle(color: Colors.white)),
               subtitle: const Text(
                 '隐藏震惊体、夸张标题视频',
-                style: TextStyle(color: Colors.white70),
+                style: TextStyle(color: AppColors.textTertiary),
               ),
               value: config.filterClickbait,
               onChanged: (val) {
@@ -455,7 +456,7 @@ class _AdFilterSettingsState extends State<_AdFilterSettings> {
               ),
               subtitle: Text(
                 '隐藏播放量低于 ${config.minViewCount} 的视频',
-                style: const TextStyle(color: Colors.white70),
+                style: const TextStyle(color: AppColors.textTertiary),
               ),
               value: config.filterLowQuality,
               onChanged: (val) {
@@ -471,7 +472,7 @@ class _AdFilterSettingsState extends State<_AdFilterSettings> {
               'UP主拉黑',
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 18,
+                fontSize: AppFonts.sizeXL,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -503,7 +504,7 @@ class _AdFilterSettingsState extends State<_AdFilterSettings> {
               const Text(
                 '暂无拉黑的UP主',
                 style: TextStyle(
-                  color: Colors.white38,
+                  color: AppColors.textDisabled,
                   fontStyle: FontStyle.italic,
                 ),
               )
@@ -533,7 +534,7 @@ class _AdFilterSettingsState extends State<_AdFilterSettings> {
               '自定义屏蔽关键词',
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 18,
+                fontSize: AppFonts.sizeXL,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -565,7 +566,7 @@ class _AdFilterSettingsState extends State<_AdFilterSettings> {
               const Text(
                 '暂无自定义屏蔽词',
                 style: TextStyle(
-                  color: Colors.white38,
+                  color: AppColors.textDisabled,
                   fontStyle: FontStyle.italic,
                 ),
               )
@@ -591,7 +592,7 @@ class _AdFilterSettingsState extends State<_AdFilterSettings> {
               '已屏蔽UP主 (MID)',
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 18,
+                fontSize: AppFonts.sizeXL,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -600,7 +601,7 @@ class _AdFilterSettingsState extends State<_AdFilterSettings> {
               const Text(
                 '暂无通过MID屏蔽的UP主',
                 style: TextStyle(
-                  color: Colors.white38,
+                  color: AppColors.textDisabled,
                   fontStyle: FontStyle.italic,
                 ),
               )

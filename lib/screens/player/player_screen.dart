@@ -26,6 +26,7 @@ import '../../services/codec_service.dart';
 import 'mixins/player_state_mixin.dart';
 import 'mixins/player_action_mixin.dart';
 import 'mixins/player_event_mixin.dart';
+import 'package:bili_tv_app/config/app_style.dart';
 
 /// 视频播放器页面 (使用 Mixin 重构)
 class PlayerScreen extends StatefulWidget {
@@ -228,7 +229,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                           '${_formatSeekTime(previewPosition!)} / ${_formatSeekTime(videoController!.value.duration)}',
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 24,
+                            fontSize: AppFonts.sizeXXL,
                             fontWeight: FontWeight.bold,
                             shadows: [
                               Shadow(
@@ -245,8 +246,8 @@ class _PlayerScreenState extends State<PlayerScreen>
                           child: Text(
                             '按确定跳转',
                             style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 12,
+                              color: AppColors.textTertiary,
+                              fontSize: AppFonts.sizeSM,
                             ),
                           ),
                         ),
@@ -274,7 +275,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                       '${_formatSeekTime(previewPosition!)} / ${_formatSeekTime(videoController!.value.duration)}',
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 28,
+                        fontSize: AppFonts.sizeXXL,
                         fontWeight: FontWeight.bold,
                         shadows: [
                           Shadow(
@@ -390,7 +391,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                       '播放完成后：下一集',
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.6),
-                        fontSize: 12,
+                        fontSize: AppFonts.sizeSM,
                       ),
                     ),
                   ),
@@ -589,14 +590,14 @@ class _PlayerScreenState extends State<PlayerScreen>
     final renderPath = _buildRenderPathText();
 
     TextStyle labelStyle = const TextStyle(
-      color: Colors.white70,
-      fontSize: 15,
-      fontWeight: FontWeight.w500,
+      color: AppColors.textTertiary,
+      fontSize: AppFonts.sizeLG,
+      fontWeight: AppFonts.medium,
     );
     TextStyle valueStyle = const TextStyle(
       color: Colors.white,
-      fontSize: 16,
-      fontWeight: FontWeight.w600,
+      fontSize: AppFonts.sizeLG,
+      fontWeight: AppFonts.semibold,
     );
 
     Widget row(String label, String value) {
@@ -628,7 +629,7 @@ class _PlayerScreenState extends State<PlayerScreen>
             '视频数据实时监测',
             style: TextStyle(
               color: Colors.white,
-              fontSize: 17,
+              fontSize: AppFonts.sizeLG,
               fontWeight: FontWeight.bold,
             ),
           ),

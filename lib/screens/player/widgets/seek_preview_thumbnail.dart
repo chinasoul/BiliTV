@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../models/videoshot.dart';
 import '../../../services/api/videoshot_api.dart';
+import 'package:bili_tv_app/config/app_style.dart';
 
 /// 快进预览缩略图 Widget
 /// 从雪碧图中裁剪并显示指定帧
@@ -140,7 +141,7 @@ class _SeekPreviewThumbnailState extends State<SeekPreviewThumbnail> {
                   height: 24,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: Colors.white54,
+                    color: AppColors.textHint,
                   ),
                 ),
               ),
@@ -151,7 +152,7 @@ class _SeekPreviewThumbnailState extends State<SeekPreviewThumbnail> {
               color: Colors.grey[800],
               child: const Icon(
                 Icons.image_not_supported,
-                color: Colors.white54,
+                color: AppColors.textHint,
                 size: 32,
               ),
             ),

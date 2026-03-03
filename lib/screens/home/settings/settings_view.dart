@@ -273,14 +273,14 @@ class SettingsViewState extends State<SettingsView> {
                       label,
                       style: TextStyle(
                         color: isFocused
-                            ? Colors.white
+                            ? AppColors.textPrimary
                             : (isSelected
                                   ? SettingsService.themeColor
-                                  : Colors.grey),
+                                  : AppColors.textTertiary),
                         fontSize: TabStyle.tabFontSize,
                         fontWeight: isFocused || isSelected
-                            ? FontWeight.bold
-                            : FontWeight.normal,
+                            ? AppFonts.bold
+                            : AppFonts.medium,
                         height: TabStyle.tabLineHeight,
                       ),
                     ),

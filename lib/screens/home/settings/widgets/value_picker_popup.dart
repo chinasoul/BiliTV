@@ -386,11 +386,11 @@ class _ValuePickerContentState extends State<_ValuePickerContent>
                                                             ? Colors.white
                                                             : isSelected
                                                             ? themeColor
-                                                            : Colors.white70,
+                                                            : AppColors.textTertiary,
                                                         fontSize: AppFonts.sizeMD,
                                                         fontWeight: isSelected
                                                             ? FontWeight.bold
-                                                            : FontWeight.normal,
+                                                            : AppFonts.regular,
                                                       ),
                                                     ),
                                                     if (subtitle.trim().isNotEmpty)
@@ -403,9 +403,9 @@ class _ValuePickerContentState extends State<_ValuePickerContent>
                                                           subtitle,
                                                           style: TextStyle(
                                                             color: isFocused
-                                                                ? Colors.white70
-                                                                : Colors.white38,
-                                                            fontSize: 11,
+                                                                ? AppColors.textTertiary
+                                                                : AppColors.textDisabled,
+                                                            fontSize: AppFonts.sizeXS,
                                                           ),
                                                           maxLines: 1,
                                                           overflow:

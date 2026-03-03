@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/plugin/plugin_types.dart';
 import '../services/local_server.dart';
+import 'package:bili_tv_app/config/app_style.dart';
 
 /// 弹幕屏蔽插件
 ///
@@ -213,7 +214,7 @@ class _DanmakuBlockSettingsState extends State<_DanmakuBlockSettings> {
                 Expanded(
                   child: Text(
                     '推荐使用手机访问 $serverAddress 进行管理',
-                    style: const TextStyle(color: Colors.white70, fontSize: 13),
+                    style: const TextStyle(color: AppColors.textTertiary, fontSize: AppFonts.sizeSM),
                   ),
                 ),
               ],
@@ -226,7 +227,7 @@ class _DanmakuBlockSettingsState extends State<_DanmakuBlockSettings> {
             title: const Text('启用弹幕屏蔽', style: TextStyle(color: Colors.white)),
             subtitle: const Text(
               '屏蔽包含指定关键词的弹幕',
-              style: TextStyle(color: Colors.white70),
+              style: TextStyle(color: AppColors.textTertiary),
             ),
             value: config.enableFilter,
             onChanged: (val) {
@@ -278,14 +279,14 @@ class _DanmakuBlockSettingsState extends State<_DanmakuBlockSettings> {
           title,
           style: const TextStyle(
             color: Colors.white,
-            fontSize: 18,
+            fontSize: AppFonts.sizeXL,
             fontWeight: FontWeight.bold,
           ),
         ),
         const SizedBox(height: 4),
         Text(
           subtitle,
-          style: const TextStyle(color: Colors.white54, fontSize: 12),
+          style: const TextStyle(color: AppColors.textHint, fontSize: AppFonts.sizeSM),
         ),
         const SizedBox(height: 12),
 
@@ -335,7 +336,7 @@ class _DanmakuBlockSettingsState extends State<_DanmakuBlockSettings> {
             ? const Text(
                 '暂无屏蔽词',
                 style: TextStyle(
-                  color: Colors.white38,
+                  color: AppColors.textDisabled,
                   fontStyle: FontStyle.italic,
                 ),
               )

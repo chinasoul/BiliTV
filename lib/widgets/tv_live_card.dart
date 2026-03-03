@@ -4,6 +4,7 @@ import '../services/settings_service.dart';
 import '../utils/image_url_utils.dart';
 import 'base_tv_card.dart';
 import 'conditional_marquee.dart';
+import 'package:bili_tv_app/config/app_style.dart';
 
 class TvLiveCard extends StatelessWidget {
   final Map<String, dynamic> room;
@@ -40,7 +41,7 @@ class TvLiveCard extends StatelessWidget {
   Widget _buildFocusedTitle(String title) {
     const focusedStyle = TextStyle(
       color: Colors.white,
-      fontSize: 14,
+      fontSize: AppFonts.sizeMD,
       fontWeight: FontWeight.bold,
     );
     final mode = SettingsService.focusedTitleDisplayMode;
@@ -122,7 +123,7 @@ class TvLiveCard extends StatelessWidget {
                     '直播中',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 10,
+                      fontSize: AppFonts.sizeXS,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -155,11 +156,11 @@ class TvLiveCard extends StatelessWidget {
             bottom: 6,
             child: Row(
               children: [
-                const Icon(Icons.person, size: 12, color: Colors.white70),
+                const Icon(Icons.person, size: 12, color: AppColors.textTertiary),
                 const SizedBox(width: 4),
                 Text(
                   onlineText,
-                  style: const TextStyle(color: Colors.white, fontSize: 11),
+                  style: const TextStyle(color: Colors.white, fontSize: AppFonts.sizeXS),
                 ),
               ],
             ),
@@ -184,9 +185,9 @@ class TvLiveCard extends StatelessWidget {
                   : Text(
                       title,
                       style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
+                        color: AppColors.textSecondary,
+                        fontSize: AppFonts.sizeMD,
+                        fontWeight: AppFonts.semibold,
                       ),
                       maxLines:
                           SettingsService.focusedTitleDisplayMode ==
@@ -203,13 +204,13 @@ class TvLiveCard extends StatelessWidget {
                 const Icon(
                   Icons.person_outline,
                   size: 12,
-                  color: Colors.white38,
+                  color: AppColors.textTertiary,
                 ),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
                     uname,
-                    style: const TextStyle(color: Colors.white38, fontSize: 12),
+                    style: const TextStyle(color: AppColors.textTertiary, fontSize: AppFonts.sizeSM),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),

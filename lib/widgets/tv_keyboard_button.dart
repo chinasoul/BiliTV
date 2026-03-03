@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:bili_tv_app/core/focus/focus_navigation.dart';
 import 'package:bili_tv_app/services/settings_service.dart';
+import 'package:bili_tv_app/config/app_style.dart';
 
 /// 判断是否为按键按下或重复事件
 bool _isKeyDownOrRepeat(KeyEvent event) =>
@@ -73,8 +74,8 @@ class _TvKeyboardButtonState extends State<TvKeyboardButton> {
               child: Text(
                 widget.label,
                 style: TextStyle(
-                  color: _isFocused ? Colors.white : Colors.white70,
-                  fontSize: 18,
+                  color: _isFocused ? Colors.white : AppColors.textTertiary,
+                  fontSize: AppFonts.sizeXL,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -151,8 +152,8 @@ class _TvActionButtonState extends State<TvActionButton> {
               child: Text(
                 widget.label,
                 style: TextStyle(
-                  color: _isFocused ? Colors.white : Colors.white70,
-                  fontSize: 18,
+                  color: _isFocused ? Colors.white : AppColors.textTertiary,
+                  fontSize: AppFonts.sizeXL,
                   fontWeight: FontWeight.bold,
                 ),
               ),

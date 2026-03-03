@@ -5,6 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../../services/bilibili_api.dart';
 import '../../../models/video.dart';
 import 'package:bili_tv_app/services/settings_service.dart';
+import 'package:bili_tv_app/config/app_style.dart';
 
 /// 点赞/投币/收藏 按钮组件
 class ActionButtons extends StatefulWidget {
@@ -248,7 +249,7 @@ class _ActionButtonsState extends State<ActionButtons> {
           const SizedBox(height: 4),
           Text(
             label,
-            style: TextStyle(color: color, fontSize: isFocused ? 14 : 12),
+            style: TextStyle(color: color, fontSize: isFocused ? AppFonts.sizeMD : AppFonts.sizeSM),
           ),
         ],
       ),
