@@ -60,9 +60,16 @@ abstract final class AppColors {
   /// 中等遮罩（聚焦提示等）
   static Color overlayMedium = Colors.white.withValues(alpha: 0.7);
 
+  /// 视频卡片底部渐变遮罩颜色（开发者选项可调）
+  static Color get videoCardOverlay =>
+      Colors.black.withValues(alpha: SettingsService.videoCardOverlayAlpha);
+
   // ── 主题色相关 ────────────────────────────────────────────
   /// 聚焦背景 alpha 值
   static const double focusAlpha = 0.6;
+
+  /// 评论项聚焦背景 alpha 值（开发者选项可调）
+  static double get commentFocusAlpha => SettingsService.commentFocusAlpha;
 
   /// 开关 active track alpha 值
   static const double switchActiveAlpha = 0.5;

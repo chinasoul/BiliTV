@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:bili_tv_app/utils/toast_utils.dart';
 import '../../../../services/settings_service.dart';
 import '../../../../config/app_style.dart';
 import '../../../../core/focus/focus_navigation.dart';
@@ -31,16 +32,17 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
   List<String> _categoryOrder = [];
   int _selectedCategoryOrderIndex = 0;
   bool _isDragging = false;
-  late List<FocusNode> _categoryOrderFocusNodes;
-  late List<FocusNode> _categoryToggleFocusNodes; // 分区开关焦点
-  late List<FocusNode> _themeColorFocusNodes; // 主题色焦点
+  List<FocusNode> _categoryOrderFocusNodes = [];
+  List<FocusNode> _categoryToggleFocusNodes = []; // 分区开关焦点
+  List<FocusNode> _themeColorFocusNodes = []; // 主题色焦点
 
   // 直播分区排序相关
   List<String> _liveCategoryOrder = [];
   int _selectedLiveCategoryOrderIndex = 0;
   bool _isLiveDragging = false;
-  late List<FocusNode> _liveCategoryOrderFocusNodes;
-  late List<FocusNode> _liveCategoryToggleFocusNodes;
+  List<FocusNode> _liveCategoryOrderFocusNodes = [];
+  List<FocusNode> _liveCategoryToggleFocusNodes = [];
+  final FocusNode _resetInterfaceFocusNode = FocusNode();
 
   static const categoryLabels = {
     'recommend': '推荐',
@@ -80,10 +82,26 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
     for (var node in _liveCategoryToggleFocusNodes) {
       node.dispose();
     }
+    _resetInterfaceFocusNode.dispose();
     super.dispose();
   }
 
   void _loadCategoryOrder() {
+    for (var node in _categoryOrderFocusNodes) {
+      node.dispose();
+    }
+    for (var node in _categoryToggleFocusNodes) {
+      node.dispose();
+    }
+    for (var node in _themeColorFocusNodes) {
+      node.dispose();
+    }
+    for (var node in _liveCategoryOrderFocusNodes) {
+      node.dispose();
+    }
+    for (var node in _liveCategoryToggleFocusNodes) {
+      node.dispose();
+    }
     _categoryOrder = SettingsService.categoryOrder;
     _categoryOrderFocusNodes = List.generate(
       _categoryOrder.length,
@@ -107,6 +125,77 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
       _liveCategoryOrder.length,
       (_) => FocusNode(),
     );
+  }
+
+  Future<bool> _confirmResetInterfaceSettings() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.7),
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.panelBackground,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text('重置界面设置'),
+        content: const Text('将恢复界面设置页（含分区开关与排序）的所有偏好为默认值，是否继续？'),
+        actions: [
+          TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ).copyWith(
+              backgroundColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.focused)) {
+                  return SettingsService.themeColor.withValues(alpha: 0.3);
+                }
+                return Colors.transparent;
+              }),
+            ),
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            autofocus: true,
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ).copyWith(
+              backgroundColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.focused)) {
+                  return SettingsService.themeColor.withValues(alpha: 0.3);
+                }
+                return Colors.transparent;
+              }),
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('确认'),
+          ),
+        ],
+      ),
+    );
+    return confirmed == true;
+  }
+
+  Future<void> _resetInterfaceSettings() async {
+    final confirmed = await _confirmResetInterfaceSettings();
+    if (!confirmed) return;
+    await SettingsService.resetInterfacePreferences();
+    if (!mounted) return;
+    _videoGridColumns = SettingsService.videoGridColumns;
+    _fontScale = SettingsService.fontScale;
+    _themeColorValue = SettingsService.themeColorValue;
+    _sidePanelWidthRatio = SettingsService.sidePanelWidthRatio;
+    _selectedCategoryOrderIndex = 0;
+    _selectedLiveCategoryOrderIndex = 0;
+    _isDragging = false;
+    _isLiveDragging = false;
+    _loadCategoryOrder();
+    setState(() {});
+    ToastUtils.show(context, '界面设置已重置');
   }
 
   Widget _buildTabSwitchPolicyDescription(TabSwitchPolicy mode) {
@@ -301,7 +390,6 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
             }
           },
         ),
-        const SizedBox(height: AppSpacing.settingItemGap),
         // 主题色
         Padding(
           padding: AppSpacing.settingSectionTitlePadding,
@@ -882,6 +970,7 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
 
                             if (event.logicalKey ==
                                 LogicalKeyboardKey.arrowDown) {
+                              _resetInterfaceFocusNode.requestFocus();
                               return KeyEventResult.handled;
                             }
 
@@ -996,6 +1085,18 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
                     );
                   },
                 ),
+        ),
+        const SizedBox(height: AppSpacing.settingItemGap),
+        SettingActionRow(
+          label: '重置本页设置',
+          value: '恢复界面设置页（含分区开关与排序）的默认偏好',
+          buttonLabel: '重置',
+          autofocus: false,
+          focusNode: _resetInterfaceFocusNode,
+          onMoveUp: null,
+          sidebarFocusNode: widget.sidebarFocusNode,
+          onTap: _resetInterfaceSettings,
+          isLast: true,
         ),
       ],
     );

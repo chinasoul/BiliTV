@@ -233,7 +233,7 @@ mixin PlayerActionMixin on PlayerStateMixin {
   }
 
   /// 隧道播放模式开启时，首次播放提示用户：若画面黑屏可去设置关闭。
-  /// 仅在 Android + 隧道模式开启 + 首次未提示过 时触发，整个应用生命周期只弹一次。
+  /// 仅在 Android + 隧道模式开启 + 尚未提示过 时触发；关闭再开启后会再次提示。
   void _showTunnelModeHintIfNeeded() {
     if (defaultTargetPlatform != TargetPlatform.android) return;
     if (!SettingsService.tunnelModeEnabled) return;
@@ -244,7 +244,7 @@ mixin PlayerActionMixin on PlayerStateMixin {
       if (videoController == null || !videoController!.value.isPlaying) return;
       ToastUtils.show(
         context,
-        '若画面黑屏，请到 设置→播放设置 关闭「隧道播放模式」',
+        '若黑屏，请关闭「隧道播放模式」',
         duration: const Duration(seconds: 4),
       );
       SettingsService.setTunnelModeHintShown(true);
@@ -1493,13 +1493,28 @@ mixin PlayerActionMixin on PlayerStateMixin {
     );
   }
 
-  void _exitPlayerAfterCompletion() {
-    // 与手动退出保持一致：先移除监听再暂停，避免闪现暂停指示。
+  void exitPlayer() {
+    // Keep manual close/back/completion behavior aligned to avoid focus
+    // or status glitches during route transitions.
     cancelPlayerListeners();
     videoController?.pause();
-    if (Navigator.of(context).canPop()) {
-      Navigator.of(context).pop();
-    }
+    _popByConfiguredDepth();
+  }
+
+  void _popByConfiguredDepth() {
+    final navigator = Navigator.of(context);
+    var remaining = widget.exitPopDepth;
+    navigator.popUntil((route) {
+      if (route.isFirst) return true;
+      if (remaining <= 0) return true;
+      remaining--;
+      return false;
+    });
+  }
+
+  void _exitPlayerAfterCompletion() {
+    // 与手动退出保持一致：按来源决定退出层级。
+    exitPlayer();
   }
 
   /// 视频播放完成回调

@@ -31,8 +31,13 @@ import 'package:bili_tv_app/config/app_style.dart';
 /// 视频播放器页面 (使用 Mixin 重构)
 class PlayerScreen extends StatefulWidget {
   final Video video;
+  final int exitPopDepth;
 
-  const PlayerScreen({super.key, required this.video});
+  const PlayerScreen({
+    super.key,
+    required this.video,
+    this.exitPopDepth = 1,
+  }) : assert(exitPopDepth >= 1);
 
   @override
   State<PlayerScreen> createState() => _PlayerScreenState();
@@ -298,7 +303,14 @@ class _PlayerScreenState extends State<PlayerScreen>
                       video: getDisplayVideo(),
                       controller: videoController!,
                       showControls: showControls,
-                      focusedIndex: focusedButtonIndex,
+                      focusedIndex:
+                          focusedButtonIndex.clamp(
+                            0,
+                            visibleControlButtonIndices.isNotEmpty
+                                ? visibleControlButtonIndices.length - 1
+                                : 0,
+                          ).toInt(),
+                      visibleControlIndices: visibleControlButtonIndices,
                       onPlayPause: togglePlayPause,
                       onSettings: () {
                         setState(() {
@@ -326,12 +338,15 @@ class _PlayerScreenState extends State<PlayerScreen>
                       onToggleStatsForNerds: toggleStatsForNerds,
                       isLoopMode: isLoopMode,
                       onToggleLoop: toggleLoopMode,
-                      onClose: () => Navigator.of(context).pop(),
+                      onClose: exitPlayer,
                       onControlTap: (index) {
                         if (!mounted) return;
+                        final visibleIndex = visibleControlButtonIndices.indexOf(
+                          index,
+                        );
                         setState(() {
                           showControls = true;
-                          focusedButtonIndex = index;
+                          focusedButtonIndex = visibleIndex >= 0 ? visibleIndex : 0;
                         });
                         activateControlButton(index);
                         startHideTimer();

@@ -272,6 +272,7 @@ class SettingsService {
   static Future<void> setTunnelModeEnabled(bool value) async {
     await init();
     await _prefs!.setBool(_tunnelModeEnabledKey, value);
+    if (!value) await _prefs!.setBool(_tunnelModeHintShownKey, false);
   }
 
   static const String _tunnelModeHintShownKey = 'tunnel_mode_hint_shown';
@@ -317,6 +318,7 @@ class SettingsService {
   static Future<void> setShowVideoDetailBeforePlay(bool value) async {
     await init();
     await _prefs!.setBool(_showVideoDetailKey, value);
+    if (!value) await _prefs!.setBool(_videoDetailHintShownKey, false);
   }
 
   static const String _videoDetailHintShownKey = 'video_detail_hint_shown';
@@ -493,6 +495,240 @@ class SettingsService {
       current.remove(name);
     }
     await setEnabledCategories(current);
+  }
+
+  // ==================== 播放器控制栏按钮设置 ====================
+  static const String _playerControlOrderKey = 'player_control_order';
+  static const String _enabledPlayerControlsKey = 'enabled_player_controls';
+  static const List<int> _defaultPlayerControlOrder = [
+    0, // 播放/暂停
+    1, // 评论
+    2, // 选集
+    3, // UP主
+    4, // 更多视频
+    5, // 设置
+    6, // 监测
+    7, // 互动操作
+    8, // 循环播放
+    9, // 视频详情
+    10, // 关闭播放器
+  ];
+
+  /// 获取播放器控制栏按钮顺序
+  static List<int> get playerControlOrder {
+    final saved = _prefs?.getStringList(_playerControlOrderKey);
+    if (saved != null && saved.isNotEmpty) {
+      final parsed = saved
+          .map((s) => int.tryParse(s))
+          .whereType<int>()
+          .where((i) => _defaultPlayerControlOrder.contains(i))
+          .toList();
+      final result = <int>[];
+      for (final index in parsed) {
+        if (!result.contains(index)) {
+          result.add(index);
+        }
+      }
+      for (final index in _defaultPlayerControlOrder) {
+        if (!result.contains(index)) {
+          result.add(index);
+        }
+      }
+      return result;
+    }
+    return List<int>.from(_defaultPlayerControlOrder);
+  }
+
+  /// 设置播放器控制栏按钮顺序
+  static Future<void> setPlayerControlOrder(List<int> order) async {
+    await init();
+    final sanitized = <int>[];
+    for (final index in order) {
+      if (_defaultPlayerControlOrder.contains(index) &&
+          !sanitized.contains(index)) {
+        sanitized.add(index);
+      }
+    }
+    for (final index in _defaultPlayerControlOrder) {
+      if (!sanitized.contains(index)) {
+        sanitized.add(index);
+      }
+    }
+    await _prefs!.setStringList(
+      _playerControlOrderKey,
+      sanitized.map((i) => i.toString()).toList(),
+    );
+  }
+
+  /// 获取已启用的播放器控制栏按钮（默认全部启用）
+  static Set<int> get enabledPlayerControls {
+    final saved = _prefs?.getStringList(_enabledPlayerControlsKey);
+    if (saved != null) {
+      final parsed = saved
+          .map((s) => int.tryParse(s))
+          .whereType<int>()
+          .where((i) => _defaultPlayerControlOrder.contains(i))
+          .toSet();
+      if (parsed.isNotEmpty) return parsed;
+    }
+    return _defaultPlayerControlOrder.toSet();
+  }
+
+  /// 设置启用的播放器控制栏按钮
+  static Future<void> setEnabledPlayerControls(Set<int> controls) async {
+    await init();
+    final sanitized = controls
+        .where((i) => _defaultPlayerControlOrder.contains(i))
+        .toSet();
+    await _prefs!.setStringList(
+      _enabledPlayerControlsKey,
+      sanitized.map((i) => i.toString()).toList(),
+    );
+  }
+
+  /// 检查播放器控制栏按钮是否启用
+  static bool isPlayerControlEnabled(int index) {
+    return enabledPlayerControls.contains(index);
+  }
+
+  /// 切换播放器控制栏按钮启用状态
+  static Future<void> togglePlayerControl(int index, bool enabled) async {
+    if (!_defaultPlayerControlOrder.contains(index)) return;
+    final current = enabledPlayerControls;
+    if (enabled) {
+      current.add(index);
+    } else {
+      current.remove(index);
+    }
+    await setEnabledPlayerControls(current);
+  }
+
+  /// 获取播放器中可见的控制栏按钮索引（按排序和启用状态过滤）
+  static List<int> get visiblePlayerControlIndices {
+    final enabled = enabledPlayerControls;
+    return playerControlOrder.where((index) => enabled.contains(index)).toList();
+  }
+
+  // ==================== 偏好重置 ====================
+  static const List<String> _playbackPreferenceKeys = [
+    _playbackPerformanceModeKey,
+    _playbackCompletionActionKey,
+    _showVideoDetailKey,
+    _videoDetailHintShownKey,
+    _showMiniProgressKey,
+    _hideControlsOnStartKey,
+    _seekPreviewModeKey,
+    _preferredCodecKey,
+    _tunnelModeEnabledKey,
+    _tunnelModeHintShownKey,
+    _preferredQualityKey,
+    _playerControlOrderKey,
+    _enabledPlayerControlsKey,
+  ];
+
+  static const List<String> _danmakuPreferenceKeys = [
+    _preferNativeDanmakuKey,
+    _danmakuEnabledKey,
+    _danmakuOpacityKey,
+    _danmakuFontSizeKey,
+    _danmakuAreaKey,
+    _danmakuSpeedKey,
+    _hideTopDanmakuKey,
+    _hideBottomDanmakuKey,
+  ];
+
+  static const List<String> _interfacePreferenceKeys = [
+    _tabSwitchPolicyKey,
+    _autoRefreshOnLaunchKey,
+    _defaultStartPageKey,
+    _videoGridColumnsKey,
+    _sidePanelWidthKey,
+    _showTimeDisplayKey,
+    _fontScaleKey,
+    _themeColorKey,
+    _categoryOrderKey,
+    _enabledCategoriesKey,
+    _liveCategoryOrderKey,
+    _enabledLiveCategoriesKey,
+  ];
+
+  static const List<String> _storagePreferenceKeys = [
+    _focusedTitleDisplayModeKey,
+  ];
+
+  static const List<String> _developerPreferenceKeys = [
+    _developerModeKey,
+    _showMemoryInfoKey,
+    _showAppCpuKey,
+    _showCoreFreqKey,
+    _marqueeFpsKey,
+    _nativeDanmakuStrokeWidthKey,
+    _nativeDanmakuStrokeAlphaMinKey,
+    _commentFocusAlphaKey,
+    _videoCardOverlayAlphaKey,
+  ];
+
+  static Future<void> _removePreferenceKeys(List<String> keys) async {
+    await init();
+    for (final key in keys) {
+      await _prefs!.remove(key);
+    }
+    _fontScaleNotifier.value = fontScale;
+  }
+
+  /// 重置「播放设置」页偏好
+  static Future<void> resetPlaybackPreferences() async {
+    await _removePreferenceKeys(_playbackPreferenceKeys);
+  }
+
+  /// 重置「弹幕设置」页偏好
+  static Future<void> resetDanmakuPreferences() async {
+    await _removePreferenceKeys(_danmakuPreferenceKeys);
+  }
+
+  /// 重置「界面设置」页偏好
+  static Future<void> resetInterfacePreferences() async {
+    await _removePreferenceKeys(_interfacePreferenceKeys);
+    onShowTimeDisplayChanged?.call();
+  }
+
+  /// 重置「其他设置」页偏好
+  static Future<void> resetStoragePreferences() async {
+    await _removePreferenceKeys(_storagePreferenceKeys);
+  }
+
+  /// 重置「开发者选项」页偏好
+  static Future<void> resetDeveloperPreferences() async {
+    await _removePreferenceKeys(_developerPreferenceKeys);
+    onShowMemoryInfoChanged?.call();
+    onDeveloperModeChanged?.call();
+  }
+
+  /// 全局重置偏好（不清理缓存与用户内容）
+  static Future<void> resetAllPreferences() async {
+    final all = <String>{
+      ..._playbackPreferenceKeys,
+      ..._danmakuPreferenceKeys,
+      ..._interfacePreferenceKeys,
+      ..._storagePreferenceKeys,
+      _hideLiveControlsOnStartKey,
+      _showLiveTimeDisplayKey,
+      _showMemoryInfoKey,
+      _developerModeKey,
+      _showAppCpuKey,
+      _showCoreFreqKey,
+      _marqueeFpsKey,
+      _nativeDanmakuStrokeWidthKey,
+      _nativeDanmakuStrokeAlphaMinKey,
+      _commentFocusAlphaKey,
+      _videoCardOverlayAlphaKey,
+      _tunnelSpeedSupportedKey,
+    }.toList();
+
+    await _removePreferenceKeys(all);
+    onShowTimeDisplayChanged?.call();
+    onShowMemoryInfoChanged?.call();
+    onDeveloperModeChanged?.call();
   }
 
   // 快进预览模式设置
@@ -1131,6 +1367,8 @@ class SettingsService {
       'native_danmaku_stroke_width';
   static const String _nativeDanmakuStrokeAlphaMinKey =
       'native_danmaku_stroke_alpha_min';
+  static const String _commentFocusAlphaKey = 'comment_focus_alpha';
+  static const String _videoCardOverlayAlphaKey = 'video_card_overlay_alpha';
 
   /// 开发者选项变更回调（用于刷新设置标签页列表）
   static VoidCallback? onDeveloperModeChanged;
@@ -1213,6 +1451,28 @@ class SettingsService {
   static Future<void> setNativeDanmakuStrokeAlphaMin(int value) async {
     await init();
     await _prefs!.setInt(_nativeDanmakuStrokeAlphaMinKey, value.clamp(0, 255));
+  }
+
+  /// 评论项聚焦背景 alpha（开发者选项）
+  static double get commentFocusAlpha {
+    final raw = _prefs?.getDouble(_commentFocusAlphaKey) ?? 0.10;
+    return raw.clamp(0.03, 0.30);
+  }
+
+  static Future<void> setCommentFocusAlpha(double value) async {
+    await init();
+    await _prefs!.setDouble(_commentFocusAlphaKey, value.clamp(0.03, 0.30));
+  }
+
+  /// 视频卡片底部遮罩 alpha（开发者选项）
+  static double get videoCardOverlayAlpha {
+    final raw = _prefs?.getDouble(_videoCardOverlayAlphaKey) ?? 0.90;
+    return raw.clamp(0.50, 1.0);
+  }
+
+  static Future<void> setVideoCardOverlayAlpha(double value) async {
+    await init();
+    await _prefs!.setDouble(_videoCardOverlayAlphaKey, value.clamp(0.50, 1.0));
   }
 
   // ==================== 主题色 ====================

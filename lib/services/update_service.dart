@@ -613,11 +613,28 @@ class UpdateService {
     VoidCallback? onUpdate,
     VoidCallback? onCancel,
   }) {
+    ButtonStyle actionStyle({required bool primary}) {
+      return TextButton.styleFrom(
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ).copyWith(
+        backgroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.focused)) {
+            return SettingsService.themeColor.withValues(alpha: 0.3);
+          }
+          return Colors.transparent;
+        }),
+      );
+    }
+
     showDialog(
       context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.7),
       barrierDismissible: !updateInfo.forceUpdate,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF2A2A2A),
+        backgroundColor: AppColors.panelBackground,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: Text(
           '发现新版本 ${updateInfo.version}',
           style: const TextStyle(color: Colors.white),
@@ -645,25 +662,21 @@ class UpdateService {
         actions: [
           if (!updateInfo.forceUpdate)
             TextButton(
+              style: actionStyle(primary: false),
               onPressed: () {
                 Navigator.of(context).pop();
                 onCancel?.call();
               },
-              child: const Text(
-                '稍后再说',
-                style: TextStyle(color: AppColors.textHint),
-              ),
+              child: const Text('稍后再说'),
             ),
           TextButton(
             autofocus: true,
+            style: actionStyle(primary: true),
             onPressed: () {
               Navigator.of(context).pop();
               onUpdate?.call();
             },
-            child: Text(
-              '立即更新',
-              style: TextStyle(color: SettingsService.themeColor),
-            ),
+            child: const Text('立即更新'),
           ),
         ],
       ),
@@ -677,6 +690,7 @@ class UpdateService {
   ) {
     showDialog(
       context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.7),
       barrierDismissible: false,
       builder: (context) => _DownloadProgressDialog(updateInfo: updateInfo),
     );
@@ -748,7 +762,8 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
     }
 
     return AlertDialog(
-      backgroundColor: const Color(0xFF2A2A2A),
+      backgroundColor: AppColors.panelBackground,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       title: Text(
         _installing ? '正在启动安装...' : '正在下载更新',
         style: const TextStyle(color: Colors.white),
@@ -796,8 +811,22 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
         if (_error != null)
           TextButton(
             autofocus: true,
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ).copyWith(
+              backgroundColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.focused)) {
+                  return SettingsService.themeColor.withValues(alpha: 0.3);
+                }
+                return Colors.transparent;
+              }),
+            ),
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('关闭', style: TextStyle(color: AppColors.textHint)),
+            child: const Text('关闭'),
           ),
       ],
     );

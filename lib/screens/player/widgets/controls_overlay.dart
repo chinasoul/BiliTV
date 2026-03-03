@@ -10,7 +10,8 @@ class ControlsOverlay extends StatelessWidget {
   final Video video;
   final VideoPlayerController controller;
   final bool showControls;
-  final int focusedIndex;
+  final int focusedIndex; // 可见按钮列表中的焦点索引
+  final List<int> visibleControlIndices; // 可显示的控制按钮动作索引
   final VoidCallback onPlayPause;
   final VoidCallback onSettings;
   final VoidCallback onToggleStatsForNerds;
@@ -36,6 +37,7 @@ class ControlsOverlay extends StatelessWidget {
     required this.controller,
     required this.showControls,
     required this.focusedIndex,
+    required this.visibleControlIndices,
     required this.onPlayPause,
     required this.onSettings,
     required this.onToggleStatsForNerds,
@@ -89,32 +91,30 @@ class ControlsOverlay extends StatelessWidget {
     return count.toString();
   }
 
-  String _controlHintTextFor(int index) {
-    switch (index) {
-      case 0:
+  String _controlHintTextFor(_ControlType type) {
+    switch (type) {
+      case _ControlType.playPause:
         return controller.value.isPlaying ? '暂停' : '播放';
-      case 1:
+      case _ControlType.comment:
         return '评论';
-      case 2:
+      case _ControlType.episodes:
         return '选集';
-      case 3:
+      case _ControlType.owner:
         return 'UP主';
-      case 4:
+      case _ControlType.moreVideos:
         return '更多视频';
-      case 5:
+      case _ControlType.settings:
         return '设置';
-      case 6:
+      case _ControlType.stats:
         return showStatsForNerds ? '关闭监测' : '开启监测';
-      case 7:
+      case _ControlType.interaction:
         return '互动操作';
-      case 8:
+      case _ControlType.loop:
         return isLoopMode ? '单集循环' : '循环播放';
-      case 9:
+      case _ControlType.videoInfo:
         return '视频详情';
-      case 10:
+      case _ControlType.closePlayer:
         return '关闭播放器';
-      default:
-        return '';
     }
   }
 
@@ -231,7 +231,72 @@ class ControlsOverlay extends StatelessWidget {
                     final screenWidth = MediaQuery.of(context).size.width;
                     final buttonAreaWidth =
                         screenWidth * PlayerControlsStyle.buttonAreaRatio;
-                    const buttonCount = 11;
+                    final controlItems = <_ControlButtonItem>[
+                      _ControlButtonItem(
+                        type: _ControlType.playPause,
+                        icon: controller.value.isPlaying
+                            ? Icons.pause
+                            : Icons.play_arrow,
+                      ),
+                      const _ControlButtonItem(
+                        type: _ControlType.comment,
+                        icon: Icons.comment_outlined,
+                      ),
+                      const _ControlButtonItem(
+                        type: _ControlType.episodes,
+                        icon: Icons.playlist_play,
+                      ),
+                      const _ControlButtonItem(
+                        type: _ControlType.owner,
+                        icon: Icons.person,
+                      ),
+                      const _ControlButtonItem(
+                        type: _ControlType.moreVideos,
+                        icon: Icons.expand_more,
+                      ),
+                      const _ControlButtonItem(
+                        type: _ControlType.settings,
+                        icon: Icons.tune,
+                      ),
+                      _ControlButtonItem(
+                        type: _ControlType.stats,
+                        icon: showStatsForNerds
+                            ? Icons.monitor_heart
+                            : Icons.monitor_heart_outlined,
+                      ),
+                      const _ControlButtonItem(
+                        type: _ControlType.interaction,
+                        icon: Icons.thumb_up_outlined,
+                      ),
+                      _ControlButtonItem(
+                        type: _ControlType.loop,
+                        icon: isLoopMode ? Icons.repeat_one : Icons.repeat,
+                      ),
+                      const _ControlButtonItem(
+                        type: _ControlType.videoInfo,
+                        icon: Icons.info_outline,
+                      ),
+                      const _ControlButtonItem(
+                        type: _ControlType.closePlayer,
+                        icon: Icons.close,
+                      ),
+                    ];
+                    final itemByIndex = <int, _ControlButtonItem>{
+                      for (final item in controlItems) item.type.index: item,
+                    };
+                    final visibleItems = visibleControlIndices
+                        .map((index) => itemByIndex[index])
+                        .whereType<_ControlButtonItem>()
+                        .toList();
+                    final buttonCount = visibleItems.length;
+                    if (buttonCount == 0) {
+                      return Row(
+                        children: [
+                          const Spacer(),
+                          _buildInfoText(AppFonts.sizeLG, 12),
+                        ],
+                      );
+                    }
                     // 按钮区域 = buttonCount * buttonSize + (buttonCount - 1) * spacing
                     // spacing = buttonSize * spacingRatio
                     // buttonAreaWidth = buttonCount * buttonSize + (buttonCount - 1) * buttonSize * spacingRatio
@@ -252,119 +317,22 @@ class ControlsOverlay extends StatelessWidget {
 
                     return Row(
                       children: [
-                        // 播放/暂停 (index 0)
-                        _buildControlButton(
-                          index: 0,
-                          icon: controller.value.isPlaying
-                              ? Icons.pause
-                              : Icons.play_arrow,
-                          iconSize: iconSize,
-                          padding: padding,
-                          buttonExtent: buttonSize,
-                          hintText: _controlHintTextFor(0),
-                        ),
-                        SizedBox(width: spacing),
-                        // 评论 (index 1)
-                        _buildControlButton(
-                          index: 1,
-                          icon: Icons.comment_outlined,
-                          iconSize: iconSize,
-                          padding: padding,
-                          buttonExtent: buttonSize,
-                          hintText: _controlHintTextFor(1),
-                        ),
-                        SizedBox(width: spacing),
-                        // 选集 (index 2)
-                        _buildControlButton(
-                          index: 2,
-                          icon: Icons.playlist_play,
-                          iconSize: iconSize,
-                          padding: padding,
-                          buttonExtent: buttonSize,
-                          hintText: _controlHintTextFor(2),
-                        ),
-                        SizedBox(width: spacing),
-                        // UP主 (index 3)
-                        _buildControlButton(
-                          index: 3,
-                          icon: Icons.person,
-                          iconSize: iconSize,
-                          padding: padding,
-                          buttonExtent: buttonSize,
-                          hintText: _controlHintTextFor(3),
-                        ),
-                        SizedBox(width: spacing),
-                        // 更多视频 (index 4)
-                        _buildControlButton(
-                          index: 4,
-                          icon: Icons.expand_more,
-                          iconSize: iconSize,
-                          padding: padding,
-                          buttonExtent: buttonSize,
-                          hintText: _controlHintTextFor(4),
-                        ),
-                        SizedBox(width: spacing),
-                        // 设置 (index 5)
-                        _buildControlButton(
-                          index: 5,
-                          icon: Icons.tune,
-                          iconSize: iconSize,
-                          padding: padding,
-                          buttonExtent: buttonSize,
-                          hintText: _controlHintTextFor(5),
-                        ),
-                        SizedBox(width: spacing),
-                        // 视频数据实时监测开关 (index 6)
-                        _buildControlButton(
-                          index: 6,
-                          icon: showStatsForNerds
-                              ? Icons.monitor_heart
-                              : Icons.monitor_heart_outlined,
-                          iconSize: iconSize,
-                          padding: padding,
-                          buttonExtent: buttonSize,
-                          hintText: _controlHintTextFor(6),
-                        ),
-                        SizedBox(width: spacing),
-                        // 点赞/投币/收藏 (index 7)
-                        _buildControlButton(
-                          index: 7,
-                          icon: Icons.thumb_up_outlined,
-                          iconSize: iconSize,
-                          padding: padding,
-                          buttonExtent: buttonSize,
-                          hintText: _controlHintTextFor(7),
-                        ),
-                        SizedBox(width: spacing),
-                        // 循环播放 (index 8)
-                        _buildControlButton(
-                          index: 8,
-                          icon: isLoopMode ? Icons.repeat_one : Icons.repeat,
-                          iconSize: iconSize,
-                          padding: padding,
-                          buttonExtent: buttonSize,
-                          hintText: _controlHintTextFor(8),
-                        ),
-                        SizedBox(width: spacing),
-                        // 视频详情 (index 9)
-                        _buildControlButton(
-                          index: 9,
-                          icon: Icons.info_outline,
-                          iconSize: iconSize,
-                          padding: padding,
-                          buttonExtent: buttonSize,
-                          hintText: _controlHintTextFor(9),
-                        ),
-                        SizedBox(width: spacing),
-                        // 关闭视频 (index 10)
-                        _buildControlButton(
-                          index: 10,
-                          icon: Icons.close,
-                          iconSize: iconSize,
-                          padding: padding,
-                          buttonExtent: buttonSize,
-                          hintText: _controlHintTextFor(9),
-                        ),
+                        for (int i = 0; i < visibleItems.length; i++) ...[
+                          _buildControlButton(
+                            actionIndex: visibleItems[i].type.index,
+                            icon: visibleItems[i].icon,
+                            iconSize: iconSize,
+                            padding: padding,
+                            buttonExtent: buttonSize,
+                            hintText: _controlHintTextFor(visibleItems[i].type),
+                            isFocused:
+                                !isProgressBarFocused &&
+                                focusedIndex == i &&
+                                showControls,
+                          ),
+                          if (i < visibleItems.length - 1)
+                            SizedBox(width: spacing),
+                        ],
                         const Spacer(),
                         // 右侧信息区
                         _buildInfoText(infoFontSize, infoSpacing),
@@ -381,20 +349,19 @@ class ControlsOverlay extends StatelessWidget {
   }
 
   Widget _buildControlButton({
-    required int index,
+    required int actionIndex,
     required IconData icon,
     required double iconSize,
     required double padding,
     required double buttonExtent,
     required String hintText,
+    required bool isFocused,
   }) {
-    final isFocused =
-        !isProgressBarFocused && focusedIndex == index && showControls;
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: () => onControlTap(index),
+        onTap: () => onControlTap(actionIndex),
         child: Stack(
           clipBehavior: Clip.none,
           children: [
@@ -503,4 +470,28 @@ class ControlsOverlay extends StatelessWidget {
       ],
     );
   }
+}
+
+class _ControlButtonItem {
+  final _ControlType type;
+  final IconData icon;
+
+  const _ControlButtonItem({
+    required this.type,
+    required this.icon,
+  });
+}
+
+enum _ControlType {
+  playPause,
+  comment,
+  episodes,
+  owner,
+  moreVideos,
+  settings,
+  stats,
+  interaction,
+  loop,
+  videoInfo,
+  closePlayer,
 }

@@ -46,7 +46,7 @@ flowchart LR
     DetailPage -->|"Play / Episode tap"| Player
 ```
 
-First time entering the detail page, a one-time toast informs the user: `"可在 设置→播放设置 关闭「播放前显示视频详情」"` (controlled by `videoDetailHintShown` in SettingsService).
+First time entering the detail page after the setting is (re-)enabled, a toast informs the user: `"可在 设置→播放设置 关闭「播放前显示视频详情」"` (controlled by `videoDetailHintShown` in SettingsService; the flag resets when the setting is turned off).
 
 ## Data Flow
 
@@ -198,4 +198,4 @@ All navigation uses `handleNavigationWithRepeat` to support long-press (key repe
 - **Image optimization**: All images use `ImageUrlUtils.getResizedUrl` + `memCacheWidth/Height` + `BiliCacheManager.instance`
 - **Focus navigation**: `TvKeyHandler.handleNavigationWithRepeat` for all zones
 - **Memory safety**: `mounted` checks on all async callbacks, comprehensive `dispose()`, `FocusScope` for popups
-- **One-time hint pattern**: Same as tunnel mode hint (`videoDetailHintShown` flag in SharedPreferences)
+- **Per-toggle hint pattern**: Same as tunnel mode hint (`videoDetailHintShown` flag in SharedPreferences, resets when the setting is turned off)

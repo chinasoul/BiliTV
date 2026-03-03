@@ -83,7 +83,7 @@ class _VideoDetailScreenState extends State<VideoDetailScreen> {
       if (!mounted) return;
       ToastUtils.show(
         context,
-        '可在 设置→播放设置 关闭「播放前显示视频详情」',
+        '该页可关闭，见「播放设置」',
         duration: const Duration(seconds: 4),
       );
       SettingsService.setVideoDetailHintShown(true);
@@ -351,11 +351,15 @@ class _VideoDetailScreenState extends State<VideoDetailScreen> {
             ownerMid: widget.video.ownerMid,
           )
         : widget.video;
+    final fromDetailCover = cid == null && page == null && aid == null;
 
     Navigator.of(context)
         .push(
           MaterialPageRoute(
-            builder: (context) => PlayerScreen(video: video),
+            builder: (context) => PlayerScreen(
+              video: video,
+              exitPopDepth: fromDetailCover ? 2 : 1,
+            ),
           ),
         )
         .then((_) {
@@ -1515,7 +1519,7 @@ class _VideoDetailScreenState extends State<VideoDetailScreen> {
             children: [
               Expanded(
                 child: Text(
-                  '${_episodes.length - index}. $title',
+                  '${_episodes.length - index}.$title',
                   style: TextStyle(
                     color: isFocused
                         ? Colors.white

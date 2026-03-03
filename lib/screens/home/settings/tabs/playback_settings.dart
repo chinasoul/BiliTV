@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:bili_tv_app/utils/toast_utils.dart';
 import '../../../../services/settings_service.dart';
 import '../../../../config/app_style.dart';
+import '../../../../core/focus/focus_navigation.dart';
+import '../widgets/setting_action_row.dart';
 import '../widgets/setting_toggle_row.dart';
 import '../widgets/setting_dropdown_row.dart';
 
@@ -20,6 +23,119 @@ class PlaybackSettings extends StatefulWidget {
 }
 
 class _PlaybackSettingsState extends State<PlaybackSettings> {
+  List<int> _playerControlOrder = [];
+  int _selectedControlOrderIndex = 0;
+  bool _isControlDragging = false;
+  List<FocusNode> _playerControlToggleFocusNodes = [];
+  List<FocusNode> _playerControlOrderFocusNodes = [];
+
+  static const Map<int, String> _playerControlLabels = {
+    0: '播放',
+    1: '评论',
+    2: '选集',
+    3: 'UP主',
+    4: '更多',
+    5: '设置',
+    6: '监测',
+    7: '互动',
+    8: '循环',
+    9: '详情',
+    10: '关闭',
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPlayerControlSettings();
+  }
+
+  @override
+  void dispose() {
+    for (final node in _playerControlToggleFocusNodes) {
+      node.dispose();
+    }
+    for (final node in _playerControlOrderFocusNodes) {
+      node.dispose();
+    }
+    super.dispose();
+  }
+
+  void _loadPlayerControlSettings() {
+    for (final node in _playerControlToggleFocusNodes) {
+      node.dispose();
+    }
+    for (final node in _playerControlOrderFocusNodes) {
+      node.dispose();
+    }
+    _playerControlOrder = SettingsService.playerControlOrder;
+    _selectedControlOrderIndex = 0;
+    _isControlDragging = false;
+    _playerControlToggleFocusNodes = List.generate(
+      _playerControlOrder.length,
+      (_) => FocusNode(),
+    );
+    _playerControlOrderFocusNodes = List.generate(
+      _playerControlOrder.length,
+      (_) => FocusNode(),
+    );
+  }
+
+  ButtonStyle _dialogActionStyle({required bool primary}) {
+    return TextButton.styleFrom(
+      foregroundColor: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+    ).copyWith(
+      backgroundColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.focused)) {
+          return SettingsService.themeColor.withValues(alpha: 0.3);
+        }
+        return Colors.transparent;
+      }),
+    );
+  }
+
+  Future<bool> _confirmResetPlaybackSettings() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.7),
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.panelBackground,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text('重置播放设置'),
+        content: const Text('将恢复播放设置页的所有偏好为默认值，是否继续？'),
+        actions: [
+          TextButton(
+            style: _dialogActionStyle(primary: false),
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            autofocus: true,
+            style: _dialogActionStyle(primary: true),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('确认'),
+          ),
+        ],
+      ),
+    );
+    return confirmed == true;
+  }
+
+  Future<void> _resetPlaybackSettings() async {
+    final confirmed = await _confirmResetPlaybackSettings();
+    if (!confirmed) return;
+    await SettingsService.resetPlaybackPreferences();
+    PaintingBinding.instance.imageCache.maximumSize =
+        SettingsService.imageCacheMaxSize;
+    PaintingBinding.instance.imageCache.maximumSizeBytes =
+        SettingsService.imageCacheMaxBytes;
+    if (!mounted) return;
+    _loadPlayerControlSettings();
+    setState(() {});
+    ToastUtils.show(context, '播放设置已重置');
+  }
+
   String _buildCompletionActionDescription(PlaybackCompletionAction action) {
     switch (action) {
       case PlaybackCompletionAction.pause:
@@ -81,6 +197,262 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
     if (quality.qn >= 120) return '需要大会员，非大会员将自动降级';
     if (quality.qn >= 112) return '需要大会员或登录，未达条件将自动降级';
     return '每次打开视频时默认请求此画质';
+  }
+
+  Widget _buildPlayerControlSettingsSection() {
+    final enabledOrder = _playerControlOrder
+        .where((i) => SettingsService.isPlayerControlEnabled(i))
+        .toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: AppSpacing.settingSectionTitlePadding,
+          child: Text(
+            '控制栏按钮显示 (确认键切换)',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.7),
+              fontSize: AppFonts.sizeMD,
+            ),
+          ),
+        ),
+        SizedBox(
+          height: 36,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: _playerControlOrder.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 8),
+            itemBuilder: (context, index) {
+              final controlIndex = _playerControlOrder[index];
+              final label = _playerControlLabels[controlIndex] ?? '$controlIndex';
+              final isEnabled = SettingsService.isPlayerControlEnabled(
+                controlIndex,
+              );
+              return TvFocusScope(
+                pattern: FocusPattern.horizontal,
+                focusNode: _playerControlToggleFocusNodes[index],
+                isFirst: index == 0,
+                isLast: index == _playerControlOrder.length - 1,
+                exitLeft: widget.sidebarFocusNode,
+                onSelect: () async {
+                  final enabledNow = SettingsService.enabledPlayerControls;
+                  if (isEnabled && enabledNow.length <= 1) {
+                    ToastUtils.show(context, '至少保留一个按钮');
+                    return;
+                  }
+                  await SettingsService.togglePlayerControl(
+                    controlIndex,
+                    !isEnabled,
+                  );
+                  if (!mounted) return;
+                  setState(() {});
+                },
+                child: Builder(
+                  builder: (context) {
+                    final focused = Focus.of(context).hasFocus;
+                    return GestureDetector(
+                      onTap: () async {
+                        final enabledNow = SettingsService.enabledPlayerControls;
+                        if (isEnabled && enabledNow.length <= 1) {
+                          ToastUtils.show(context, '至少保留一个按钮');
+                          return;
+                        }
+                        await SettingsService.togglePlayerControl(
+                          controlIndex,
+                          !isEnabled,
+                        );
+                        if (!mounted) return;
+                        setState(() {});
+                      },
+                      child: Container(
+                        alignment: Alignment.center,
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: isEnabled
+                              ? SettingsService.themeColor.withValues(alpha: 0.3)
+                              : Colors.white.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: focused
+                                ? Colors.white
+                                : isEnabled
+                                ? SettingsService.themeColor
+                                : Colors.transparent,
+                            width: focused ? 2 : 1,
+                          ),
+                        ),
+                        child: Text(
+                          label,
+                          style: TextStyle(
+                            color: isEnabled
+                                ? Colors.white
+                                : Colors.white.withValues(alpha: 0.5),
+                            fontSize: AppFonts.sizeSM,
+                            fontWeight: focused
+                                ? FontWeight.bold
+                                : AppFonts.regular,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 12),
+        Padding(
+          padding: AppSpacing.settingSectionTitlePadding,
+          child: Text(
+            '控制栏按钮排序 (仅显示已启用)',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.7),
+              fontSize: AppFonts.sizeMD,
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text(
+            _isControlDragging ? '← → 移动位置，确认键固定' : '确认键选中，← → 移动',
+            style: TextStyle(
+              color: _isControlDragging
+                  ? SettingsService.themeColor
+                  : Colors.white.withValues(alpha: 0.5),
+              fontSize: AppFonts.sizeSM,
+            ),
+          ),
+        ),
+        SizedBox(
+          height: 36,
+          child: enabledOrder.isEmpty
+              ? Center(
+                  child: Text(
+                    '请至少启用一个按钮',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.5),
+                    ),
+                  ),
+                )
+              : ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: enabledOrder.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: 8),
+                  itemBuilder: (context, index) {
+                    final controlIndex = enabledOrder[index];
+                    final label =
+                        _playerControlLabels[controlIndex] ?? '$controlIndex';
+                    final isSelected = index == _selectedControlOrderIndex;
+
+                    final focusNodeIndex = _playerControlOrder.indexOf(
+                      controlIndex,
+                    );
+                    if (focusNodeIndex < 0 ||
+                        focusNodeIndex >= _playerControlOrderFocusNodes.length) {
+                      return const SizedBox.shrink();
+                    }
+
+                    return Focus(
+                      focusNode: _playerControlOrderFocusNodes[focusNodeIndex],
+                      onFocusChange: (focused) {
+                        if (focused && !_isControlDragging) {
+                          setState(() => _selectedControlOrderIndex = index);
+                        }
+                      },
+                      onKeyEvent: (node, event) {
+                        if (event is KeyUpEvent) return KeyEventResult.ignored;
+
+                        if (event is KeyDownEvent &&
+                            (event.logicalKey == LogicalKeyboardKey.select ||
+                                event.logicalKey == LogicalKeyboardKey.enter)) {
+                          setState(() => _isControlDragging = !_isControlDragging);
+                          return KeyEventResult.handled;
+                        }
+
+                        if (_isControlDragging) {
+                          final fullIndex = _playerControlOrder.indexOf(
+                            controlIndex,
+                          );
+
+                          if (event.logicalKey == LogicalKeyboardKey.arrowLeft &&
+                              index > 0) {
+                            final prevControl = enabledOrder[index - 1];
+                            final prevFullIndex = _playerControlOrder.indexOf(
+                              prevControl,
+                            );
+                            setState(() {
+                              _playerControlOrder[fullIndex] = prevControl;
+                              _playerControlOrder[prevFullIndex] = controlIndex;
+                              _selectedControlOrderIndex = index - 1;
+                            });
+                            SettingsService.setPlayerControlOrder(
+                              _playerControlOrder,
+                            );
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              _playerControlOrderFocusNodes[prevFullIndex]
+                                  .requestFocus();
+                            });
+                            return KeyEventResult.handled;
+                          }
+                          if (event.logicalKey == LogicalKeyboardKey.arrowRight &&
+                              index < enabledOrder.length - 1) {
+                            final nextControl = enabledOrder[index + 1];
+                            final nextFullIndex = _playerControlOrder.indexOf(
+                              nextControl,
+                            );
+                            setState(() {
+                              _playerControlOrder[fullIndex] = nextControl;
+                              _playerControlOrder[nextFullIndex] = controlIndex;
+                              _selectedControlOrderIndex = index + 1;
+                            });
+                            SettingsService.setPlayerControlOrder(
+                              _playerControlOrder,
+                            );
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              _playerControlOrderFocusNodes[nextFullIndex]
+                                  .requestFocus();
+                            });
+                            return KeyEventResult.handled;
+                          }
+                        }
+
+                        return KeyEventResult.ignored;
+                      },
+                      child: Builder(
+                        builder: (context) {
+                          final focused = Focus.of(context).hasFocus;
+                          return AnimatedContainer(
+                            duration: const Duration(milliseconds: 150),
+                            alignment: Alignment.center,
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            decoration: BoxDecoration(
+                              color: _isControlDragging && isSelected
+                                  ? SettingsService.themeColor
+                                  : focused
+                                  ? Colors.white.withValues(alpha: 0.2)
+                                  : Colors.white.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              label,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: focused
+                                    ? FontWeight.bold
+                                    : AppFonts.regular,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -162,6 +534,8 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
           },
         ),
         const SizedBox(height: AppSpacing.settingItemGap),
+        _buildPlayerControlSettingsSection(),
+        const SizedBox(height: AppSpacing.settingItemGap),
         SettingToggleRow(
           label: '快进预览模式',
           subtitle: '快进快退时显示预览缩略图，按确定跳转（暂不可用）',
@@ -209,7 +583,7 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
           value: preferredQuality,
           items: VideoQuality.values.toList(),
           itemLabel: (q) => q.label,
-          isLast: true,
+          isLast: false,
           sidebarFocusNode: widget.sidebarFocusNode,
           onChanged: (quality) async {
             if (quality != null) {
@@ -217,6 +591,15 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
               setState(() {});
             }
           },
+        ),
+        const SizedBox(height: AppSpacing.settingItemGap),
+        SettingActionRow(
+          label: '重置本页设置',
+          value: '恢复播放设置页的默认偏好',
+          buttonLabel: '重置',
+          onTap: _resetPlaybackSettings,
+          isLast: true,
+          sidebarFocusNode: widget.sidebarFocusNode,
         ),
       ],
     );

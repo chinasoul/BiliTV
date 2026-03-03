@@ -100,10 +100,7 @@ mixin PlayerEventMixin on PlayerActionMixin {
       lastBackPressed = now;
       ToastUtils.show(context, '再按一次返回键退出播放');
     } else {
-      // 先移除监听再暂停，避免 pause 触发 UI 闪现暂停指示
-      cancelPlayerListeners();
-      videoController?.pause();
-      Navigator.of(context).pop();
+      exitPlayer();
     }
   }
 
@@ -330,10 +327,22 @@ mixin PlayerEventMixin on PlayerActionMixin {
     }
 
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    final visibleIndices = visibleControlButtonIndices;
+    if (visibleIndices.isEmpty) {
+      return KeyEventResult.ignored;
+    }
+    final maxIndex = visibleIndices.length - 1;
+    final safeFocusedIndex = focusedButtonIndex.clamp(0, maxIndex).toInt();
+    if (safeFocusedIndex != focusedButtonIndex) {
+      setState(() => focusedButtonIndex = safeFocusedIndex);
+    }
+    int resolveActionIndex(int visibleFocusIndex) {
+      return visibleIndices[visibleFocusIndex.clamp(0, maxIndex).toInt()];
+    }
 
     // 控制栏显示时：空格键等同确认键，触发当前聚焦按钮
     if (event.logicalKey == LogicalKeyboardKey.space) {
-      activateControlButton(focusedButtonIndex);
+      activateControlButton(resolveActionIndex(focusedButtonIndex));
       return KeyEventResult.handled;
     }
 
@@ -341,8 +350,10 @@ mixin PlayerEventMixin on PlayerActionMixin {
     final nav = PlayerFocusHandler.handleControlsNavigation(
       event,
       currentIndex: focusedButtonIndex,
-      maxIndex: 10,
-      onSelect: activateControlButton,
+      maxIndex: maxIndex,
+      onSelect: (visibleFocusIndex) {
+        activateControlButton(resolveActionIndex(visibleFocusIndex));
+      },
       onProgressBar: enterProgressBarMode,
       onHide: () => setState(() => showControls = false),
     );
@@ -456,7 +467,7 @@ mixin PlayerEventMixin on PlayerActionMixin {
         _openVideoDetailFromPlayer();
         break;
       case 10: // 关闭视频
-        Navigator.of(context).pop();
+        exitPlayer();
         break;
     }
   }

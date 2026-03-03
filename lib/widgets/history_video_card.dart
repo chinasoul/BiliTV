@@ -173,7 +173,7 @@ class HistoryVideoCard extends StatelessWidget {
               ),
             ),
           // 渐变遮罩
-          const Positioned(
+          Positioned(
             left: 0,
             right: 0,
             bottom: 0,
@@ -185,7 +185,7 @@ class HistoryVideoCard extends StatelessWidget {
                   end: Alignment.bottomCenter,
                   colors: [
                     Colors.transparent,
-                    Color(0xE6000000), // 0.9 alpha black
+                    AppColors.videoCardOverlay,
                   ],
                 ),
               ),

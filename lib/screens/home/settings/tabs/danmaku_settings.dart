@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:bili_tv_app/utils/toast_utils.dart';
 import '../../../../services/settings_service.dart';
 import '../../../../config/app_style.dart';
+import '../widgets/setting_action_row.dart';
 import '../widgets/setting_toggle_row.dart';
 import '../widgets/setting_dropdown_row.dart';
 
@@ -57,6 +59,57 @@ class _DanmakuSettingsState extends State<DanmakuSettings> {
     return options.reduce(
       (a, b) => (a - value).abs() < (b - value).abs() ? a : b,
     );
+  }
+
+  ButtonStyle _dialogActionStyle({required bool primary}) {
+    return TextButton.styleFrom(
+      foregroundColor: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+    ).copyWith(
+      backgroundColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.focused)) {
+          return SettingsService.themeColor.withValues(alpha: 0.3);
+        }
+        return Colors.transparent;
+      }),
+    );
+  }
+
+  Future<bool> _confirmResetDanmakuSettings() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.7),
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.panelBackground,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text('重置弹幕设置'),
+        content: const Text('将恢复弹幕设置页的所有偏好为默认值，是否继续？'),
+        actions: [
+          TextButton(
+            style: _dialogActionStyle(primary: false),
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            autofocus: true,
+            style: _dialogActionStyle(primary: true),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('确认'),
+          ),
+        ],
+      ),
+    );
+    return confirmed == true;
+  }
+
+  Future<void> _resetDanmakuSettings() async {
+    final confirmed = await _confirmResetDanmakuSettings();
+    if (!confirmed) return;
+    await SettingsService.resetDanmakuPreferences();
+    if (!mounted) return;
+    setState(() {});
+    ToastUtils.show(context, '弹幕设置已重置');
   }
 
   @override
@@ -202,12 +255,21 @@ class _DanmakuSettingsState extends State<DanmakuSettings> {
           label: '允许底部悬停弹幕',
           subtitle: '关闭后不显示固定在底部的弹幕',
           value: !SettingsService.hideBottomDanmaku,
-          isLast: true,
+          isLast: false,
           sidebarFocusNode: widget.sidebarFocusNode,
           onChanged: (value) async {
             await SettingsService.setHideBottomDanmaku(!value);
             setState(() {});
           },
+        ),
+        const SizedBox(height: AppSpacing.settingItemGap),
+        SettingActionRow(
+          label: '重置本页设置',
+          value: '恢复弹幕设置页的默认偏好',
+          buttonLabel: '重置',
+          onTap: _resetDanmakuSettings,
+          isLast: true,
+          sidebarFocusNode: widget.sidebarFocusNode,
         ),
       ],
     );

@@ -64,8 +64,10 @@ mixin PlayerStateMixin on State<PlayerScreen> {
   SettingsMenuType settingsMenuType = SettingsMenuType.main;
   Timer? hideTimer;
   Timer? progressReportTimer;
-  int focusedButtonIndex = 0; // 0=Play, 1=Settings, 2=Playlist, 3=More
+  int focusedButtonIndex = 0; // 控制栏可见按钮列表中的焦点索引
   int focusedSettingIndex = 0;
+  List<int> get visibleControlButtonIndices =>
+      SettingsService.visiblePlayerControlIndices;
 
   // 分辨率
   List<Map<String, dynamic>> qualities = [];
