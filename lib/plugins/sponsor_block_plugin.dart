@@ -84,7 +84,7 @@ class SponsorSegment {
   final double endTime;
   final int votes;
   final int locked;
-  final int videoDuration;
+  final double videoDuration;
 
   SponsorSegment({
     required this.category,
@@ -112,9 +112,9 @@ class SponsorSegment {
       uuid: json['UUID'] ?? '',
       startTime: (seg[0] as num).toDouble(),
       endTime: (seg[1] as num).toDouble(),
-      votes: json['votes'] ?? 0,
-      locked: json['locked'] ?? 0,
-      videoDuration: json['videoDuration'] ?? 0,
+      votes: (json['votes'] as num?)?.toInt() ?? 0,
+      locked: (json['locked'] as num?)?.toInt() ?? 0,
+      videoDuration: (json['videoDuration'] as num?)?.toDouble() ?? 0,
     );
   }
 }
@@ -301,12 +301,16 @@ class SponsorBlockPlugin extends PlayerPlugin {
     }
 
     try {
-      final params = <String, String>{
-        'videoID': bvid,
-        'cid': cid.toString(),
-      };
-      final catQuery = enabledCats.map((c) => 'category=$c').join('&');
-      final url = Uri.parse('$_baseUrl/skipSegments?${Uri(queryParameters: params).query}&$catQuery');
+      final categoriesJson = jsonEncode(enabledCats);
+      final url = Uri.parse('$_baseUrl/skipSegments').replace(
+        queryParameters: {
+          'videoID': bvid,
+          'cid': cid.toString(),
+          'categories': categoriesJson,
+        },
+      );
+
+      debugPrint('SponsorBlock URL: $url');
 
       final response = await http.get(url).timeout(
         Duration(seconds: _config.apiTimeoutSec),
@@ -316,7 +320,10 @@ class SponsorBlockPlugin extends PlayerPlugin {
         final List<dynamic> data = jsonDecode(response.body);
         _segments = data
             .map((j) => SponsorSegment.fromJson(j))
-            .where((s) => _config.isCategoryEnabled(s.category))
+            .where((s) =>
+                _config.isCategoryEnabled(s.category) &&
+                s.actionType != SBActionType.full &&
+                s.actionType != SBActionType.chapter)
             .toList();
         if (_segments.isEmpty) {
           _status = '无匹配类别片段';
@@ -330,10 +337,18 @@ class SponsorBlockPlugin extends PlayerPlugin {
         debugPrint('SponsorBlock: HTTP ${response.statusCode}');
       }
     } catch (e) {
-      _status = e.toString().contains('TimeoutException')
-          ? '请求超时(${_config.apiTimeoutSec}s)'
-          : '请求失败';
+      final err = e.toString();
+      if (err.contains('TimeoutException')) {
+        _status = '请求超时(${_config.apiTimeoutSec}s)';
+      } else if (err.contains('SocketException')) {
+        _status = '网络不可达';
+      } else if (err.contains('HandshakeException') || err.contains('Certificate')) {
+        _status = 'SSL证书错误';
+      } else {
+        _status = '请求失败: ${e.runtimeType}';
+      }
       debugPrint('SponsorBlock: fetch error: $e');
+      if (e is Error) debugPrint('SponsorBlock: stacktrace: ${e.stackTrace}');
     }
   }
 
@@ -359,8 +374,10 @@ class SponsorBlockPlugin extends PlayerPlugin {
       if (_skippedIds.contains(seg.uuid)) continue;
       if (positionMs < seg.startTimeMs || positionMs > seg.endTimeMs) continue;
 
-      // poi_highlight 不是可跳过片段
-      if (seg.actionType == SBActionType.poi) continue;
+      // poi_highlight 和 full 不是可跳过片段
+      if (seg.actionType == SBActionType.poi ||
+          seg.actionType == SBActionType.full ||
+          seg.actionType == SBActionType.chapter) continue;
 
       if (_config.autoSkip) {
         _skippedIds.add(seg.uuid);
