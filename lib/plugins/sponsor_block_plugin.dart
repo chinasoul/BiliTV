@@ -228,12 +228,23 @@ class SponsorBlockPlugin extends PlayerPlugin {
   /// Compact debug info for the player overlay.
   String get devInfoText {
     if (_segments.isEmpty) return 'SB: $_status';
-    final buf = StringBuffer('SB: ${_segments.length}段  已跳${_skippedIds.length}');
+    final skippable = _segments.where((s) =>
+        s.actionType != SBActionType.full &&
+        s.actionType != SBActionType.chapter &&
+        s.actionType != SBActionType.poi).length;
+    final buf = StringBuffer('SB: ${_segments.length}段(可跳$skippable)  已跳${_skippedIds.length}');
     for (final s in _segments) {
       final skipped = _skippedIds.contains(s.uuid);
+      final tag = switch (s.actionType) {
+        SBActionType.full => ' [全片标记]',
+        SBActionType.chapter => ' [章节]',
+        SBActionType.poi => ' [标记点]',
+        SBActionType.mute => ' [静音]',
+        _ => '',
+      };
       buf.write('\n  ${s.category.label} '
           '${_fmtSec(s.startTime)}→${_fmtSec(s.endTime)}'
-          '${skipped ? ' ✓' : ''}');
+          '$tag${skipped ? ' ✓' : ''}');
     }
     return buf.toString();
   }
@@ -320,10 +331,7 @@ class SponsorBlockPlugin extends PlayerPlugin {
         final List<dynamic> data = jsonDecode(response.body);
         _segments = data
             .map((j) => SponsorSegment.fromJson(j))
-            .where((s) =>
-                _config.isCategoryEnabled(s.category) &&
-                s.actionType != SBActionType.full &&
-                s.actionType != SBActionType.chapter)
+            .where((s) => _config.isCategoryEnabled(s.category))
             .toList();
         if (_segments.isEmpty) {
           _status = '无匹配类别片段';
