@@ -593,6 +593,17 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
           },
         ),
         const SizedBox(height: AppSpacing.settingItemGap),
+        SettingToggleRow(
+          label: '左上角显示播放进度时间',
+          subtitle: '显示格式：当前时间/总时长',
+          value: SettingsService.showPlayerProgressTime,
+          sidebarFocusNode: widget.sidebarFocusNode,
+          onChanged: (value) async {
+            await SettingsService.setShowPlayerProgressTime(value);
+            setState(() {});
+          },
+        ),
+        const SizedBox(height: AppSpacing.settingItemGap),
         SettingActionRow(
           label: '重置本页设置',
           value: '恢复播放设置页的默认偏好',

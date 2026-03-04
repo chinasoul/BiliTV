@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../core/plugin/plugin_types.dart';
 import '../models/video.dart';
 import 'package:bili_tv_app/config/app_style.dart';
+import '../screens/home/settings/widgets/setting_toggle_row.dart';
 
 class AdFilterPlugin extends FeedPlugin {
   @override
@@ -405,78 +406,39 @@ class _AdFilterSettingsState extends State<_AdFilterSettings> {
   Widget build(BuildContext context) {
     final config = widget.plugin._config;
 
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ========== 过滤开关 ==========
-            const Text(
-              '过滤开关',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: AppFonts.sizeXL,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
+    return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionHeader('过滤开关'),
 
-            SwitchListTile(
-              title: const Text(
-                '过滤广告推广',
-                style: TextStyle(color: Colors.white),
-              ),
-              subtitle: const Text(
-                '隐藏商业合作、恰饭、推广等内容',
-                style: TextStyle(color: AppColors.textTertiary),
-              ),
-              value: config.filterSponsored,
-              onChanged: (val) {
-                setState(() => widget.plugin.setFilterSponsored(val));
-              },
-            ),
+          SettingToggleRow(
+            label: '过滤广告推广',
+            subtitle: '隐藏商业合作、恰饭、推广等内容',
+            value: config.filterSponsored,
+            onChanged: (val) {
+              setState(() => widget.plugin.setFilterSponsored(val));
+            },
+          ),
 
-            SwitchListTile(
-              title: const Text('过滤标题党', style: TextStyle(color: Colors.white)),
-              subtitle: const Text(
-                '隐藏震惊体、夸张标题视频',
-                style: TextStyle(color: AppColors.textTertiary),
-              ),
-              value: config.filterClickbait,
-              onChanged: (val) {
-                setState(() => widget.plugin.setFilterClickbait(val));
-              },
-            ),
+          SettingToggleRow(
+            label: '过滤标题党',
+            subtitle: '隐藏震惊体、夸张标题视频',
+            value: config.filterClickbait,
+            onChanged: (val) {
+              setState(() => widget.plugin.setFilterClickbait(val));
+            },
+          ),
 
-            SwitchListTile(
-              title: const Text(
-                '过滤低播放量',
-                style: TextStyle(color: Colors.white),
-              ),
-              subtitle: Text(
-                '隐藏播放量低于 ${config.minViewCount} 的视频',
-                style: const TextStyle(color: AppColors.textTertiary),
-              ),
-              value: config.filterLowQuality,
-              onChanged: (val) {
-                setState(() => widget.plugin.setFilterLowQuality(val));
-              },
-            ),
+          SettingToggleRow(
+            label: '过滤低播放量',
+            subtitle: '隐藏播放量低于 ${config.minViewCount} 的视频',
+            value: config.filterLowQuality,
+            onChanged: (val) {
+              setState(() => widget.plugin.setFilterLowQuality(val));
+            },
+          ),
 
-            const Divider(color: Colors.white24),
-
-            // ========== UP主拉黑 ==========
-            const SizedBox(height: 16),
-            const Text(
-              'UP主拉黑',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: AppFonts.sizeXL,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
+          _sectionHeader('UP主拉黑'),
             Row(
               children: [
                 Expanded(
@@ -526,19 +488,7 @@ class _AdFilterSettingsState extends State<_AdFilterSettings> {
                     .toList(),
               ),
 
-            const Divider(color: Colors.white24),
-
-            // ========== 自定义关键词 ==========
-            const SizedBox(height: 16),
-            const Text(
-              '自定义屏蔽关键词',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: AppFonts.sizeXL,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
+            _sectionHeader('自定义屏蔽关键词'),
             Row(
               children: [
                 Expanded(
@@ -587,16 +537,7 @@ class _AdFilterSettingsState extends State<_AdFilterSettings> {
                     .toList(),
               ),
 
-            const SizedBox(height: 24),
-            const Text(
-              '已屏蔽UP主 (MID)',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: AppFonts.sizeXL,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
+            _sectionHeader('已屏蔽UP主 (MID)'),
             if (config.blockedMids.isEmpty)
               const Text(
                 '暂无通过MID屏蔽的UP主',
@@ -623,6 +564,18 @@ class _AdFilterSettingsState extends State<_AdFilterSettings> {
                     .toList(),
               ),
           ],
+    );
+  }
+
+  Widget _sectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 4, 14, 2),
+      child: Text(
+        title,
+        style: const TextStyle(
+          color: AppColors.textTertiary,
+          fontSize: AppFonts.sizeSM,
+          fontWeight: FontWeight.bold,
         ),
       ),
     );

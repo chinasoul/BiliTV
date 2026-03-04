@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../core/plugin/plugin_types.dart';
 import '../services/local_server.dart';
 import 'package:bili_tv_app/config/app_style.dart';
+import '../screens/home/settings/widgets/setting_toggle_row.dart';
 
 /// 弹幕屏蔽插件
 ///
@@ -194,51 +195,34 @@ class _DanmakuBlockSettingsState extends State<_DanmakuBlockSettings> {
     final config = widget.plugin._config;
     final serverAddress = LocalServer.instance.address ?? 'http://TV_IP:3322';
 
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
+    return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 提示信息
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.blue.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.blue.withValues(alpha: 0.5)),
-            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 4, 14, 8),
             child: Row(
               children: [
-                const Icon(Icons.phone_android, color: Colors.blue, size: 20),
-                const SizedBox(width: 8),
+                const Icon(Icons.phone_android, color: AppColors.textHint, size: 14),
+                const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     '推荐使用手机访问 $serverAddress 进行管理',
-                    style: const TextStyle(color: AppColors.textTertiary, fontSize: AppFonts.sizeSM),
+                    style: const TextStyle(color: AppColors.textHint, fontSize: AppFonts.sizeXS),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
 
-          // 开关
-          SwitchListTile(
-            title: const Text('启用弹幕屏蔽', style: TextStyle(color: Colors.white)),
-            subtitle: const Text(
-              '屏蔽包含指定关键词的弹幕',
-              style: TextStyle(color: AppColors.textTertiary),
-            ),
+          SettingToggleRow(
+            label: '启用弹幕屏蔽',
+            subtitle: '屏蔽包含指定关键词的弹幕',
             value: config.enableFilter,
             onChanged: (val) {
               setState(() => widget.plugin.setEnableFilter(val));
             },
           ),
 
-          const Divider(color: Colors.white24),
-          const SizedBox(height: 16),
-
-          // 部分匹配关键词
           _buildKeywordSection(
             title: '部分匹配关键词',
             subtitle: '包含即屏蔽（如 "第一" 会屏蔽 "我是第一名"）',
@@ -260,7 +244,6 @@ class _DanmakuBlockSettingsState extends State<_DanmakuBlockSettings> {
             onRemove: (k) => widget.plugin.removeFullKeyword(k),
           ),
         ],
-      ),
     );
   }
 
@@ -272,23 +255,26 @@ class _DanmakuBlockSettingsState extends State<_DanmakuBlockSettings> {
     required Function(String) onAdd,
     required Function(String) onRemove,
   }) {
-    return Column(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        const SizedBox(height: 8),
         Text(
           title,
           style: const TextStyle(
-            color: Colors.white,
-            fontSize: AppFonts.sizeXL,
+            color: AppColors.textTertiary,
+            fontSize: AppFonts.sizeSM,
             fontWeight: FontWeight.bold,
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 2),
         Text(
           subtitle,
-          style: const TextStyle(color: AppColors.textHint, fontSize: AppFonts.sizeSM),
+          style: const TextStyle(color: AppColors.textHint, fontSize: AppFonts.sizeXS),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
 
         Row(
           children: [
@@ -358,6 +344,7 @@ class _DanmakuBlockSettingsState extends State<_DanmakuBlockSettings> {
                     .toList(),
               ),
       ],
+      ),
     );
   }
 }
