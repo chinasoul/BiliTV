@@ -385,6 +385,20 @@ class SettingsService {
     await _prefs!.setBool(_hideControlsOnStartKey, value);
   }
 
+  // 播放页面左上角显示播放进度时间
+  static const String _showPlayerProgressTimeKey = 'show_player_progress_time';
+
+  /// 是否显示播放器左上角的“当前时间:总时长”
+  static bool get showPlayerProgressTime {
+    return _prefs?.getBool(_showPlayerProgressTimeKey) ?? false;
+  }
+
+  /// 设置是否显示播放器左上角的“当前时间:总时长”
+  static Future<void> setShowPlayerProgressTime(bool value) async {
+    await init();
+    await _prefs!.setBool(_showPlayerProgressTimeKey, value);
+  }
+
   // 全局时间显示设置（控制app所有界面右上角时间显示）
   static const String _showTimeDisplayKey = 'show_time_display';
 
@@ -617,6 +631,7 @@ class SettingsService {
     _videoDetailHintShownKey,
     _showMiniProgressKey,
     _hideControlsOnStartKey,
+    _showPlayerProgressTimeKey,
     _seekPreviewModeKey,
     _preferredCodecKey,
     _tunnelModeEnabledKey,

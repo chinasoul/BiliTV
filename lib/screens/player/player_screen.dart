@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -23,6 +24,9 @@ import 'widgets/seek_preview_thumbnail.dart';
 import 'widgets/next_episode_preview.dart';
 import '../../widgets/time_display.dart';
 import '../../services/codec_service.dart';
+import '../../utils/toast_utils.dart';
+import '../../core/plugin/plugin_manager.dart';
+import '../../plugins/sponsor_block_plugin.dart';
 import 'mixins/player_state_mixin.dart';
 import 'mixins/player_action_mixin.dart';
 import 'mixins/player_event_mixin.dart';
@@ -385,6 +389,20 @@ class _PlayerScreenState extends State<PlayerScreen>
               if (SettingsService.alwaysShowPlayerTime)
                 const Positioned(top: 10, right: 14, child: TimeDisplay()),
 
+              // 左上角播放进度时间显示（当前时间:总时长）
+              if (!isLoading &&
+                  videoController != null &&
+                  SettingsService.showPlayerProgressTime)
+                Positioned(
+                  top: 14,
+                  left: 14,
+                  child: _PlayerProgressTimeText(
+                    controller: videoController!,
+                    getDisplayPosition: getDisplayPosition,
+                    formatTime: _formatSeekTime,
+                  ),
+                ),
+
               // 播放完成行为提示（仅“播放下一集”且多集视频时显示）
               if (completionAction == PlaybackCompletionAction.playNextEpisode &&
                   hasMultipleEpisodes &&
@@ -423,6 +441,35 @@ class _PlayerScreenState extends State<PlayerScreen>
                   !showCommentPanel &&
                   !showActionButtons)
                 Positioned(top: 20, left: 30, child: _buildStatsForNerds()),
+
+              // SponsorBlock 开发者信息
+              if (!isLoading && videoController != null)
+                Builder(builder: (_) {
+                  final sb = PluginManager()
+                      .getPlugin<SponsorBlockPlugin>('sponsor_block');
+                  if (sb == null || !sb.showDevOverlay) {
+                    return const SizedBox.shrink();
+                  }
+                  return Positioned(
+                    bottom: 16,
+                    right: 30,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        sb.devInfoText,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  );
+                }),
 
               // 点赞/投币/收藏按钮
               if (showActionButtons && !isLoading && videoController != null)
@@ -735,62 +782,14 @@ class _PlayerScreenState extends State<PlayerScreen>
     final action = currentSkipAction;
 
     return Positioned(
-      bottom: 120,
-      right: 40,
-      child: Builder(
-        builder: (context) {
-          return Focus(
-            autofocus: true, // Auto focus when it appears
-            onKeyEvent: (node, event) {
-              if (event is KeyDownEvent &&
-                  (event.logicalKey == LogicalKeyboardKey.select ||
-                      event.logicalKey == LogicalKeyboardKey.enter)) {
-                _executeSkip(action);
-                return KeyEventResult.handled;
-              }
-              return KeyEventResult.ignored;
-            },
-            child: Builder(
-              builder: (ctx) {
-                final hasFocus = Focus.of(ctx).hasFocus;
-                return Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: hasFocus
-                        ? Theme.of(context).primaryColor
-                        : Colors.black.withValues(alpha: 0.7),
-                    borderRadius: BorderRadius.circular(4),
-                    border: Border.all(
-                      color: hasFocus ? Colors.white : Colors.white30,
-                      width: hasFocus ? 2 : 1,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.fast_forward,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        action.label.toString(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          );
-        },
+      top: MediaQuery.of(context).size.height * 2 / 3,
+      left: MediaQuery.of(context).size.width * 0.05,
+      right: 0,
+      child: Center(
+        child: _SkipButton(
+          action: action,
+          onSkip: () => _executeSkip(action),
+        ),
       ),
     );
   }
@@ -798,11 +797,192 @@ class _PlayerScreenState extends State<PlayerScreen>
   void _executeSkip(dynamic action) {
     final skipToMs = action?.skipToMs;
     if (skipToMs is! int) return;
+    final curMs = videoController!.value.position.inMilliseconds;
+    final skippedSec = ((skipToMs - curMs) / 1000).round();
+    final label = action?.label?.toString() ?? '跳过';
     videoController!.seekTo(Duration(milliseconds: skipToMs));
     resetDanmakuIndex(Duration(milliseconds: skipToMs));
     resetSubtitleIndex(Duration(milliseconds: skipToMs));
     setState(() {
       currentSkipAction = null;
     });
+    ToastUtils.show(
+      context,
+      '已$label (${skippedSec}s)',
+      duration: const Duration(milliseconds: 2000),
+    );
+  }
+}
+
+class _SkipButton extends StatefulWidget {
+  final dynamic action;
+  final VoidCallback onSkip;
+  const _SkipButton({required this.action, required this.onSkip});
+  @override
+  State<_SkipButton> createState() => _SkipButtonState();
+}
+
+class _SkipButtonState extends State<_SkipButton> {
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _focusNode.requestFocus();
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Focus(
+        focusNode: _focusNode,
+        onKeyEvent: (node, event) {
+          if (event is KeyDownEvent &&
+              (event.logicalKey == LogicalKeyboardKey.select ||
+                  event.logicalKey == LogicalKeyboardKey.enter)) {
+            widget.onSkip();
+            return KeyEventResult.handled;
+          }
+          return KeyEventResult.ignored;
+        },
+        child: Builder(
+          builder: (ctx) {
+            final hasFocus = Focus.of(ctx).hasFocus;
+            return GestureDetector(
+              onTap: widget.onSkip,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                decoration: BoxDecoration(
+                  color: SettingsService.themeColor.withValues(alpha: 0.9),
+                  borderRadius: BorderRadius.circular(20),
+                  border: hasFocus
+                      ? Border.all(color: Colors.white, width: 1.5)
+                      : null,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                        Icons.fast_forward, color: Colors.white, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      widget.action.label.toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: AppFonts.sizeMD,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+    );
+  }
+}
+
+class _PlayerProgressTimeText extends StatefulWidget {
+  final VideoPlayerController controller;
+  final Duration Function() getDisplayPosition;
+  final String Function(Duration) formatTime;
+
+  const _PlayerProgressTimeText({
+    required this.controller,
+    required this.getDisplayPosition,
+    required this.formatTime,
+  });
+
+  @override
+  State<_PlayerProgressTimeText> createState() => _PlayerProgressTimeTextState();
+}
+
+class _PlayerProgressTimeTextState extends State<_PlayerProgressTimeText> {
+  int _lastPositionSecond = -1;
+  int _lastDurationSecond = -1;
+  String _text = '00:00/00:00';
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onControllerTick);
+    _refreshText(force: true);
+  }
+
+  @override
+  void didUpdateWidget(covariant _PlayerProgressTimeText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.controller, widget.controller)) {
+      oldWidget.controller.removeListener(_onControllerTick);
+      widget.controller.addListener(_onControllerTick);
+      _lastPositionSecond = -1;
+      _lastDurationSecond = -1;
+      _refreshText(force: true);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onControllerTick);
+    super.dispose();
+  }
+
+  void _onControllerTick() {
+    _refreshText();
+  }
+
+  void _refreshText({bool force = false}) {
+    final position = widget.getDisplayPosition();
+    final duration = widget.controller.value.duration;
+    final posSecond = position.inSeconds;
+    final durSecond = duration.inSeconds;
+
+    if (!force &&
+        posSecond == _lastPositionSecond &&
+        durSecond == _lastDurationSecond) {
+      return;
+    }
+
+    _lastPositionSecond = posSecond;
+    _lastDurationSecond = durSecond;
+
+    final nextText = '${widget.formatTime(position)}/${widget.formatTime(duration)}';
+    if (!force && nextText == _text) return;
+
+    if (mounted) {
+      setState(() {
+        _text = nextText;
+      });
+    } else {
+      _text = nextText;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      _text,
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: AppFonts.sizeLG,
+        fontWeight: FontWeight.bold,
+        shadows: [
+          Shadow(
+            blurRadius: 4,
+            color: Colors.black,
+            offset: Offset(0, 1),
+          ),
+        ],
+      ),
+    );
   }
 }

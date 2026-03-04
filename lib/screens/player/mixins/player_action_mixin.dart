@@ -1133,9 +1133,14 @@ mixin PlayerActionMixin on PlayerStateMixin {
       final action = await plugin.onPositionUpdate(positionMs);
       if (action is SkipActionSkipTo) {
         if (!mounted) return;
+        final skippedSec = ((action.positionMs - positionMs) / 1000).round();
         videoController?.seekTo(Duration(milliseconds: action.positionMs));
         resetDanmakuIndex(Duration(milliseconds: action.positionMs));
-        ToastUtils.show(context, action.reason);
+        ToastUtils.show(
+          context,
+          '${action.reason} (${skippedSec}s)',
+          duration: const Duration(milliseconds: 2000),
+        );
         // 跳过也可能需要清除之前的按钮
         newAction = null;
         break; // 优先处理跳过

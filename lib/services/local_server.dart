@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../config/build_flags.dart';
 import '../plugins/ad_filter_plugin.dart';
 import '../plugins/danmaku_enhance_plugin.dart';
+import '../plugins/sponsor_block_plugin.dart';
 import '../core/plugin/plugin_manager.dart';
 
 /// 全局 HTTP 服务
@@ -196,6 +197,10 @@ class LocalServer {
     // 弹幕增强插件 API
     else if (path.startsWith('/api/danmaku/')) {
       await _handleDanmakuApi(request, path, method);
+    }
+    // 空降助手插件 API
+    else if (path.startsWith('/api/sponsor-block/')) {
+      await _handleSponsorBlockApi(request, path, method);
     } else {
       request.response.statusCode = 404;
       request.response.write('API not found');
@@ -449,6 +454,49 @@ class LocalServer {
     }
   }
 
+  /// 空降助手插件 API
+  Future<void> _handleSponsorBlockApi(
+    HttpRequest request,
+    String path,
+    String method,
+  ) async {
+    final plugin =
+        PluginManager().getPlugin<SponsorBlockPlugin>('sponsor_block');
+    if (plugin == null) {
+      _jsonResponse(request, {'error': 'Plugin not found'}, 404);
+      return;
+    }
+
+    if (path == '/api/sponsor-block/config') {
+      if (method == 'GET') {
+        _jsonResponse(request, plugin.config.toJson());
+      } else if (method == 'POST') {
+        final body = await _readJsonBody(request);
+        if (body != null) {
+          final c = plugin.config;
+          if (body.containsKey('autoSkip')) {
+            c.autoSkip = body['autoSkip'] as bool;
+          }
+          if (body.containsKey('showNotice')) {
+            c.showNotice = body['showNotice'] as bool;
+          }
+          if (body.containsKey('categoryEnabled')) {
+            c.categoryEnabled =
+                Map<String, bool>.from(body['categoryEnabled']);
+          }
+          await plugin.saveConfig(c);
+          _jsonResponse(request, {'success': true});
+        } else {
+          _jsonResponse(request, {'error': 'Invalid body'}, 400);
+        }
+      } else {
+        _jsonResponse(request, {'error': 'Method not allowed'}, 405);
+      }
+    } else {
+      _jsonResponse(request, {'error': 'Not found'}, 404);
+    }
+  }
+
   /// 读取 JSON 请求体
   Future<Map<String, dynamic>?> _readJsonBody(HttpRequest request) async {
     try {
@@ -657,12 +705,61 @@ class LocalServer {
       background: rgba(255,255,255,0.1);
       margin: 16px 0;
     }
+    .cat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .cat-btn {
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.05);
+      color: rgba(255,255,255,0.5);
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+    .cat-btn.on {
+      background: rgba(129,199,132,0.15);
+      border-color: rgba(129,199,132,0.4);
+      color: #81C784;
+    }
+    .cat-btn:hover { border-color: rgba(255,255,255,0.3); }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>📺 BT 插件管理</h1>
-    
+
+    <!-- 空降助手插件 -->
+    <div class="card">
+      <h2>🚀 空降助手</h2>
+
+      <div class="switch-row">
+        <div class="switch-label">
+          <span>自动跳过</span>
+          <span>关闭后将显示手动跳过按钮</span>
+        </div>
+        <div class="switch" id="sbAutoSkip" onclick="toggleSBConfig('autoSkip')"></div>
+      </div>
+      <div class="switch-row">
+        <div class="switch-label">
+          <span>跳过提示</span>
+          <span>自动跳过时显示 Toast 提示</span>
+        </div>
+        <div class="switch" id="sbShowNotice" onclick="toggleSBConfig('showNotice')"></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <h3>📋 跳过类别</h3>
+      <p style="font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:8px;">选择需要跳过的片段类别</p>
+      <div class="cat-grid" id="sbCategories"></div>
+    </div>
+
     <!-- 去广告插件 -->
     <div class="card">
       <h2>🚫 去广告增强</h2>
@@ -752,6 +849,19 @@ class LocalServer {
   <script>
     let adConfig = {};
     let danmakuConfig = {};
+    let sbConfig = {};
+
+    const sbCategoryLabels = {
+      'sponsor': '广告/赞助',
+      'intro': '片头动画',
+      'outro': '片尾鸣谢',
+      'interaction': '三连提醒',
+      'selfpromo': '自我推广',
+      'music_offtopic': '非音乐部分',
+      'preview': '回顾/预览',
+      'poi_highlight': '精彩时刻',
+      'filler': '闲聊/过渡',
+    };
 
     async function loadData() {
       // 加载去广告配置
@@ -788,6 +898,15 @@ class LocalServer {
       loadDanmakuKeywords('partial');
       // 加载全词匹配关键词
       loadDanmakuKeywords('full');
+
+      // 加载空降助手配置
+      try {
+        const sbRes = await fetch('/api/sponsor-block/config');
+        sbConfig = await sbRes.json();
+        updateSwitch('sbAutoSkip', sbConfig.autoSkip);
+        updateSwitch('sbShowNotice', sbConfig.showNotice);
+        renderSBCategories();
+      } catch (e) { console.error(e); }
     }
 
     async function loadDanmakuKeywords(type) {
@@ -824,6 +943,41 @@ class LocalServer {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [key]: danmakuConfig[key] })
+      });
+    }
+
+    async function toggleSBConfig(key) {
+      sbConfig[key] = !sbConfig[key];
+      updateSwitch(key === 'autoSkip' ? 'sbAutoSkip' : 'sbShowNotice', sbConfig[key]);
+      await fetch('/api/sponsor-block/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [key]: sbConfig[key] })
+      });
+    }
+
+    function renderSBCategories() {
+      const container = document.getElementById('sbCategories');
+      if (!container) return;
+      container.innerHTML = '';
+      const cats = sbConfig.categoryEnabled || {};
+      for (const [key, label] of Object.entries(sbCategoryLabels)) {
+        const btn = document.createElement('div');
+        btn.className = 'cat-btn' + (cats[key] ? ' on' : '');
+        btn.textContent = label;
+        btn.onclick = () => toggleSBCategory(key);
+        container.appendChild(btn);
+      }
+    }
+
+    async function toggleSBCategory(cat) {
+      if (!sbConfig.categoryEnabled) sbConfig.categoryEnabled = {};
+      sbConfig.categoryEnabled[cat] = !sbConfig.categoryEnabled[cat];
+      renderSBCategories();
+      await fetch('/api/sponsor-block/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ categoryEnabled: sbConfig.categoryEnabled })
       });
     }
 

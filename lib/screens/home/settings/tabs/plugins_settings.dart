@@ -32,33 +32,31 @@ class _PluginsSettingsTabState extends State<PluginsSettingsTab> {
     final serverAddress = LocalServer.instance.address ?? 'http://TV_IP:3322';
 
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       children: [
-        // 提示信息
         Container(
-          padding: const EdgeInsets.all(12),
-          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          margin: const EdgeInsets.only(bottom: 10),
           decoration: BoxDecoration(
-            color: Colors.blue.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.blue.withValues(alpha: 0.5)),
+            color: Colors.blue.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
           ),
           child: Row(
             children: [
-              const Icon(Icons.devices, color: Colors.blue, size: 20),
-              const SizedBox(width: 8),
+              const Icon(Icons.devices, color: Colors.blue, size: 14),
+              const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  '使用手机或电脑访问 $serverAddress 设置去广告增强和弹幕屏蔽功能',
-                  style: const TextStyle(color: AppColors.textTertiary, fontSize: AppFonts.sizeSM),
+                  '按 → 展开设置，或访问 $serverAddress 配置',
+                  style: const TextStyle(color: AppColors.textTertiary, fontSize: AppFonts.sizeXS),
                 ),
               ),
             ],
           ),
         ),
-        // 插件列表
         ..._pluginManager.plugins.asMap().entries.map((entry) {
           final index = entry.key;
           final plugin = entry.value;
@@ -104,16 +102,44 @@ class _PluginCard extends StatefulWidget {
 
 class _PluginCardState extends State<_PluginCard> {
   bool _focused = false;
+  bool _expanded = false;
+  bool _isEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadEnabled();
+  }
+
+  Future<void> _loadEnabled() async {
+    final enabled = await PluginStore.isEnabled(widget.plugin.id);
+    if (mounted) setState(() => _isEnabled = enabled);
+  }
+
+  void _toggle() {
+    final newState = !_isEnabled;
+    setState(() {
+      _isEnabled = newState;
+      if (!newState) _expanded = false;
+    });
+    widget.onToggle(widget.plugin, newState);
+  }
+
+  void _toggleExpand() {
+    if (!_isEnabled || !widget.plugin.hasSettings) return;
+    setState(() => _expanded = !_expanded);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<bool>(
-      future: PluginStore.isEnabled(widget.plugin.id),
-      builder: (context, snapshot) {
-        final isEnabled = snapshot.data ?? false;
+    final hasExpandableSettings = widget.plugin.hasSettings && _isEnabled;
 
-        return GestureDetector(
-          onTap: () => widget.onToggle(widget.plugin, !isEnabled),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // ── 插件卡片行 ──
+        GestureDetector(
+          onTap: _toggle,
           child: TvFocusScope(
             pattern: FocusPattern.vertical,
             enableKeyRepeat: true,
@@ -121,8 +147,9 @@ class _PluginCardState extends State<_PluginCard> {
             exitLeft: widget.sidebarFocusNode,
             onExitUp: widget.isFirst ? widget.onMoveUp : null,
             isFirst: widget.isFirst,
-            isLast: widget.isLast,
-            onSelect: () => widget.onToggle(widget.plugin, !isEnabled),
+            isLast: widget.isLast && !_expanded,
+            onSelect: _toggle,
+            onExitRight: hasExpandableSettings ? _toggleExpand : null,
             onFocusChange: (value) => setState(() => _focused = value),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
@@ -132,15 +159,12 @@ class _PluginCardState extends State<_PluginCard> {
                     ? Colors.white.withValues(alpha: 0.1)
                     : Colors.transparent,
                 borderRadius: BorderRadius.circular(8),
-                border: _focused
-                    ? Border.all(color: SettingsService.themeColor, width: 2)
-                    : null,
               ),
               child: Row(
                 children: [
                   Icon(
                     widget.plugin.icon ?? Icons.extension,
-                    color: isEnabled ? SettingsService.themeColor : AppColors.textHint,
+                    color: _isEnabled ? SettingsService.themeColor : AppColors.textHint,
                     size: 28,
                   ),
                   const SizedBox(width: 16),
@@ -169,12 +193,31 @@ class _PluginCardState extends State<_PluginCard> {
                           ),
                         Padding(
                           padding: const EdgeInsets.only(top: 4),
-                          child: Text(
-                            'v${widget.plugin.version} • ${widget.plugin.author}',
-                            style: const TextStyle(
-                              color: Colors.white24,
-                              fontSize: AppFonts.sizeXS,
-                            ),
+                          child: Row(
+                            children: [
+                              Text(
+                                'v${widget.plugin.version} • ${widget.plugin.author}',
+                                style: const TextStyle(
+                                  color: Colors.white24,
+                                  fontSize: AppFonts.sizeXS,
+                                ),
+                              ),
+                              if (hasExpandableSettings) ...[
+                                const SizedBox(width: 12),
+                                Icon(
+                                  _expanded ? Icons.expand_less : Icons.chevron_right,
+                                  color: _focused ? SettingsService.themeColor : Colors.white24,
+                                  size: 16,
+                                ),
+                                Text(
+                                  _expanded ? '按 → 收起设置' : '按 → 展开设置',
+                                  style: TextStyle(
+                                    color: _focused ? SettingsService.themeColor : Colors.white24,
+                                    fontSize: AppFonts.sizeXS,
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         ),
                       ],
@@ -182,11 +225,15 @@ class _PluginCardState extends State<_PluginCard> {
                   ),
                   ExcludeFocus(
                     child: Switch(
-                      value: isEnabled,
-                      onChanged: (value) => widget.onToggle(widget.plugin, value),
-                      activeTrackColor: const Color(
-                        0xFF81C784,
-                      ).withValues(alpha: 0.5),
+                      value: _isEnabled,
+                      onChanged: (value) {
+                        setState(() {
+                          _isEnabled = value;
+                          if (!value) _expanded = false;
+                        });
+                        widget.onToggle(widget.plugin, value);
+                      },
+                      activeTrackColor: const Color(0xFF81C784).withValues(alpha: 0.5),
                       thumbColor: WidgetStateProperty.resolveWith((states) {
                         if (states.contains(WidgetState.selected)) {
                           return SettingsService.themeColor;
@@ -199,8 +246,15 @@ class _PluginCardState extends State<_PluginCard> {
               ),
             ),
           ),
-        );
-      },
+        ),
+
+        // ── 展开的设置内容 ──
+        if (_expanded && hasExpandableSettings)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: widget.plugin.settingsWidget!,
+          ),
+      ],
     );
   }
 }
