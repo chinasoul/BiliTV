@@ -337,8 +337,8 @@ class _UpPanelState extends State<UpPanel> {
                         Expanded(
                           child: Text(
                             widget.upName,
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: AppColors.primaryText,
                               fontSize: AppFonts.sizeLG,
                               fontWeight: FontWeight.bold,
                             ),
@@ -376,7 +376,7 @@ class _UpPanelState extends State<UpPanel> {
                   ],
                 ),
               ),
-              const Divider(color: Colors.grey, height: 1),
+              Divider(color: AppColors.navItemSelectedBackground, height: 1),
               // 视频列表
               Expanded(
                 child: _isLoading
@@ -421,23 +421,23 @@ class _UpPanelState extends State<UpPanel> {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
           color: isFocused
-              ? themeColor.withValues(alpha: 0.6)
+              ? themeColor.withValues(alpha: AppColors.focusAlpha)
               : isActive
-              ? Colors.white.withValues(alpha: 0.12)
+              ? AppColors.navItemSelectedBackground
               : Colors.transparent,
           borderRadius: BorderRadius.circular(4),
           border: isActive && !isFocused
-              ? Border.all(color: Colors.white24, width: 0.5)
+              ? Border.all(color: AppColors.inactiveText, width: 0.5)
               : null,
         ),
         child: Text(
           label,
           style: TextStyle(
             color: isFocused
-                ? Colors.white
+                ? AppColors.primaryText
                 : isActive
-                ? Colors.white
-                : AppColors.textHint,
+                ? AppColors.primaryText
+                : AppColors.inactiveText,
             fontSize: AppFonts.sizeSM,
             fontWeight: isActive ? AppFonts.semibold : AppFonts.regular,
           ),
@@ -451,11 +451,11 @@ class _UpPanelState extends State<UpPanel> {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
         color: isFocused
-            ? themeColor.withValues(alpha: 0.8)
-            : Colors.white.withValues(alpha: 0.12),
+            ? themeColor.withValues(alpha: AppColors.focusAlpha)
+            : AppColors.navItemSelectedBackground,
         borderRadius: BorderRadius.circular(4),
         border: Border.all(
-          color: isFocused ? Colors.white : Colors.transparent,
+          color: isFocused ? AppColors.primaryText : Colors.transparent,
           width: 2,
         ),
       ),
@@ -464,13 +464,13 @@ class _UpPanelState extends State<UpPanel> {
         children: [
           Icon(
             _isFollowing ? Icons.check : Icons.add,
-            color: Colors.white,
+            color: AppColors.primaryText,
             size: 14,
           ),
           const SizedBox(width: 4),
           Text(
             _isFollowing ? '已关注' : '关注',
-            style: const TextStyle(color: Colors.white, fontSize: AppFonts.sizeSM),
+            style: TextStyle(color: AppColors.primaryText, fontSize: AppFonts.sizeSM),
           ),
         ],
       ),
@@ -491,11 +491,11 @@ class _UpPanelState extends State<UpPanel> {
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: isFocused
-            ? themeColor.withValues(alpha: 0.45)
-            : Colors.white.withValues(alpha: 0.08),
+            ? themeColor.withValues(alpha: AppColors.focusAlpha)
+            : AppColors.navItemSelectedBackground,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: isFocused ? Colors.white : Colors.transparent,
+          color: isFocused ? AppColors.primaryText : Colors.transparent,
           width: 2,
         ),
       ),
@@ -542,7 +542,7 @@ class _UpPanelState extends State<UpPanel> {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: isFocused ? Colors.white : Colors.grey[300],
+                    color: isFocused ? AppColors.primaryText : AppColors.secondaryText,
                     fontSize: AppFonts.sizeMD,
                   ),
                 ),
@@ -554,7 +554,7 @@ class _UpPanelState extends State<UpPanel> {
                   ].join(' · '),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: Colors.grey[500], fontSize: AppFonts.sizeSM),
+                  style: TextStyle(color: AppColors.inactiveText, fontSize: AppFonts.sizeSM),
                 ),
               ],
             ),

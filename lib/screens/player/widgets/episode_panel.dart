@@ -35,11 +35,17 @@ class EpisodePanel extends StatefulWidget {
 class _EpisodePanelState extends State<EpisodePanel> {
   final ScrollController _scrollController = ScrollController();
 
+  double _getItemExtent() {
+    final textScaler = MediaQuery.textScalerOf(context);
+    final scaledFontSize = textScaler.scale(AppFonts.sizeLG);
+    return 30.0 + scaledFontSize * 1.25;
+  }
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback(
-      (_) => _scrollToIndex(widget.focusedIndex),
+      (_) => _scrollToIndex(widget.focusedIndex, animate: false),
     );
   }
 
@@ -47,11 +53,10 @@ class _EpisodePanelState extends State<EpisodePanel> {
   void didUpdateWidget(EpisodePanel oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.showingPagesTab != oldWidget.showingPagesTab) {
-      // tab 切换：等布局完成后重置滚动位置再定位到焦点项
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_scrollController.hasClients) {
           _scrollController.jumpTo(0);
-          _scrollToIndex(widget.focusedIndex);
+          _scrollToIndex(widget.focusedIndex, animate: false);
         }
       });
     } else if (widget.focusedIndex != oldWidget.focusedIndex) {
@@ -59,29 +64,43 @@ class _EpisodePanelState extends State<EpisodePanel> {
     }
   }
 
-  /// 每项高度 = padding(15*2) + 文本行高(fontSize 16 * ~1.4) ≈ 52，再乘以字体缩放
-  double get _itemHeight => 52.0 * SettingsService.fontScale;
-
-  void _scrollToIndex(int index) {
+  void _scrollToIndex(int index, {bool animate = true}) {
     if (!_scrollController.hasClients) return;
-    final itemHeight = _itemHeight;
-    final offset = index * itemHeight;
-    final viewport = _scrollController.position.viewportDimension;
+    if (widget.episodes.isEmpty) return;
 
-    final currentOffset = _scrollController.offset;
+    final safeIndex = index.clamp(0, widget.episodes.length - 1);
+    final itemExtent = _getItemExtent();
+    final position = _scrollController.position;
+    final viewportHeight = position.viewportDimension;
 
-    if (offset < currentOffset) {
-      _scrollController.animateTo(
-        offset,
+    final itemTop = safeIndex * itemExtent;
+    final itemBottom = itemTop + itemExtent;
+    final scrollTop = position.pixels;
+    final scrollBottom = scrollTop + viewportHeight;
+
+    if (itemTop >= scrollTop && itemBottom <= scrollBottom) return;
+
+    double targetOffset;
+    if (itemTop < scrollTop) {
+      targetOffset = itemTop;
+    } else {
+      targetOffset = itemBottom - viewportHeight;
+    }
+    targetOffset = targetOffset.clamp(
+      position.minScrollExtent,
+      position.maxScrollExtent,
+    );
+
+    if ((position.pixels - targetOffset).abs() < 2.0) return;
+
+    if (animate) {
+      position.animateTo(
+        targetOffset,
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOut,
       );
-    } else if (offset + itemHeight > currentOffset + viewport) {
-      _scrollController.animateTo(
-        offset + itemHeight - viewport,
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOut,
-      );
+    } else {
+      position.jumpTo(targetOffset);
     }
   }
 
@@ -109,7 +128,7 @@ class _EpisodePanelState extends State<EpisodePanel> {
               decoration: BoxDecoration(
                 border: Border(
                   bottom: BorderSide(
-                    color: Colors.white.withValues(alpha: 0.1),
+                    color: AppColors.navItemSelectedBackground,
                   ),
                 ),
               ),
@@ -121,7 +140,7 @@ class _EpisodePanelState extends State<EpisodePanel> {
                           style: TextStyle(
                             color: !widget.showingPagesTab
                                 ? SettingsService.themeColor
-                                : AppColors.textHint,
+                                : AppColors.inactiveText,
                             fontSize: AppFonts.sizeXL,
                             fontWeight: !widget.showingPagesTab
                                 ? FontWeight.bold
@@ -133,7 +152,7 @@ class _EpisodePanelState extends State<EpisodePanel> {
                           child: Text(
                             '|',
                             style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.2),
+                              color: AppColors.inactiveText,
                               fontSize: AppFonts.sizeXL,
                             ),
                           ),
@@ -143,7 +162,7 @@ class _EpisodePanelState extends State<EpisodePanel> {
                           style: TextStyle(
                             color: widget.showingPagesTab
                                 ? SettingsService.themeColor
-                                : AppColors.textHint,
+                                : AppColors.inactiveText,
                             fontSize: AppFonts.sizeXL,
                             fontWeight: widget.showingPagesTab
                                 ? FontWeight.bold
@@ -154,7 +173,7 @@ class _EpisodePanelState extends State<EpisodePanel> {
                         Text(
                           '◀▶ 切换',
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.3),
+                            color: AppColors.inactiveText,
                             fontSize: AppFonts.sizeSM,
                           ),
                         ),
@@ -164,8 +183,8 @@ class _EpisodePanelState extends State<EpisodePanel> {
                       children: [
                         Text(
                           widget.isUgcSeason ? '合集' : '分P',
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: AppColors.primaryText,
                             fontSize: AppFonts.sizeXL,
                             fontWeight: FontWeight.bold,
                           ),
@@ -177,6 +196,7 @@ class _EpisodePanelState extends State<EpisodePanel> {
               child: ListView.builder(
                 controller: _scrollController,
                 itemCount: widget.episodes.length,
+                itemExtent: _getItemExtent(),
                 itemBuilder: (context, index) {
                   final episode = widget.episodes[index];
 
@@ -225,6 +245,7 @@ class _EpisodeItem extends StatelessWidget {
   final VoidCallback onTap;
 
   const _EpisodeItem({
+    super.key,
     required this.title,
     required this.isSelected,
     required this.isFocused,
@@ -234,17 +255,18 @@ class _EpisodeItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      alignment: Alignment.centerLeft,
       decoration: BoxDecoration(
         color: isFocused
-            ? Colors.white.withValues(alpha: 0.1)
+            ? AppColors.navItemSelectedBackground
             : Colors.transparent,
         border: Border(
           left: BorderSide(
             color: isSelected
                 ? SettingsService.themeColor
                 : (isFocused
-                      ? SettingsService.themeColor.withValues(alpha: 0.5)
+                      ? SettingsService.themeColor.withValues(alpha: AppColors.focusAlpha)
                       : Colors.transparent),
             width: 4,
           ),
@@ -253,7 +275,7 @@ class _EpisodeItem extends StatelessWidget {
       child: Text(
         title,
         style: TextStyle(
-          color: isSelected ? SettingsService.themeColor : Colors.white,
+          color: isSelected ? SettingsService.themeColor : AppColors.secondaryText,
           fontSize: AppFonts.sizeLG,
           fontWeight: isSelected || isFocused
               ? FontWeight.bold

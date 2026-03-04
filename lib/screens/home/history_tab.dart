@@ -305,8 +305,8 @@ class HistoryTabState extends State<HistoryTab> {
               padding: const EdgeInsets.symmetric(vertical: 14),
               decoration: BoxDecoration(
                 color: isFocused
-                    ? SettingsService.themeColor.withValues(alpha: 0.6)
-                    : Colors.white.withValues(alpha: 0.08),
+                    ? SettingsService.themeColor.withValues(alpha: AppColors.focusAlpha)
+                    : AppColors.navItemSelectedBackground,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -314,14 +314,14 @@ class HistoryTabState extends State<HistoryTab> {
                 children: [
                   Icon(
                     Icons.expand_more,
-                    color: isFocused ? Colors.white : AppColors.textHint,
+                    color: isFocused ? AppColors.primaryText : AppColors.inactiveText,
                     size: 20,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     '已加载 ${_videos.length} 条，按确认键加载更多',
                     style: TextStyle(
-                      color: isFocused ? Colors.white : AppColors.textHint,
+                      color: isFocused ? AppColors.primaryText : AppColors.inactiveText,
                       fontSize: AppFonts.sizeMD,
                     ),
                   ),
@@ -350,14 +350,14 @@ class HistoryTabState extends State<HistoryTab> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
+            Text(
               '请先登录',
-              style: TextStyle(color: AppColors.textTertiary, fontSize: AppFonts.sizeXL),
+              style: TextStyle(color: AppColors.inactiveText, fontSize: AppFonts.sizeXL),
             ),
             const SizedBox(height: 10),
-            const Text(
+            Text(
               '登录后可查看观看历史',
-              style: TextStyle(color: AppColors.textDisabled, fontSize: AppFonts.sizeMD),
+              style: TextStyle(color: AppColors.disabledText, fontSize: AppFonts.sizeMD),
             ),
           ],
         ),
@@ -383,9 +383,9 @@ class HistoryTabState extends State<HistoryTab> {
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               '暂无观看历史',
-              style: TextStyle(color: AppColors.textTertiary, fontSize: AppFonts.sizeXL),
+              style: TextStyle(color: AppColors.inactiveText, fontSize: AppFonts.sizeXL),
             ),
           ],
         ),

@@ -19,7 +19,7 @@ class CommentPanel extends StatelessWidget {
       child: Container(
         width: panelWidth,
         height: double.infinity,
-        color: SidePanelStyle.background,
+        color: AppColors.sidePanelBackgroundAdaptive,
         child: CommentListView(
           aid: aid,
           onClose: onClose,

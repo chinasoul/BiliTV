@@ -206,14 +206,14 @@ class _SearchResultsViewState extends State<SearchResultsView> {
               width: 80,
               height: 80,
               colorFilter: ColorFilter.mode(
-                Colors.white.withValues(alpha: 0.2),
+                AppColors.inactiveText,
                 BlendMode.srcIn,
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               '未找到相关视频',
-              style: TextStyle(color: AppColors.textDisabled, fontSize: AppFonts.sizeLG),
+              style: TextStyle(color: AppColors.disabledText, fontSize: AppFonts.sizeLG),
             ),
             const SizedBox(height: 20),
             // 可聚焦的返回按钮
@@ -313,17 +313,17 @@ class _SearchResultsViewState extends State<SearchResultsView> {
           left: 0,
           right: 0,
           child: Container(
-            color: const Color(0xFF121212),
+            color: AppColors.headerBackground,
             padding: const EdgeInsets.fromLTRB(30, 20, 30, 15),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   '搜索结果: ${widget.query}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: AppFonts.sizeXL,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: AppColors.primaryText,
                   ),
                 ),
                 const SizedBox(height: 15),
@@ -409,14 +409,16 @@ class _SortButtonState extends State<_SortButton> {
           color: _isFocused
               ? SettingsService.themeColor
               : widget.isSelected
-              ? Colors.white.withValues(alpha: 0.2)
-              : Colors.white.withValues(alpha: 0.1),
+              ? AppColors.navItemSelectedBackground
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
           widget.label,
           style: TextStyle(
-            color: Colors.white,
+            color: _isFocused || widget.isSelected
+                ? AppColors.primaryText
+                : AppColors.inactiveText,
             fontSize: AppFonts.sizeMD,
             fontWeight: widget.isSelected || _isFocused
                 ? FontWeight.bold
@@ -473,7 +475,9 @@ class _BackToSearchButtonState extends State<_BackToSearchButton> {
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           decoration: BoxDecoration(
-            color: _isFocused ? SettingsService.themeColor : Colors.white12,
+            color: _isFocused
+                ? SettingsService.themeColor
+                : AppColors.navItemSelectedBackground,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
@@ -482,13 +486,17 @@ class _BackToSearchButtonState extends State<_BackToSearchButton> {
               Icon(
                 Icons.arrow_back,
                 size: 18,
-                color: _isFocused ? Colors.white : AppColors.textTertiary,
+                color: _isFocused
+                    ? AppColors.primaryText
+                    : AppColors.inactiveText,
               ),
               const SizedBox(width: 8),
               Text(
                 '返回重新搜索',
                 style: TextStyle(
-                  color: _isFocused ? Colors.white : AppColors.textTertiary,
+                  color: _isFocused
+                      ? AppColors.primaryText
+                      : AppColors.inactiveText,
                   fontSize: AppFonts.sizeLG,
                   fontWeight: _isFocused ? FontWeight.bold : AppFonts.regular,
                 ),

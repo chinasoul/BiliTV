@@ -8,6 +8,9 @@ import '../services/settings_service.dart';
 
 /// 全局颜色
 abstract final class AppColors {
+  /// 当前是否浅色主题
+  static bool get isLight => SettingsService.themeMode == ThemeMode.light;
+
   // ── 背景色 ────────────────────────────────────────────────
   /// 主背景色（App 主体、Tab 页面）
   static const Color background = Color(0xFF121212);
@@ -40,6 +43,18 @@ abstract final class AppColors {
   /// 非活跃/未选中文字色
   static const Color textInactive = Colors.grey;
 
+  /// 主题自适应主文字色
+  static Color get primaryText => isLight ? Colors.black : Colors.white;
+
+  /// 主题自适应次级文字色
+  static Color get secondaryText => isLight ? Colors.black87 : textSecondary;
+
+  /// 主题自适应弱文字色
+  static Color get inactiveText => isLight ? Colors.black54 : textTertiary;
+
+  /// 主题自适应禁用文字色
+  static Color get disabledText => isLight ? Colors.black38 : textDisabled;
+
   // ── 分割线 & 边框 ────────────────────────────────────────
   /// 列表项悬浮 / 未选中背景
   static const Color hoverBackground = Colors.white10;
@@ -64,9 +79,67 @@ abstract final class AppColors {
   static Color get videoCardOverlay =>
       Colors.black.withValues(alpha: SettingsService.videoCardOverlayAlpha);
 
+  /// 评论弹窗遮罩背景（开发者选项可调）
+  static Color get popupBarrier =>
+      Colors.black.withValues(alpha: SettingsService.popupBarrierAlpha);
+
+  /// 评论侧栏背景色（开发者选项可调）
+  static Color get panelBackgroundColor =>
+      Color(SettingsService.panelBackgroundColorValue);
+
+  /// 评论侧栏背景透明度（开发者选项可调）
+  static double get panelBackgroundAlpha =>
+      SettingsService.panelBackgroundAlpha;
+
+  /// 右侧面板背景（颜色 + alpha）
+  static Color get sidePanelBackground => panelBackgroundColor
+      .withValues(alpha: panelBackgroundAlpha);
+
+  /// 右侧面板背景（浅色主题自动提亮，避免黑字低对比）
+  static Color get sidePanelBackgroundAdaptive {
+    final base = sidePanelBackground;
+    if (!isLight) return base;
+    final mixed = Color.lerp(base, Colors.white, 0.88) ?? Colors.white;
+    final alpha = panelBackgroundAlpha < 0.92 ? 0.92 : panelBackgroundAlpha;
+    return mixed.withValues(alpha: alpha);
+  }
+
+  /// 评论弹窗背景色（开发者选项可调）
+  static Color get popupBackgroundColor =>
+      Color(SettingsService.popupBackgroundColorValue);
+
+  /// 评论弹窗背景透明度（开发者选项可调）
+  static double get popupBackgroundAlpha =>
+      SettingsService.popupBackgroundAlpha;
+
+  /// 评论弹窗背景（颜色 + alpha）
+  static Color get popupBackground => popupBackgroundColor
+      .withValues(alpha: popupBackgroundAlpha);
+
+  /// 评论弹窗背景（浅色主题自动提亮，避免黑字低对比）
+  static Color get popupBackgroundAdaptive {
+    final base = popupBackground;
+    if (!isLight) return base;
+    final mixed = Color.lerp(base, Colors.white, 0.9) ?? Colors.white;
+    final alpha = popupBackgroundAlpha < 0.9 ? 0.9 : popupBackgroundAlpha;
+    return mixed.withValues(alpha: alpha);
+  }
+
+  /// 顶部 tab/header 背景（主题自适应）
+  static Color get headerBackground =>
+      isLight ? const Color(0xFFF5F5F5) : background;
+
+  /// 首页侧边导航背景（主题自适应）
+  static Color get sidebarBackground =>
+      isLight ? const Color(0xFFEFEFEF) : const Color(0xFF1E1E1E);
+
+  /// 侧边导航选中但未聚焦背景（主题自适应）
+  static Color get navItemSelectedBackground =>
+      isLight ? Colors.black.withValues(alpha: 0.08) : Colors.white10;
+
   // ── 主题色相关 ────────────────────────────────────────────
   /// 聚焦背景 alpha 值
-  static const double focusAlpha = 0.6;
+  static double get focusAlpha => SettingsService.videoCardThemeAlpha;
 
   /// 评论项聚焦背景 alpha 值（开发者选项可调）
   static double get commentFocusAlpha => SettingsService.commentFocusAlpha;
@@ -224,7 +297,7 @@ abstract final class TabStyle {
   // ── Header 区域 ──────────────────────────────────────────
 
   /// Header 固定背景色
-  static const Color headerBackgroundColor = AppColors.background;
+  static Color get headerBackgroundColor => AppColors.headerBackground;
 
   /// Header 外层 padding（适用于 Positioned / Container）
   static const EdgeInsets headerPadding = EdgeInsets.only(
@@ -284,17 +357,30 @@ abstract final class TabStyle {
   static const double timeDisplayRight = 14;
 }
 
+/// 设置弹窗样式（确认框/选择框）
+abstract final class SettingsDialogStyle {
+  /// 背景遮罩
+  static Color get barrierColor => Colors.black.withValues(alpha: 0.7);
+
+  /// 弹窗背景（浅色主题使用浅底，避免黑字/深底冲突）
+  static Color get background =>
+      AppColors.isLight ? const Color(0xFFF5F5F5) : AppColors.panelBackground;
+
+  /// 弹窗动作按钮文字色
+  static Color get actionForeground => AppColors.primaryText;
+}
+
 /// 播放器右侧面板样式
 abstract final class SidePanelStyle {
-  /// 面板背景色
-  static const Color backgroundColor = Color(0xFF2A2A2A);
+  /// 面板背景色（开发者选项可调）
+  static Color get backgroundColor =>
+      Color(SettingsService.panelBackgroundColorValue);
 
-  /// 面板背景透明度
-  static const double backgroundAlpha = 0.95;
+  /// 面板背景透明度（开发者选项可调）
+  static double get backgroundAlpha => SettingsService.panelBackgroundAlpha;
 
   /// 获取带透明度的背景色
-  static Color get background =>
-      backgroundColor.withValues(alpha: backgroundAlpha);
+  static Color get background => AppColors.sidePanelBackgroundAdaptive;
 }
 
 /// 播放器控制栏样式

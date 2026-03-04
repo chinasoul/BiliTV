@@ -56,6 +56,7 @@ class SettingsPanel extends StatefulWidget {
 
 class _SettingsPanelState extends State<SettingsPanel> {
   final ScrollController _scrollController = ScrollController();
+  final Map<int, GlobalKey> _itemKeys = {};
 
   @override
   void didUpdateWidget(SettingsPanel oldWidget) {
@@ -69,25 +70,16 @@ class _SettingsPanelState extends State<SettingsPanel> {
 
   void _scrollToFocused() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        const itemHeight = 80.0;
-        final targetOffset = widget.focusedIndex * itemHeight;
-        final currentOffset = _scrollController.offset;
-        final viewport = _scrollController.position.viewportDimension;
-
-        if (targetOffset < currentOffset) {
-          _scrollController.animateTo(
-            targetOffset,
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOut,
-          );
-        } else if (targetOffset + itemHeight > currentOffset + viewport) {
-          _scrollController.animateTo(
-            targetOffset + itemHeight - viewport,
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOut,
-          );
-        }
+      if (!mounted) return;
+      final key = _itemKeys[widget.focusedIndex];
+      final ctx = key?.currentContext;
+      if (ctx != null) {
+        Scrollable.ensureVisible(
+          ctx,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
+        );
       }
     });
   }
@@ -123,7 +115,7 @@ class _SettingsPanelState extends State<SettingsPanel> {
               decoration: BoxDecoration(
                 border: Border(
                   bottom: BorderSide(
-                    color: Colors.white.withValues(alpha: 0.1),
+                    color: AppColors.navItemSelectedBackground,
                   ),
                 ),
               ),
@@ -133,20 +125,20 @@ class _SettingsPanelState extends State<SettingsPanel> {
                   if (widget.menuType != SettingsMenuType.main)
                     Padding(
                       padding: const EdgeInsets.only(right: 12),
-                      child: const Icon(Icons.arrow_back, color: Colors.white),
+                      child: Icon(Icons.arrow_back, color: Colors.white),
                     ),
                   */
                   Text(
                     title,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: AppColors.primaryText,
                       fontSize: AppFonts.sizeXL,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const Spacer(),
                   if (widget.menuType == SettingsMenuType.main)
-                    const Icon(Icons.settings, color: AppColors.textHint),
+                    Icon(Icons.settings, color: AppColors.inactiveText),
                 ],
               ),
             ),
@@ -218,7 +210,7 @@ class _SettingsPanelState extends State<SettingsPanel> {
           child: Text(
             '仅对当前视频生效，全局默认值请在 设置→弹幕设置 中修改',
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.4),
+              color: AppColors.inactiveText,
               fontSize: AppFonts.sizeSM,
             ),
           ),
@@ -349,9 +341,9 @@ class _SettingsPanelState extends State<SettingsPanel> {
     required String value,
     required VoidCallback onTap,
   }) {
-    // Determine if focused based on parent index
     final isFocused = widget.focusedIndex == index;
     return Material(
+      key: _itemKeys.putIfAbsent(index, () => GlobalKey()),
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
@@ -359,7 +351,7 @@ class _SettingsPanelState extends State<SettingsPanel> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
             color: isFocused
-                ? SettingsService.themeColor.withValues(alpha: 0.3)
+                ? SettingsService.themeColor.withValues(alpha: AppColors.focusAlpha)
                 : Colors.transparent,
             border: isFocused
                 ? Border(
@@ -376,7 +368,7 @@ class _SettingsPanelState extends State<SettingsPanel> {
                 icon,
                 color: isFocused
                     ? SettingsService.themeColor
-                    : Colors.white.withValues(alpha: 0.7),
+                    : AppColors.inactiveText,
                 size: 22,
               ),
               const SizedBox(width: 12),
@@ -388,8 +380,8 @@ class _SettingsPanelState extends State<SettingsPanel> {
                       title,
                       style: TextStyle(
                         color: isFocused
-                            ? Colors.white
-                            : Colors.white.withValues(alpha: 0.9),
+                            ? AppColors.primaryText
+                            : AppColors.secondaryText,
                         fontSize: AppFonts.sizeLG,
                         fontWeight: isFocused
                             ? FontWeight.bold
@@ -401,7 +393,7 @@ class _SettingsPanelState extends State<SettingsPanel> {
                       Text(
                         value,
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.6),
+                          color: AppColors.inactiveText,
                           fontSize: AppFonts.sizeSM,
                         ),
                       ),
@@ -412,7 +404,7 @@ class _SettingsPanelState extends State<SettingsPanel> {
               if (widget.menuType == SettingsMenuType.main && index > 0)
                 Icon(
                   Icons.chevron_right,
-                  color: Colors.white.withValues(alpha: 0.5),
+                  color: AppColors.inactiveText,
                   size: 20,
                 ),
             ],

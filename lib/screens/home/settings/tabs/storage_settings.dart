@@ -69,16 +69,16 @@ class _StorageSettingsState extends State<StorageSettings> {
   }) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.7),
+      barrierColor: SettingsDialogStyle.barrierColor,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.panelBackground,
+        backgroundColor: SettingsDialogStyle.background,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: Text(title),
         content: Text(content),
         actions: [
           TextButton(
             style: TextButton.styleFrom(
-              foregroundColor: Colors.white,
+              foregroundColor: SettingsDialogStyle.actionForeground,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -86,7 +86,7 @@ class _StorageSettingsState extends State<StorageSettings> {
             ).copyWith(
               backgroundColor: WidgetStateProperty.resolveWith((states) {
                 if (states.contains(WidgetState.focused)) {
-                  return SettingsService.themeColor.withValues(alpha: 0.3);
+                  return SettingsService.themeColor.withValues(alpha: AppColors.focusAlpha);
                 }
                 return Colors.transparent;
               }),
@@ -97,7 +97,7 @@ class _StorageSettingsState extends State<StorageSettings> {
           TextButton(
             autofocus: true,
             style: TextButton.styleFrom(
-              foregroundColor: Colors.white,
+              foregroundColor: SettingsDialogStyle.actionForeground,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -105,7 +105,7 @@ class _StorageSettingsState extends State<StorageSettings> {
             ).copyWith(
               backgroundColor: WidgetStateProperty.resolveWith((states) {
                 if (states.contains(WidgetState.focused)) {
-                  return SettingsService.themeColor.withValues(alpha: 0.3);
+                  return SettingsService.themeColor.withValues(alpha: AppColors.focusAlpha);
                 }
                 return Colors.transparent;
               }),

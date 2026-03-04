@@ -82,13 +82,13 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
 
   ButtonStyle _dialogActionStyle({required bool primary}) {
     return TextButton.styleFrom(
-      foregroundColor: Colors.white,
+      foregroundColor: AppColors.primaryText,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     ).copyWith(
       backgroundColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.focused)) {
-          return SettingsService.themeColor.withValues(alpha: 0.3);
+          return SettingsService.themeColor.withValues(alpha: AppColors.focusAlpha);
         }
         return Colors.transparent;
       }),
@@ -98,9 +98,9 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
   Future<bool> _confirmResetPlaybackSettings() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.7),
+      barrierColor: SettingsDialogStyle.barrierColor,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.panelBackground,
+        backgroundColor: SettingsDialogStyle.background,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Text('重置播放设置'),
         content: const Text('将恢复播放设置页的所有偏好为默认值，是否继续？'),
@@ -151,7 +151,7 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
 
   Widget _buildPerformanceModeDescription(PlaybackPerformanceMode mode) {
     final baseStyle = TextStyle(
-      color: Colors.white.withValues(alpha: 0.55),
+      color: AppColors.inactiveText,
       fontSize: AppFonts.sizeSM,
       height: 1.45,
     );
@@ -212,7 +212,7 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
           child: Text(
             '控制栏按钮显示 (确认键切换)',
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.7),
+              color: AppColors.inactiveText,
               fontSize: AppFonts.sizeMD,
             ),
           ),
@@ -270,12 +270,12 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         decoration: BoxDecoration(
                           color: isEnabled
-                              ? SettingsService.themeColor.withValues(alpha: 0.3)
-                              : Colors.white.withValues(alpha: 0.1),
+                              ? SettingsService.themeColor.withValues(alpha: AppColors.focusAlpha)
+                              : AppColors.navItemSelectedBackground,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
                             color: focused
-                                ? Colors.white
+                                ? AppColors.primaryText
                                 : isEnabled
                                 ? SettingsService.themeColor
                                 : Colors.transparent,
@@ -286,8 +286,8 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
                           label,
                           style: TextStyle(
                             color: isEnabled
-                                ? Colors.white
-                                : Colors.white.withValues(alpha: 0.5),
+                                ? AppColors.primaryText
+                                : AppColors.inactiveText,
                             fontSize: AppFonts.sizeSM,
                             fontWeight: focused
                                 ? FontWeight.bold
@@ -308,7 +308,7 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
           child: Text(
             '控制栏按钮排序 (仅显示已启用)',
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.7),
+              color: AppColors.inactiveText,
               fontSize: AppFonts.sizeMD,
             ),
           ),
@@ -320,7 +320,7 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
             style: TextStyle(
               color: _isControlDragging
                   ? SettingsService.themeColor
-                  : Colors.white.withValues(alpha: 0.5),
+                  : AppColors.inactiveText,
               fontSize: AppFonts.sizeSM,
             ),
           ),
@@ -332,7 +332,7 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
                   child: Text(
                     '请至少启用一个按钮',
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.5),
+                      color: AppColors.inactiveText,
                     ),
                   ),
                 )
@@ -431,14 +431,14 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
                               color: _isControlDragging && isSelected
                                   ? SettingsService.themeColor
                                   : focused
-                                  ? Colors.white.withValues(alpha: 0.2)
-                                  : Colors.white.withValues(alpha: 0.1),
+                                  ? AppColors.navItemSelectedBackground
+                                  : Colors.transparent,
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
                               label,
                               style: TextStyle(
-                                color: Colors.white,
+                                color: AppColors.primaryText,
                                 fontWeight: focused
                                     ? FontWeight.bold
                                     : AppFonts.regular,

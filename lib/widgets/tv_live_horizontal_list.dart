@@ -38,8 +38,8 @@ class _TvLiveHorizontalListState extends State<TvLiveHorizontalList> {
             padding: const EdgeInsets.only(left: 24, bottom: 12, top: 24),
             child: Text(
               widget.title,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: AppColors.primaryText,
                 fontSize: AppFonts.sizeXL,
                 fontWeight: FontWeight.bold,
               ),

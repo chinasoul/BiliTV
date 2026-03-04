@@ -615,7 +615,7 @@ class UpdateService {
   }) {
     ButtonStyle actionStyle({required bool primary}) {
       return TextButton.styleFrom(
-        foregroundColor: Colors.white,
+        foregroundColor: SettingsDialogStyle.actionForeground,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ).copyWith(
@@ -630,30 +630,30 @@ class UpdateService {
 
     showDialog(
       context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.7),
+      barrierColor: SettingsDialogStyle.barrierColor,
       barrierDismissible: !updateInfo.forceUpdate,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.panelBackground,
+        backgroundColor: SettingsDialogStyle.background,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: Text(
           '发现新版本 ${updateInfo.version}',
-          style: const TextStyle(color: Colors.white),
+          style: TextStyle(color: AppColors.primaryText),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               '更新内容:',
               style: TextStyle(
-                color: Colors.white,
+                color: AppColors.primaryText,
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               updateInfo.changelog,
-              style: const TextStyle(color: AppColors.textTertiary),
+              style: TextStyle(color: AppColors.inactiveText),
               maxLines: 10,
               overflow: TextOverflow.ellipsis,
             ),
@@ -667,7 +667,7 @@ class UpdateService {
                 Navigator.of(context).pop();
                 onCancel?.call();
               },
-              child: const Text('稍后再说'),
+              child: Text('稍后再说'),
             ),
           TextButton(
             autofocus: true,
@@ -676,7 +676,7 @@ class UpdateService {
               Navigator.of(context).pop();
               onUpdate?.call();
             },
-            child: const Text('立即更新'),
+            child: Text('立即更新'),
           ),
         ],
       ),
@@ -690,7 +690,7 @@ class UpdateService {
   ) {
     showDialog(
       context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.7),
+      barrierColor: SettingsDialogStyle.barrierColor,
       barrierDismissible: false,
       builder: (context) => _DownloadProgressDialog(updateInfo: updateInfo),
     );
@@ -762,44 +762,44 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
     }
 
     return AlertDialog(
-      backgroundColor: AppColors.panelBackground,
+      backgroundColor: SettingsDialogStyle.background,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       title: Text(
         _installing ? '正在启动安装...' : '正在下载更新',
-        style: const TextStyle(color: Colors.white),
+        style: TextStyle(color: AppColors.primaryText),
       ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (_error != null) ...[
-            const Icon(Icons.error, color: Colors.red, size: 48),
+            Icon(Icons.error, color: Colors.red, size: 48),
             const SizedBox(height: 16),
-            Text(_error!, style: const TextStyle(color: Colors.red)),
+            Text(_error!, style: TextStyle(color: Colors.red)),
           ] else if (_installing) ...[
             CircularProgressIndicator(color: SettingsService.themeColor),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               '下载完成，正在调起安装...',
-              style: TextStyle(color: AppColors.textTertiary),
+              style: TextStyle(color: AppColors.inactiveText),
             ),
           ] else ...[
             LinearProgressIndicator(
               value: _progress,
               color: SettingsService.themeColor,
-              backgroundColor: Colors.white12,
+              backgroundColor: AppColors.navItemSelectedBackground,
             ),
             const SizedBox(height: 16),
             Text(
               '${(_progress * 100).toStringAsFixed(1)}%',
-              style: const TextStyle(color: AppColors.textTertiary),
+              style: TextStyle(color: AppColors.inactiveText),
             ),
           ],
           const SizedBox(height: 12),
           Text(
             _connecting ? '正在连接下载源...' : _downloadUrl,
             style: TextStyle(
-              color: _connecting ? AppColors.textHint : AppColors.textDisabled,
+              color: _connecting ? AppColors.inactiveText : AppColors.disabledText,
               fontSize: AppFonts.sizeXS,
             ),
             maxLines: 2,
@@ -812,7 +812,7 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
           TextButton(
             autofocus: true,
             style: TextButton.styleFrom(
-              foregroundColor: Colors.white,
+              foregroundColor: SettingsDialogStyle.actionForeground,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -826,7 +826,7 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
               }),
             ),
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('关闭'),
+            child: Text('关闭'),
           ),
       ],
     );

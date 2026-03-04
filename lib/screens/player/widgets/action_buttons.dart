@@ -351,7 +351,7 @@ class ActionButtonsState extends State<ActionButtons> {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
           color: isFocused
-              ? themeColor.withValues(alpha: 0.6)
+              ? themeColor.withValues(alpha: AppColors.focusAlpha)
               : Colors.black.withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(6),
         ),

@@ -63,13 +63,13 @@ class _DanmakuSettingsState extends State<DanmakuSettings> {
 
   ButtonStyle _dialogActionStyle({required bool primary}) {
     return TextButton.styleFrom(
-      foregroundColor: Colors.white,
+      foregroundColor: SettingsDialogStyle.actionForeground,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     ).copyWith(
       backgroundColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.focused)) {
-          return SettingsService.themeColor.withValues(alpha: 0.3);
+          return SettingsService.themeColor.withValues(alpha: AppColors.focusAlpha);
         }
         return Colors.transparent;
       }),
@@ -79,9 +79,9 @@ class _DanmakuSettingsState extends State<DanmakuSettings> {
   Future<bool> _confirmResetDanmakuSettings() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.7),
+      barrierColor: SettingsDialogStyle.barrierColor,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.panelBackground,
+        backgroundColor: SettingsDialogStyle.background,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Text('重置弹幕设置'),
         content: const Text('将恢复弹幕设置页的所有偏好为默认值，是否继续？'),
@@ -115,7 +115,7 @@ class _DanmakuSettingsState extends State<DanmakuSettings> {
   @override
   Widget build(BuildContext context) {
     final baseSubtitleStyle = TextStyle(
-      color: Colors.white.withValues(alpha: 0.55),
+      color: AppColors.inactiveText,
       fontSize: AppFonts.sizeSM,
       height: 1.45,
     );

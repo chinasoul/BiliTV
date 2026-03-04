@@ -276,8 +276,8 @@ class LiveTabState extends State<LiveTab> {
               padding: const EdgeInsets.symmetric(vertical: 14),
               decoration: BoxDecoration(
                 color: isFocused
-                    ? SettingsService.themeColor.withValues(alpha: 0.6)
-                    : Colors.white.withValues(alpha: 0.08),
+                    ? SettingsService.themeColor.withValues(alpha: AppColors.focusAlpha)
+                    : AppColors.navItemSelectedBackground,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -285,14 +285,14 @@ class LiveTabState extends State<LiveTab> {
                 children: [
                   Icon(
                     Icons.expand_more,
-                    color: isFocused ? Colors.white : AppColors.textHint,
+                    color: isFocused ? AppColors.primaryText : AppColors.inactiveText,
                     size: 20,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     '已加载 ${rooms.length} 条，按确认键加载更多',
                     style: TextStyle(
-                      color: isFocused ? Colors.white : AppColors.textHint,
+                      color: isFocused ? AppColors.primaryText : AppColors.inactiveText,
                       fontSize: AppFonts.sizeMD,
                     ),
                   ),
@@ -348,8 +348,11 @@ class LiveTabState extends State<LiveTab> {
         Positioned.fill(
           child: FocusTraversalGroup(
             child: showLoginText
-                ? const Center(
-                    child: Text("请先登录", style: TextStyle(color: Colors.white)),
+                ? Center(
+                    child: Text(
+                      "请先登录",
+                      style: TextStyle(color: AppColors.primaryText),
+                    ),
                   )
                 : isLoading && currentRooms.isEmpty
                 ? Center(
@@ -358,11 +361,11 @@ class LiveTabState extends State<LiveTab> {
                     ),
                   )
                 : currentRooms.isEmpty
-                ? const Center(
+                ? Center(
                     child: Text(
                       "暂无开播的主播",
                       style: TextStyle(
-                        color: AppColors.textHint,
+                        color: AppColors.inactiveText,
                         fontSize: AppFonts.sizeXXL,
                         fontWeight: FontWeight.bold,
                       ),
@@ -555,7 +558,7 @@ class _LiveCategoryTab extends StatelessWidget {
                 padding: TabStyle.tabPadding,
                 decoration: BoxDecoration(
                   color: f
-                      ? SettingsService.themeColor.withValues(alpha: 0.6)
+                      ? SettingsService.themeColor.withValues(alpha: AppColors.focusAlpha)
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(TabStyle.tabBorderRadius),
                 ),
@@ -566,10 +569,8 @@ class _LiveCategoryTab extends StatelessWidget {
                       label,
                       style: TextStyle(
                         color: f
-                            ? AppColors.textPrimary
-                            : (isSelected
-                                  ? SettingsService.themeColor
-                                  : AppColors.textTertiary),
+                            ? AppColors.primaryText
+                            : (isSelected ? AppColors.primaryText : AppColors.inactiveText),
                         fontSize: TabStyle.tabFontSize,
                         fontWeight: f || isSelected
                             ? AppFonts.bold
@@ -583,7 +584,7 @@ class _LiveCategoryTab extends StatelessWidget {
                       width: TabStyle.tabUnderlineWidth,
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? SettingsService.themeColor
+                            ? SettingsService.themeColor.withValues(alpha: AppColors.focusAlpha)
                             : Colors.transparent,
                         borderRadius: BorderRadius.circular(
                           TabStyle.tabUnderlineRadius,

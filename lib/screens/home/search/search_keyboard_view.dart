@@ -392,16 +392,16 @@ class SearchKeyboardViewState extends State<SearchKeyboardView> {
                         controller: _searchController,
                         focusNode: _searchInputFocusNode,
                         textInputAction: TextInputAction.search,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: AppFonts.sizeXL,
-                          color: Colors.white,
+                          color: AppColors.primaryText,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 2,
                         ),
                         decoration: InputDecoration(
                           hintText: '输入关键词搜索...',
-                          hintStyle: const TextStyle(
-                            color: Colors.white24,
+                          hintStyle: TextStyle(
+                            color: AppColors.disabledText,
                             fontSize: AppFonts.sizeXL,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 2,
@@ -410,10 +410,10 @@ class SearchKeyboardViewState extends State<SearchKeyboardView> {
                             horizontal: 15,
                           ),
                           filled: true,
-                          fillColor: Colors.white10,
+                          fillColor: AppColors.navItemSelectedBackground,
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(color: Colors.white12),
+                            borderSide: BorderSide(color: AppColors.inactiveText),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -561,10 +561,10 @@ class SearchKeyboardViewState extends State<SearchKeyboardView> {
                 size: 18,
               ),
               const SizedBox(width: 6),
-              const Text(
+              Text(
                 '热门搜索',
                 style: TextStyle(
-                  color: AppColors.textTertiary,
+                  color: AppColors.inactiveText,
                   fontSize: AppFonts.sizeLG,
                   fontWeight: FontWeight.bold,
                 ),
@@ -577,10 +577,10 @@ class SearchKeyboardViewState extends State<SearchKeyboardView> {
             child: _isLoadingHotSearch
                 ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
                 : _hotSearchItems.isEmpty
-                ? const Center(
+                ? Center(
                     child: Text(
                       '暂无热搜',
-                      style: TextStyle(color: AppColors.textDisabled),
+                      style: TextStyle(color: AppColors.disabledText),
                     ),
                   )
                 : ListView.builder(
@@ -631,12 +631,12 @@ class SearchKeyboardViewState extends State<SearchKeyboardView> {
           // 标题和清除按钮
           Row(
             children: [
-              const Icon(Icons.history, color: AppColors.textHint, size: 16),
+              Icon(Icons.history, color: AppColors.inactiveText, size: 16),
               const SizedBox(width: 6),
-              const Text(
+              Text(
                 '搜索历史',
                 style: TextStyle(
-                  color: AppColors.textTertiary,
+                  color: AppColors.inactiveText,
                   fontSize: AppFonts.sizeLG,
                   fontWeight: FontWeight.bold,
                 ),
@@ -799,14 +799,14 @@ class _ClearButtonState extends State<_ClearButton> {
             children: [
               Icon(
                 Icons.delete_outline,
-                color: _isFocused ? Colors.white : AppColors.textDisabled,
+                color: _isFocused ? AppColors.primaryText : AppColors.disabledText,
                 size: 14,
               ),
               const SizedBox(width: 4),
               Text(
                 '清除',
                 style: TextStyle(
-                  color: _isFocused ? Colors.white : AppColors.textDisabled,
+                  color: _isFocused ? AppColors.primaryText : AppColors.disabledText,
                   fontSize: AppFonts.sizeSM,
                 ),
               ),
@@ -886,7 +886,9 @@ class _HotSearchItemState extends State<_HotSearchItem> {
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: _isFocused ? SettingsService.themeColor : Colors.white12,
+            color: _isFocused
+                ? SettingsService.themeColor
+                : AppColors.navItemSelectedBackground,
             borderRadius: BorderRadius.circular(6),
           ),
           child: Row(
@@ -898,7 +900,7 @@ class _HotSearchItemState extends State<_HotSearchItem> {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: _isFocused
-                      ? Colors.white.withValues(alpha: 0.2)
+                      ? AppColors.navItemSelectedBackground
                       : _getRankColor(widget.item.rank).withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(4),
                 ),
@@ -906,7 +908,7 @@ class _HotSearchItemState extends State<_HotSearchItem> {
                   '${widget.item.rank}',
                   style: TextStyle(
                     color: _isFocused
-                        ? Colors.white
+                        ? AppColors.primaryText
                         : _getRankColor(widget.item.rank),
                     fontSize: AppFonts.sizeXS,
                     fontWeight: FontWeight.bold,
@@ -919,7 +921,9 @@ class _HotSearchItemState extends State<_HotSearchItem> {
                 child: Text(
                   widget.item.showName,
                   style: TextStyle(
-                    color: _isFocused ? Colors.white : AppColors.textTertiary,
+                    color: _isFocused
+                        ? AppColors.primaryText
+                        : AppColors.inactiveText,
                     fontSize: AppFonts.sizeMD,
                     fontWeight: _isFocused
                         ? FontWeight.bold
@@ -934,7 +938,9 @@ class _HotSearchItemState extends State<_HotSearchItem> {
                 Icon(
                   Icons.whatshot,
                   size: 14,
-                  color: _isFocused ? Colors.white : Colors.orange.shade300,
+                  color: _isFocused
+                      ? AppColors.primaryText
+                      : Colors.orange.shade300,
                 ),
               ],
             ],
@@ -1004,7 +1010,9 @@ class _HistoryItemState extends State<_HistoryItem> {
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: _isFocused ? SettingsService.themeColor : Colors.white12,
+            color: _isFocused
+                ? SettingsService.themeColor
+                : AppColors.navItemSelectedBackground,
             borderRadius: BorderRadius.circular(6),
           ),
           child: Row(
@@ -1012,14 +1020,18 @@ class _HistoryItemState extends State<_HistoryItem> {
               Icon(
                 Icons.history,
                 size: 16,
-                color: _isFocused ? Colors.white : AppColors.textHint,
+                color: _isFocused
+                    ? AppColors.primaryText
+                    : AppColors.inactiveText,
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   widget.text,
                   style: TextStyle(
-                    color: _isFocused ? Colors.white : AppColors.textTertiary,
+                    color: _isFocused
+                        ? AppColors.primaryText
+                        : AppColors.inactiveText,
                     fontSize: AppFonts.sizeMD,
                     fontWeight: _isFocused
                         ? FontWeight.bold
@@ -1096,7 +1108,9 @@ class _SuggestionItemState extends State<_SuggestionItem> {
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: _isFocused ? SettingsService.themeColor : Colors.white12,
+            color: _isFocused
+                ? SettingsService.themeColor
+                : AppColors.navItemSelectedBackground,
             borderRadius: BorderRadius.circular(6),
           ),
           child: Row(
@@ -1104,14 +1118,18 @@ class _SuggestionItemState extends State<_SuggestionItem> {
               Icon(
                 Icons.search,
                 size: 14,
-                color: _isFocused ? Colors.white : AppColors.textHint,
+                color: _isFocused
+                    ? AppColors.primaryText
+                    : AppColors.inactiveText,
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   widget.text,
                   style: TextStyle(
-                    color: _isFocused ? Colors.white : AppColors.textTertiary,
+                    color: _isFocused
+                        ? AppColors.primaryText
+                        : AppColors.inactiveText,
                     fontSize: AppFonts.sizeMD,
                     fontWeight: _isFocused
                         ? FontWeight.bold

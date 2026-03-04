@@ -368,7 +368,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 Expanded(
                   flex: 5,
                   child: Container(
-                    color: const Color(0xFF1E1E1E),
+                    color: AppColors.sidebarBackground,
                     child: Column(
                       children: [
                         // 上部区域微调，让首页图标与推荐标签行平齐
@@ -406,6 +406,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       ],
                     ),
                   ),
+                ),
+                Container(
+                  width: 1,
+                  color: AppColors.dividerLight,
                 ),
                 // 右侧内容区
                 Expanded(flex: 95, child: _buildRightContent()),

@@ -66,9 +66,9 @@ class NextEpisodePreview extends StatelessWidget {
                       color: Colors.grey[800],
                       borderRadius: BorderRadius.circular(6),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.skip_next,
-                      color: AppColors.textDisabled,
+                      color: AppColors.disabledText,
                       size: 20,
                     ),
                   ),
@@ -82,9 +82,9 @@ class NextEpisodePreview extends StatelessWidget {
                   color: Colors.white.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.skip_next,
-                  color: AppColors.textDisabled,
+                  color: AppColors.disabledText,
                   size: 20,
                 ),
               ),

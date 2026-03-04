@@ -30,6 +30,12 @@ class _DeveloperSettingsState extends State<DeveloperSettings> {
   int _nativeDanmakuStrokeAlphaMin = 165;
   double _commentFocusAlpha = 0.05;
   double _videoCardOverlayAlpha = 0.90;
+  double _videoCardThemeAlpha = 0.60;
+  double _popupBarrierAlpha = 0.60;
+  int _panelBackgroundColorValue = 0xFF2A2A2A;
+  double _panelBackgroundAlpha = 0.95;
+  int _popupBackgroundColorValue = 0xFF2A2A2A;
+  double _popupBackgroundAlpha = 0.95;
 
   static const List<double> _nativeDanmakuStrokeWidthOptions = [
     1.2,
@@ -80,6 +86,47 @@ class _DeveloperSettingsState extends State<DeveloperSettings> {
     0.95,
     1.00,
   ];
+  static const List<double> _videoCardThemeAlphaOptions = [
+    0.20,
+    0.30,
+    0.40,
+    0.50,
+    0.60,
+    0.70,
+    0.80,
+    0.90,
+  ];
+  static const List<double> _popupBarrierAlphaOptions = [
+    0.30,
+    0.40,
+    0.50,
+    0.60,
+    0.70,
+    0.80,
+    0.90,
+  ];
+  static const Map<int, String> _commentBackgroundColorOptions = {
+    0xFFFFFFFF: '白色 (#FFFFFF)',
+    0xFFF5F5F5: '浅灰-1 (#F5F5F5)',
+    0xFFEFEFEF: '浅灰-2 (#EFEFEF)',
+    0xFFE0E0E0: '浅灰-3 (#E0E0E0)',
+    0xFF1A1A1A: '更深灰 (#1A1A1A)',
+    0xFF1E1E1E: '深灰-1 (#1E1E1E)',
+    0xFF1F1F1F: '深灰-2 (#1F1F1F)',
+    0xFF2A2A2A: '标准灰 (#2A2A2A)',
+    0xFF2D2D2D: '偏亮灰 (#2D2D2D)',
+  };
+  static const List<double> _commentBackgroundAlphaOptions = [
+    0.30,
+    0.40,
+    0.50,
+    0.60,
+    0.70,
+    0.80,
+    0.90,
+    0.95,
+    1.00,
+  ];
 
   final FocusNode _devToggleFocusNode = FocusNode();
   final FocusNode _memoryToggleFocusNode = FocusNode();
@@ -90,11 +137,62 @@ class _DeveloperSettingsState extends State<DeveloperSettings> {
   final FocusNode _nativeStrokeAlphaFocusNode = FocusNode();
   final FocusNode _commentFocusAlphaFocusNode = FocusNode();
   final FocusNode _videoCardOverlayAlphaFocusNode = FocusNode();
+  final FocusNode _videoCardThemeAlphaFocusNode = FocusNode();
+  final FocusNode _popupBarrierAlphaFocusNode = FocusNode();
+  final FocusNode _panelBackgroundColorFocusNode = FocusNode();
+  final FocusNode _panelBackgroundAlphaFocusNode = FocusNode();
+  final FocusNode _popupBackgroundColorFocusNode = FocusNode();
+  final FocusNode _popupBackgroundAlphaFocusNode = FocusNode();
   final FocusNode _resetFocusNode = FocusNode();
 
   T _closestValue<T extends num>(List<T> options, T value) {
     return options.reduce(
       (a, b) => (a - value).abs() < (b - value).abs() ? a : b,
+    );
+  }
+
+  String _commentBgColorLabel(int colorValue) {
+    return _commentBackgroundColorOptions[colorValue] ?? '#${colorValue.toRadixString(16).toUpperCase()}';
+  }
+
+  Widget _buildColorOptionItem(int colorValue, bool isFocused, bool isSelected) {
+    final label = _commentBgColorLabel(colorValue);
+    final color = Color(colorValue);
+    final borderColor = color.computeLuminance() > 0.7
+        ? Colors.black.withValues(alpha: 0.35)
+        : Colors.white.withValues(alpha: 0.45);
+    return Row(
+      children: [
+        Container(
+          width: 16,
+          height: 16,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(3),
+            border: Border.all(
+              color: borderColor,
+              width: 0.8,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isFocused
+                  ? AppColors.primaryText
+                  : isSelected
+                  ? AppColors.secondaryText
+                  : AppColors.inactiveText,
+              fontSize: AppFonts.sizeMD,
+              fontWeight: isSelected ? FontWeight.bold : AppFonts.regular,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 
@@ -126,6 +224,24 @@ class _DeveloperSettingsState extends State<DeveloperSettings> {
       _videoCardOverlayAlphaOptions,
       SettingsService.videoCardOverlayAlpha,
     );
+    _videoCardThemeAlpha = _closestValue(
+      _videoCardThemeAlphaOptions,
+      SettingsService.videoCardThemeAlpha,
+    );
+    _popupBarrierAlpha = _closestValue(
+      _popupBarrierAlphaOptions,
+      SettingsService.popupBarrierAlpha,
+    );
+    _panelBackgroundColorValue = SettingsService.panelBackgroundColorValue;
+    _panelBackgroundAlpha = _closestValue(
+      _commentBackgroundAlphaOptions,
+      SettingsService.panelBackgroundAlpha,
+    );
+    _popupBackgroundColorValue = SettingsService.popupBackgroundColorValue;
+    _popupBackgroundAlpha = _closestValue(
+      _commentBackgroundAlphaOptions,
+      SettingsService.popupBackgroundAlpha,
+    );
   }
 
   @override
@@ -139,6 +255,12 @@ class _DeveloperSettingsState extends State<DeveloperSettings> {
     _nativeStrokeAlphaFocusNode.dispose();
     _commentFocusAlphaFocusNode.dispose();
     _videoCardOverlayAlphaFocusNode.dispose();
+    _videoCardThemeAlphaFocusNode.dispose();
+    _popupBarrierAlphaFocusNode.dispose();
+    _panelBackgroundColorFocusNode.dispose();
+    _panelBackgroundAlphaFocusNode.dispose();
+    _popupBackgroundColorFocusNode.dispose();
+    _popupBackgroundAlphaFocusNode.dispose();
     _resetFocusNode.dispose();
     super.dispose();
   }
@@ -146,16 +268,16 @@ class _DeveloperSettingsState extends State<DeveloperSettings> {
   Future<bool> _confirmResetDeveloperSettings() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.7),
+      barrierColor: SettingsDialogStyle.barrierColor,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.panelBackground,
+        backgroundColor: SettingsDialogStyle.background,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Text('重置开发者选项'),
         content: const Text('将恢复开发者选项页的所有偏好为默认值，是否继续？'),
         actions: [
           TextButton(
             style: TextButton.styleFrom(
-              foregroundColor: Colors.white,
+              foregroundColor: SettingsDialogStyle.actionForeground,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -163,7 +285,7 @@ class _DeveloperSettingsState extends State<DeveloperSettings> {
             ).copyWith(
               backgroundColor: WidgetStateProperty.resolveWith((states) {
                 if (states.contains(WidgetState.focused)) {
-                  return SettingsService.themeColor.withValues(alpha: 0.3);
+                  return SettingsService.themeColor.withValues(alpha: AppColors.focusAlpha);
                 }
                 return Colors.transparent;
               }),
@@ -174,7 +296,7 @@ class _DeveloperSettingsState extends State<DeveloperSettings> {
           TextButton(
             autofocus: true,
             style: TextButton.styleFrom(
-              foregroundColor: Colors.white,
+              foregroundColor: SettingsDialogStyle.actionForeground,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -182,7 +304,7 @@ class _DeveloperSettingsState extends State<DeveloperSettings> {
             ).copyWith(
               backgroundColor: WidgetStateProperty.resolveWith((states) {
                 if (states.contains(WidgetState.focused)) {
-                  return SettingsService.themeColor.withValues(alpha: 0.3);
+                  return SettingsService.themeColor.withValues(alpha: AppColors.focusAlpha);
                 }
                 return Colors.transparent;
               }),
@@ -357,12 +479,122 @@ class _DeveloperSettingsState extends State<DeveloperSettings> {
           focusNode: _videoCardOverlayAlphaFocusNode,
           isLast: false,
           onMoveUp: () => _commentFocusAlphaFocusNode.requestFocus(),
-          onMoveDown: () => _resetFocusNode.requestFocus(),
+          onMoveDown: () => _videoCardThemeAlphaFocusNode.requestFocus(),
           sidebarFocusNode: widget.sidebarFocusNode,
           onChanged: (value) async {
             if (value == null) return;
             setState(() => _videoCardOverlayAlpha = value);
             await SettingsService.setVideoCardOverlayAlpha(value);
+          },
+        ),
+        const SizedBox(height: AppSpacing.settingItemGap),
+        SettingDropdownRow<double>(
+          label: '焦点 Alpha',
+          subtitle: '统一控制焦点态主题色强度（卡片/导航/Tab/设置项）',
+          value: _videoCardThemeAlpha,
+          items: _videoCardThemeAlphaOptions,
+          itemLabel: (v) => v.toStringAsFixed(2),
+          focusNode: _videoCardThemeAlphaFocusNode,
+          isLast: false,
+          onMoveUp: () => _videoCardOverlayAlphaFocusNode.requestFocus(),
+          onMoveDown: () => _popupBarrierAlphaFocusNode.requestFocus(),
+          sidebarFocusNode: widget.sidebarFocusNode,
+          onChanged: (value) async {
+            if (value == null) return;
+            setState(() => _videoCardThemeAlpha = value);
+            await SettingsService.setVideoCardThemeAlpha(value);
+          },
+        ),
+        const SizedBox(height: AppSpacing.settingItemGap),
+        SettingDropdownRow<double>(
+          label: '弹窗遮罩透明度',
+          subtitle: '评论弹窗/UP主弹窗后方黑色蒙层强度，值越大背景越暗',
+          value: _popupBarrierAlpha,
+          items: _popupBarrierAlphaOptions,
+          itemLabel: (v) => v.toStringAsFixed(2),
+          focusNode: _popupBarrierAlphaFocusNode,
+          isLast: false,
+          onMoveUp: () => _videoCardThemeAlphaFocusNode.requestFocus(),
+          onMoveDown: () => _panelBackgroundColorFocusNode.requestFocus(),
+          sidebarFocusNode: widget.sidebarFocusNode,
+          onChanged: (value) async {
+            if (value == null) return;
+            setState(() => _popupBarrierAlpha = value);
+            await SettingsService.setCommentPopupBarrierAlpha(value);
+          },
+        ),
+        const SizedBox(height: AppSpacing.settingItemGap),
+        SettingDropdownRow<int>(
+          label: '右侧面板背景颜色',
+          subtitle: '评论/设置/选集/UP主/相关推荐面板背景色',
+          value: _panelBackgroundColorValue,
+          items: _commentBackgroundColorOptions.keys.toList(),
+          itemLabel: _commentBgColorLabel,
+          pickerItemBuilder: _buildColorOptionItem,
+          focusNode: _panelBackgroundColorFocusNode,
+          isLast: false,
+          onMoveUp: () => _popupBarrierAlphaFocusNode.requestFocus(),
+          onMoveDown: () => _panelBackgroundAlphaFocusNode.requestFocus(),
+          sidebarFocusNode: widget.sidebarFocusNode,
+          onChanged: (value) async {
+            if (value == null) return;
+            setState(() => _panelBackgroundColorValue = value);
+            await SettingsService.setCommentPanelBackgroundColorValue(value);
+          },
+        ),
+        const SizedBox(height: AppSpacing.settingItemGap),
+        SettingDropdownRow<double>(
+          label: '右侧面板背景透明度',
+          subtitle: '评论/设置/选集/UP主/相关推荐面板背景 alpha',
+          value: _panelBackgroundAlpha,
+          items: _commentBackgroundAlphaOptions,
+          itemLabel: (v) => v.toStringAsFixed(2),
+          focusNode: _panelBackgroundAlphaFocusNode,
+          isLast: false,
+          onMoveUp: () => _panelBackgroundColorFocusNode.requestFocus(),
+          onMoveDown: () => _popupBackgroundColorFocusNode.requestFocus(),
+          sidebarFocusNode: widget.sidebarFocusNode,
+          onChanged: (value) async {
+            if (value == null) return;
+            setState(() => _panelBackgroundAlpha = value);
+            await SettingsService.setCommentPanelBackgroundAlpha(value);
+          },
+        ),
+        const SizedBox(height: AppSpacing.settingItemGap),
+        SettingDropdownRow<int>(
+          label: '弹窗背景颜色',
+          subtitle: '评论弹窗/UP主弹窗背景色',
+          value: _popupBackgroundColorValue,
+          items: _commentBackgroundColorOptions.keys.toList(),
+          itemLabel: _commentBgColorLabel,
+          pickerItemBuilder: _buildColorOptionItem,
+          focusNode: _popupBackgroundColorFocusNode,
+          isLast: false,
+          onMoveUp: () => _panelBackgroundAlphaFocusNode.requestFocus(),
+          onMoveDown: () => _popupBackgroundAlphaFocusNode.requestFocus(),
+          sidebarFocusNode: widget.sidebarFocusNode,
+          onChanged: (value) async {
+            if (value == null) return;
+            setState(() => _popupBackgroundColorValue = value);
+            await SettingsService.setCommentPopupBackgroundColorValue(value);
+          },
+        ),
+        const SizedBox(height: AppSpacing.settingItemGap),
+        SettingDropdownRow<double>(
+          label: '弹窗背景透明度',
+          subtitle: '评论弹窗/UP主弹窗背景 alpha',
+          value: _popupBackgroundAlpha,
+          items: _commentBackgroundAlphaOptions,
+          itemLabel: (v) => v.toStringAsFixed(2),
+          focusNode: _popupBackgroundAlphaFocusNode,
+          isLast: false,
+          onMoveUp: () => _popupBackgroundColorFocusNode.requestFocus(),
+          onMoveDown: () => _resetFocusNode.requestFocus(),
+          sidebarFocusNode: widget.sidebarFocusNode,
+          onChanged: (value) async {
+            if (value == null) return;
+            setState(() => _popupBackgroundAlpha = value);
+            await SettingsService.setCommentPopupBackgroundAlpha(value);
           },
         ),
         const SizedBox(height: AppSpacing.settingItemGap),

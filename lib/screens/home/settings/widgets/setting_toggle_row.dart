@@ -76,7 +76,7 @@ class SettingToggleRow extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: isFocused
-                        ? Colors.white.withValues(alpha: 0.1)
+                        ? AppColors.navItemSelectedBackground
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -90,7 +90,9 @@ class SettingToggleRow extends StatelessWidget {
                             Text(
                               label,
                               style: TextStyle(
-                                color: isFocused ? AppColors.textPrimary : AppColors.textSecondary,
+                                color: isFocused
+                                    ? AppColors.primaryText
+                                    : AppColors.secondaryText,
                                 fontSize: AppFonts.sizeMD,
                                 fontWeight: AppFonts.medium,
                               ),
@@ -105,8 +107,8 @@ class SettingToggleRow extends StatelessWidget {
                                 padding: const EdgeInsets.only(top: 2),
                                 child: Text(
                                   subtitle!,
-                                  style: const TextStyle(
-                                    color: AppColors.textHint,
+                                  style: TextStyle(
+                                    color: AppColors.inactiveText,
                                     fontSize: AppFonts.sizeSM,
                                   ),
                                   maxLines: 1,
@@ -127,7 +129,7 @@ class SettingToggleRow extends StatelessWidget {
                               materialTapTargetSize:
                                   MaterialTapTargetSize.shrinkWrap,
                               activeTrackColor: SettingsService.themeColor
-                                  .withValues(alpha: 0.5),
+                                  .withValues(alpha: AppColors.focusAlpha),
                               thumbColor: WidgetStateProperty.resolveWith((
                                 states,
                               ) {

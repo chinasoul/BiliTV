@@ -50,8 +50,8 @@ class TvVideoCard extends StatelessWidget {
   String get _durationText => video.durationFormatted;
 
   Widget _buildFocusedTitle() {
-    const focusedStyle = TextStyle(
-      color: Colors.white,
+    final focusedStyle = TextStyle(
+      color: AppColors.primaryText,
       fontSize: AppFonts.sizeMD,
       fontWeight: FontWeight.bold,
     );
@@ -114,7 +114,7 @@ class TvVideoCard extends StatelessWidget {
                 ),
                 child: Text(
                   video.badge,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
                     fontSize: AppFonts.sizeXS,
                     fontWeight: FontWeight.bold,
@@ -148,20 +148,23 @@ class TvVideoCard extends StatelessWidget {
             bottom: 6,
             child: Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.play_arrow_rounded,
                   size: 14,
-                  color: AppColors.textTertiary,
+                  color: AppColors.inactiveText,
                 ),
                 Text(
                   video.viewFormatted,
-                  style: const TextStyle(color: Colors.white, fontSize: AppFonts.sizeXS),
+                  style: TextStyle(
+                    color: AppColors.primaryText,
+                    fontSize: AppFonts.sizeXS,
+                  ),
                 ),
                 const Spacer(),
                 Text(
                   _durationText,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: AppColors.primaryText,
                     fontSize: AppFonts.sizeXS,
                     fontWeight: FontWeight.bold,
                   ),
@@ -188,8 +191,8 @@ class TvVideoCard extends StatelessWidget {
                   ? _buildFocusedTitle()
                   : Text(
                       video.title,
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
+                      style: TextStyle(
+                        color: AppColors.secondaryText,
                         fontSize: AppFonts.sizeMD,
                         fontWeight: AppFonts.semibold,
                       ),
@@ -206,18 +209,18 @@ class TvVideoCard extends StatelessWidget {
             const SizedBox(height: 4),
             Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.person_outline,
                   size: 12,
-                  color: AppColors.textTertiary,
+                  color: AppColors.inactiveText,
                 ),
                 const SizedBox(width: 4),
                 // UP主名字 - 可省略
                 Expanded(
                   child: Text(
                     video.ownerName,
-                    style: const TextStyle(
-                      color: AppColors.textTertiary,
+                    style: TextStyle(
+                      color: AppColors.inactiveText,
                       fontSize: AppFonts.sizeSM,
                       fontWeight: AppFonts.medium,
                     ),
@@ -229,8 +232,8 @@ class TvVideoCard extends StatelessWidget {
                 if (video.pubdateFormatted.isNotEmpty)
                   Text(
                     video.pubdateFormatted,
-                    style: const TextStyle(
-                      color: AppColors.textTertiary,
+                    style: TextStyle(
+                      color: AppColors.inactiveText,
                       fontSize: AppFonts.sizeSM,
                       fontWeight: AppFonts.medium,
                     ),
@@ -263,7 +266,7 @@ class TvVideoCard extends StatelessWidget {
       placeholder: (context, url) => Container(color: const Color(0xFF2d2d2d)),
       errorWidget: (context, url, error) => Container(
         color: Colors.grey[900],
-        child: const Icon(Icons.broken_image, size: 20, color: Colors.white24),
+        child: Icon(Icons.broken_image, size: 20, color: Colors.white24),
       ),
     );
   }

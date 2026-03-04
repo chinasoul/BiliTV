@@ -851,7 +851,7 @@ class _LivePlayerScreenState extends State<LivePlayerScreen>
                             const SizedBox(height: 20),
                             Text(
                               _errorMessage!,
-                              style: const TextStyle(color: Colors.white),
+                              style: TextStyle(color: Colors.white),
                             ),
                           ],
                         ],
@@ -988,7 +988,7 @@ class _LivePlayerScreenState extends State<LivePlayerScreen>
                       children: [
                         Text(
                           widget.title,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Colors.white,
                             fontSize: AppFonts.sizeXXL,
                             fontWeight: FontWeight.bold,
@@ -1000,16 +1000,16 @@ class _LivePlayerScreenState extends State<LivePlayerScreen>
                         // Online Count (Below Title)
                         Row(
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.people,
-                              color: AppColors.textTertiary,
+                              color: AppColors.inactiveText,
                               size: 14,
                             ),
                             const SizedBox(width: 4),
                             Text(
                               '$_onlineCount人正在观看',
-                              style: const TextStyle(
-                                color: AppColors.textTertiary,
+                              style: TextStyle(
+                                color: AppColors.inactiveText,
                                 fontSize: AppFonts.sizeSM,
                               ),
                             ),

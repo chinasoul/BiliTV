@@ -444,29 +444,29 @@ class _AdFilterSettingsState extends State<_AdFilterSettings> {
                 Expanded(
                   child: TextField(
                     controller: _upNameController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: '输入UP主名称',
                       border: OutlineInputBorder(),
                       filled: true,
-                      fillColor: Colors.white12,
+                      fillColor: AppColors.navItemSelectedBackground,
                     ),
-                    style: const TextStyle(color: Colors.white),
+                    style: TextStyle(color: AppColors.primaryText),
                     onSubmitted: (_) => _addUpName(),
                   ),
                 ),
                 const SizedBox(width: 8),
                 IconButton(
                   onPressed: _addUpName,
-                  icon: const Icon(Icons.add, color: Colors.blue),
+                  icon: Icon(Icons.add, color: Colors.blue),
                 ),
               ],
             ),
             const SizedBox(height: 8),
             if (config.blockedUpNames.isEmpty)
-              const Text(
+              Text(
                 '暂无拉黑的UP主',
                 style: TextStyle(
-                  color: AppColors.textDisabled,
+                  color: AppColors.disabledText,
                   fontStyle: FontStyle.italic,
                 ),
               )
@@ -494,29 +494,29 @@ class _AdFilterSettingsState extends State<_AdFilterSettings> {
                 Expanded(
                   child: TextField(
                     controller: _keywordController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: '输入关键词',
                       border: OutlineInputBorder(),
                       filled: true,
-                      fillColor: Colors.white12,
+                      fillColor: AppColors.navItemSelectedBackground,
                     ),
-                    style: const TextStyle(color: Colors.white),
+                    style: TextStyle(color: AppColors.primaryText),
                     onSubmitted: (_) => _addKeyword(),
                   ),
                 ),
                 const SizedBox(width: 8),
                 IconButton(
                   onPressed: _addKeyword,
-                  icon: const Icon(Icons.add, color: Colors.blue),
+                  icon: Icon(Icons.add, color: Colors.blue),
                 ),
               ],
             ),
             const SizedBox(height: 16),
             if (config.blockedKeywords.isEmpty)
-              const Text(
+              Text(
                 '暂无自定义屏蔽词',
                 style: TextStyle(
-                  color: AppColors.textDisabled,
+                  color: AppColors.disabledText,
                   fontStyle: FontStyle.italic,
                 ),
               )
@@ -539,10 +539,10 @@ class _AdFilterSettingsState extends State<_AdFilterSettings> {
 
             _sectionHeader('已屏蔽UP主 (MID)'),
             if (config.blockedMids.isEmpty)
-              const Text(
+              Text(
                 '暂无通过MID屏蔽的UP主',
                 style: TextStyle(
-                  color: AppColors.textDisabled,
+                  color: AppColors.disabledText,
                   fontStyle: FontStyle.italic,
                 ),
               )

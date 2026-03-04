@@ -928,7 +928,9 @@ class _VideoDetailScreenState extends State<VideoDetailScreen> {
         duration: AppAnimation.fast,
         padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
-          color: isFocused ? themeColor.withValues(alpha: 0.6) : Colors.transparent,
+          color: isFocused
+              ? themeColor.withValues(alpha: AppColors.focusAlpha)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
         ),
         child: ClipRRect(
@@ -952,7 +954,7 @@ class _VideoDetailScreenState extends State<VideoDetailScreen> {
                   placeholder: (_, _) => Container(color: Colors.grey[850]),
                   errorWidget: (_, _, _) => Container(
                     color: Colors.grey[850],
-                    child: const Icon(Icons.error, color: AppColors.textHint),
+                    child: Icon(Icons.error, color: AppColors.inactiveText),
                   ),
                 ),
                 // Play icon overlay
@@ -965,7 +967,7 @@ class _VideoDetailScreenState extends State<VideoDetailScreen> {
                         color: Colors.black.withValues(alpha: 0.6),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.play_arrow,
                         color: Colors.white,
                         size: 32,
@@ -987,7 +989,7 @@ class _VideoDetailScreenState extends State<VideoDetailScreen> {
                     ),
                     child: Text(
                       widget.video.durationFormatted,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.white,
                         fontSize: AppFonts.sizeMD,
                         fontWeight: AppFonts.bold,
@@ -1012,7 +1014,7 @@ class _VideoDetailScreenState extends State<VideoDetailScreen> {
         // Row 1: Title
         Text(
           _videoInfo?['title'] ?? widget.video.title,
-          style: const TextStyle(
+          style: TextStyle(
             color: Colors.white,
             fontSize: AppFonts.sizeLG,
             fontWeight: AppFonts.bold,
@@ -1141,14 +1143,14 @@ class _VideoDetailScreenState extends State<VideoDetailScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
           color: isFocused
-              ? themeColor.withValues(alpha: 0.6)
+              ? themeColor.withValues(alpha: AppColors.focusAlpha)
               : Colors.black.withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(6),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.comment_outlined,
               color: Colors.white,
               size: 22,
@@ -1157,7 +1159,7 @@ class _VideoDetailScreenState extends State<VideoDetailScreen> {
               const SizedBox(width: 4),
               Text(
                 _formatCount(replyCount),
-                style: const TextStyle(
+                style: TextStyle(
                   color: Colors.white,
                   fontSize: AppFonts.sizeSM,
                 ),
@@ -1188,7 +1190,7 @@ class _VideoDetailScreenState extends State<VideoDetailScreen> {
             ),
             decoration: BoxDecoration(
               color: inLabelsZone && _labelFocusIndex == i
-                  ? themeColor.withValues(alpha: 0.6)
+                  ? themeColor.withValues(alpha: AppColors.focusAlpha)
                   : Colors.white.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(4),
             ),
@@ -1245,14 +1247,14 @@ class _VideoDetailScreenState extends State<VideoDetailScreen> {
                   placeholder: (_, _) => Container(
                     width: 48,
                     height: 48,
-                    color: Colors.white12,
-                    child: const Icon(Icons.person, color: AppColors.textHint),
+                    color: AppColors.navItemSelectedBackground,
+                    child: Icon(Icons.person, color: AppColors.inactiveText),
                   ),
                   errorWidget: (_, _, _) => Container(
                     width: 48,
                     height: 48,
-                    color: Colors.white12,
-                    child: const Icon(Icons.person, color: AppColors.textHint),
+                    color: AppColors.navItemSelectedBackground,
+                    child: Icon(Icons.person, color: AppColors.inactiveText),
                   ),
                 ),
               ),
@@ -1263,7 +1265,7 @@ class _VideoDetailScreenState extends State<VideoDetailScreen> {
                   children: [
                     Text(
                       upName,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.white,
                         fontSize: AppFonts.sizeMD,
                         fontWeight: AppFonts.bold,
@@ -1278,10 +1280,10 @@ class _VideoDetailScreenState extends State<VideoDetailScreen> {
                         _buildLevelBadge(level),
                         if (sex == '男') ...[
                           const SizedBox(width: 6),
-                          const Icon(Icons.male, color: Colors.blue, size: 14),
+                          Icon(Icons.male, color: Colors.blue, size: 14),
                         ] else if (sex == '女') ...[
                           const SizedBox(width: 6),
-                          const Icon(Icons.female, color: Colors.pink, size: 14),
+                          Icon(Icons.female, color: Colors.pink, size: 14),
                         ],
                       ],
                     ),
@@ -1354,7 +1356,7 @@ class _VideoDetailScreenState extends State<VideoDetailScreen> {
       children: [
         Text(
           _formatCount(value),
-          style: const TextStyle(
+          style: TextStyle(
             color: Colors.white,
             fontSize: AppFonts.sizeSM,
             fontWeight: AppFonts.semibold,
@@ -1380,7 +1382,7 @@ class _VideoDetailScreenState extends State<VideoDetailScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         decoration: BoxDecoration(
           color: isFocused
-              ? themeColor.withValues(alpha: 0.6)
+              ? themeColor.withValues(alpha: AppColors.focusAlpha)
               : _isFollowing
                   ? themeColor.withValues(alpha: 0.3)
                   : Colors.white.withValues(alpha: 0.15),
@@ -1397,7 +1399,7 @@ class _VideoDetailScreenState extends State<VideoDetailScreen> {
             const SizedBox(width: 4),
             Text(
               _isFollowing ? '已关注' : '关注',
-              style: const TextStyle(
+              style: TextStyle(
                 color: Colors.white,
                 fontSize: AppFonts.sizeSM,
                 fontWeight: AppFonts.semibold,
@@ -1431,7 +1433,7 @@ class _VideoDetailScreenState extends State<VideoDetailScreen> {
                 children: [
                   TextSpan(
                     text: '$_episodeTitle (${_episodes.length})',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Colors.white,
                       fontSize: AppFonts.sizeLG,
                       fontWeight: AppFonts.bold,
@@ -1510,7 +1512,7 @@ class _VideoDetailScreenState extends State<VideoDetailScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
             color: isFocused
-                ? themeColor.withValues(alpha: 0.6)
+                ? themeColor.withValues(alpha: AppColors.focusAlpha)
                 : Colors.white.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(6),
           ),
@@ -1587,7 +1589,7 @@ class _VideoDetailScreenState extends State<VideoDetailScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text(
+                    Text(
                       '扫码分享视频',
                       style: TextStyle(
                         color: Colors.white,

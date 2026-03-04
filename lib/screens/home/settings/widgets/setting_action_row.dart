@@ -100,7 +100,7 @@ class SettingActionRow extends StatelessWidget {
               ),
               decoration: BoxDecoration(
                 color: isFocused
-                    ? Colors.white.withValues(alpha: 0.1)
+                    ? AppColors.navItemSelectedBackground
                     : Colors.transparent,
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -114,7 +114,9 @@ class SettingActionRow extends StatelessWidget {
                         Text(
                           label,
                           style: TextStyle(
-                            color: isFocused ? AppColors.textPrimary : AppColors.textSecondary,
+                            color: isFocused
+                                ? AppColors.primaryText
+                                : AppColors.secondaryText,
                             fontSize: AppFonts.sizeMD,
                             fontWeight: AppFonts.medium,
                           ),
@@ -124,8 +126,8 @@ class SettingActionRow extends StatelessWidget {
                             padding: const EdgeInsets.only(top: 2),
                             child: Text(
                               value,
-                              style: const TextStyle(
-                                color: AppColors.textHint,
+                              style: TextStyle(
+                                color: AppColors.inactiveText,
                                 fontSize: AppFonts.sizeSM,
                               ),
                               maxLines: 1,
@@ -142,8 +144,8 @@ class SettingActionRow extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 14),
                       decoration: BoxDecoration(
                         color: isFocused
-                            ? SettingsService.themeColor
-                            : Colors.white.withValues(alpha: 0.1),
+                            ? SettingsService.themeColor.withValues(alpha: AppColors.focusAlpha)
+                            : AppColors.navItemSelectedBackground,
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Row(
@@ -152,7 +154,9 @@ class SettingActionRow extends StatelessWidget {
                           Text(
                             buttonLabel,
                             style: TextStyle(
-                              color: isFocused ? AppColors.textPrimary : AppColors.textSecondary,
+                              color: isFocused
+                                  ? AppColors.primaryText
+                                  : AppColors.secondaryText,
                               fontSize: AppFonts.sizeSM,
                             ),
                           ),
@@ -162,7 +166,9 @@ class SettingActionRow extends StatelessWidget {
                             Icon(
                               Icons.unfold_more,
                               size: 14,
-                              color: isFocused ? AppColors.textPrimary : AppColors.textHint,
+                              color: isFocused
+                                  ? AppColors.primaryText
+                                  : AppColors.inactiveText,
                             ),
                           ],
                         ],

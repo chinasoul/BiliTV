@@ -496,8 +496,8 @@ class HomeTabState extends State<HomeTab> {
               padding: const EdgeInsets.symmetric(vertical: 14),
               decoration: BoxDecoration(
                 color: isFocused
-                    ? SettingsService.themeColor.withValues(alpha: 0.6)
-                    : Colors.white.withValues(alpha: 0.08),
+                    ? SettingsService.themeColor.withValues(alpha: AppColors.focusAlpha)
+                    : AppColors.navItemSelectedBackground,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -505,14 +505,14 @@ class HomeTabState extends State<HomeTab> {
                 children: [
                   Icon(
                     Icons.expand_more,
-                    color: isFocused ? Colors.white : AppColors.textHint,
+                    color: isFocused ? AppColors.primaryText : AppColors.inactiveText,
                     size: 20,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     '已加载 ${_currentVideos.length} 条，按确认键加载更多',
                     style: TextStyle(
-                      color: isFocused ? Colors.white : AppColors.textHint,
+                      color: isFocused ? AppColors.primaryText : AppColors.inactiveText,
                       fontSize: AppFonts.sizeMD,
                     ),
                   ),
@@ -771,7 +771,7 @@ class _CategoryTab extends StatelessWidget {
                   padding: TabStyle.tabPadding,
                   decoration: BoxDecoration(
                     color: f
-                        ? SettingsService.themeColor.withValues(alpha: 0.6)
+                        ? SettingsService.themeColor.withValues(alpha: AppColors.focusAlpha)
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(TabStyle.tabBorderRadius),
                   ),
@@ -782,10 +782,8 @@ class _CategoryTab extends StatelessWidget {
                         label,
                         style: TextStyle(
                           color: f
-                              ? AppColors.textPrimary
-                              : (isSelected
-                                    ? SettingsService.themeColor
-                                    : AppColors.textTertiary),
+                              ? AppColors.primaryText
+                              : (isSelected ? AppColors.primaryText : AppColors.inactiveText),
                           fontSize: TabStyle.tabFontSize,
                           fontWeight: f || isSelected
                               ? AppFonts.bold
@@ -799,7 +797,7 @@ class _CategoryTab extends StatelessWidget {
                         width: TabStyle.tabUnderlineWidth,
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? SettingsService.themeColor
+                              ? SettingsService.themeColor.withValues(alpha: AppColors.focusAlpha)
                               : Colors.transparent,
                           borderRadius: BorderRadius.circular(
                             TabStyle.tabUnderlineRadius,

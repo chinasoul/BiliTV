@@ -369,7 +369,7 @@ class ControlsOverlay extends StatelessWidget {
               padding: EdgeInsets.all(padding),
               decoration: BoxDecoration(
                 color: isFocused
-                    ? SettingsService.themeColor.withValues(alpha: 0.8)
+                    ? SettingsService.themeColor.withValues(alpha: AppColors.focusAlpha)
                     : Colors.white.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(

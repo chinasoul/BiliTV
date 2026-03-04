@@ -37,26 +37,23 @@ class ValuePickerOverlay {
     required T currentValue,
     required String Function(T) itemLabel,
     String Function(T)? itemSubtitle,
+    Widget Function(T item, bool isFocused, bool isSelected)? itemBuilder,
     required ValueChanged<T> onSelected,
   }) {
     _callerFocusNode = FocusManager.instance.primaryFocus;
     _lastCloseTime = null;
 
-    final stringItems = items.map((e) => itemLabel(e)).toList();
-    final currentString = itemLabel(currentValue);
-
     _overlayEntry = OverlayEntry(
-      builder: (context) => _ValuePickerContent(
+      builder: (context) => _ValuePickerContent<T>(
         title: title,
-        items: stringItems,
-        subtitles: itemSubtitle == null ? null : items.map(itemSubtitle).toList(),
-        currentValue: currentString,
-        onSelected: (selectedString) {
+        items: items,
+        itemLabel: itemLabel,
+        itemSubtitle: itemSubtitle,
+        itemBuilder: itemBuilder,
+        currentValue: currentValue,
+        onSelected: (selectedValue) {
           _closeInternal();
-          final index = stringItems.indexOf(selectedString);
-          if (index >= 0 && index < items.length) {
-            onSelected(items[index]);
-          }
+          onSelected(selectedValue);
         },
         onClose: _closeInternal,
       ),
@@ -81,28 +78,32 @@ class ValuePickerOverlay {
 }
 
 /// 弹窗内容
-class _ValuePickerContent extends StatefulWidget {
+class _ValuePickerContent<T> extends StatefulWidget {
   final String title;
-  final List<String> items;
-  final List<String>? subtitles;
-  final String currentValue;
-  final ValueChanged<String> onSelected;
+  final List<T> items;
+  final String Function(T) itemLabel;
+  final String Function(T)? itemSubtitle;
+  final Widget Function(T item, bool isFocused, bool isSelected)? itemBuilder;
+  final T currentValue;
+  final ValueChanged<T> onSelected;
   final VoidCallback onClose;
 
   const _ValuePickerContent({
     required this.title,
     required this.items,
-    this.subtitles,
+    required this.itemLabel,
+    this.itemSubtitle,
+    this.itemBuilder,
     required this.currentValue,
     required this.onSelected,
     required this.onClose,
   });
 
   @override
-  State<_ValuePickerContent> createState() => _ValuePickerContentState();
+  State<_ValuePickerContent<T>> createState() => _ValuePickerContentState<T>();
 }
 
-class _ValuePickerContentState extends State<_ValuePickerContent>
+class _ValuePickerContentState<T> extends State<_ValuePickerContent<T>>
     with SingleTickerProviderStateMixin {
   late int _focusedIndex;
   late List<FocusNode> _focusNodes;
@@ -149,39 +150,19 @@ class _ValuePickerContentState extends State<_ValuePickerContent>
     super.dispose();
   }
 
+  final Map<int, GlobalKey> _itemKeys = {};
+
   void _scrollToItem(int index, {bool animate = true}) {
-    if (!_scrollController.hasClients) return;
-
-    const itemHeight = 48.0;
-    const visibleItems = 7;
-    final viewportHeight = visibleItems * itemHeight;
-    final targetTop = index * itemHeight;
-    final targetBottom = targetTop + itemHeight;
-
-    final currentTop = _scrollController.offset;
-    final currentBottom = currentTop + viewportHeight;
-
-    double? targetOffset;
-    if (targetTop < currentTop) {
-      targetOffset = targetTop;
-    } else if (targetBottom > currentBottom) {
-      targetOffset = targetBottom - viewportHeight;
-    }
-
-    if (targetOffset != null) {
-      targetOffset = targetOffset.clamp(
-        0.0,
-        _scrollController.position.maxScrollExtent,
+    if (!mounted) return;
+    final key = _itemKeys[index];
+    final ctx = key?.currentContext;
+    if (ctx != null) {
+      Scrollable.ensureVisible(
+        ctx,
+        duration: animate ? AppAnimation.fast : Duration.zero,
+        curve: Curves.easeOut,
+        alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
       );
-      if (animate) {
-        _scrollController.animateTo(
-          targetOffset,
-          duration: AppAnimation.fast,
-          curve: Curves.easeOut,
-        );
-      } else {
-        _scrollController.jumpTo(targetOffset);
-      }
     }
   }
 
@@ -200,8 +181,8 @@ class _ValuePickerContentState extends State<_ValuePickerContent>
     final themeColor = SettingsService.themeColor;
 
     final hasSubtitles =
-        widget.subtitles != null &&
-        widget.subtitles!.any((text) => text.trim().isNotEmpty);
+        widget.itemSubtitle != null &&
+        widget.items.any((item) => widget.itemSubtitle!(item).trim().isNotEmpty);
     final itemHeight = hasSubtitles ? 64.0 : 48.0;
     final itemCount = widget.items.length;
     const maxVisibleItems = 7;
@@ -261,7 +242,9 @@ class _ValuePickerContentState extends State<_ValuePickerContent>
                         width: popupWidth,
                         height: popupHeight,
                         decoration: BoxDecoration(
-                          color: AppColors.panelBackground,
+                          color: AppColors.isLight
+                              ? const Color(0xFFF5F5F5)
+                              : AppColors.panelBackground,
                           borderRadius: BorderRadius.circular(AppRadius.lg),
                           boxShadow: [
                             BoxShadow(
@@ -287,8 +270,8 @@ class _ValuePickerContentState extends State<_ValuePickerContent>
                                   alignment: Alignment.centerLeft,
                                   child: Text(
                                     widget.title,
-                                    style: const TextStyle(
-                                      color: Colors.white,
+                                    style: TextStyle(
+                                      color: AppColors.primaryText,
                                       fontSize: AppFonts.sizeLG,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -305,15 +288,15 @@ class _ValuePickerContentState extends State<_ValuePickerContent>
                                   itemCount: widget.items.length,
                                   itemBuilder: (context, index) {
                                     final item = widget.items[index];
-                                    final subtitle = (widget.subtitles != null &&
-                                            index < widget.subtitles!.length)
-                                        ? widget.subtitles![index]
-                                        : '';
+                                    final subtitle = widget.itemSubtitle == null
+                                        ? ''
+                                        : widget.itemSubtitle!(item);
                                     final isSelected =
                                         item == widget.currentValue;
                                     final isFocused = index == _focusedIndex;
 
                                     return Focus(
+                                      key: _itemKeys.putIfAbsent(index, () => GlobalKey()),
                                       focusNode: _focusNodes[index],
                                       onFocusChange: (hasFocus) {
                                         if (hasFocus &&
@@ -347,7 +330,7 @@ class _ValuePickerContentState extends State<_ValuePickerContent>
                                           decoration: BoxDecoration(
                                             color: isFocused
                                                 ? themeColor.withValues(
-                                                    alpha: 0.3,
+                                                    alpha: AppColors.focusAlpha,
                                                   )
                                                 : Colors.transparent,
                                             border: isFocused
@@ -373,47 +356,57 @@ class _ValuePickerContentState extends State<_ValuePickerContent>
                                               ),
                                               const SizedBox(width: 12),
                                               Expanded(
-                                                child: Column(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      item,
-                                                      style: TextStyle(
-                                                        color: isFocused
-                                                            ? Colors.white
-                                                            : isSelected
-                                                            ? themeColor
-                                                            : AppColors.textTertiary,
-                                                        fontSize: AppFonts.sizeMD,
-                                                        fontWeight: isSelected
-                                                            ? FontWeight.bold
-                                                            : AppFonts.regular,
-                                                      ),
-                                                    ),
-                                                    if (subtitle.trim().isNotEmpty)
-                                                      Padding(
-                                                        padding:
-                                                            const EdgeInsets.only(
-                                                              top: 2,
+                                                child: widget.itemBuilder != null
+                                                    ? widget.itemBuilder!(
+                                                        item,
+                                                        isFocused,
+                                                        isSelected,
+                                                      )
+                                                    : Column(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment.center,
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment.start,
+                                                        children: [
+                                                          Text(
+                                                            widget.itemLabel(
+                                                              item,
                                                             ),
-                                                        child: Text(
-                                                          subtitle,
-                                                          style: TextStyle(
-                                                            color: isFocused
-                                                                ? AppColors.textTertiary
-                                                                : AppColors.textDisabled,
-                                                            fontSize: AppFonts.sizeXS,
+                                                            style: TextStyle(
+                                                              color: isFocused
+                                                                  ? AppColors.primaryText
+                                                                  : isSelected
+                                                                  ? AppColors.secondaryText
+                                                                  : AppColors.inactiveText,
+                                                              fontSize: AppFonts.sizeMD,
+                                                              fontWeight: isSelected
+                                                                  ? FontWeight.bold
+                                                                  : AppFonts.regular,
+                                                            ),
                                                           ),
-                                                          maxLines: 1,
-                                                          overflow:
-                                                              TextOverflow.ellipsis,
-                                                        ),
+                                                          if (subtitle
+                                                              .trim()
+                                                              .isNotEmpty)
+                                                            Padding(
+                                                              padding:
+                                                                  const EdgeInsets.only(
+                                                                    top: 2,
+                                                                  ),
+                                                              child: Text(
+                                                                subtitle,
+                                                                style: TextStyle(
+                                                                  color: isFocused
+                                                                      ? AppColors.inactiveText
+                                                                      : AppColors.disabledText,
+                                                                  fontSize: AppFonts.sizeXS,
+                                                                ),
+                                                                maxLines: 1,
+                                                                overflow:
+                                                                    TextOverflow.ellipsis,
+                                                              ),
+                                                            ),
+                                                        ],
                                                       ),
-                                                  ],
-                                                ),
                                               ),
                                             ],
                                           ),

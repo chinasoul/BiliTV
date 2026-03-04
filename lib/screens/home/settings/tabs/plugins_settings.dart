@@ -24,8 +24,8 @@ class _PluginsSettingsTabState extends State<PluginsSettingsTab> {
   @override
   Widget build(BuildContext context) {
     if (_pluginManager.plugins.isEmpty) {
-      return const Center(
-        child: Text('暂无插件', style: TextStyle(color: AppColors.textTertiary)),
+      return Center(
+        child: Text('暂无插件', style: TextStyle(color: AppColors.inactiveText)),
       );
     }
 
@@ -156,7 +156,7 @@ class _PluginCardState extends State<_PluginCard> {
               margin: const EdgeInsets.only(bottom: 12),
               decoration: BoxDecoration(
                 color: _focused
-                    ? Colors.white.withValues(alpha: 0.1)
+                    ? AppColors.navItemSelectedBackground
                     : Colors.transparent,
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -175,7 +175,7 @@ class _PluginCardState extends State<_PluginCard> {
                         Text(
                           widget.plugin.name,
                           style: TextStyle(
-                            color: _focused ? Colors.white : AppColors.textTertiary,
+                            color: _focused ? AppColors.primaryText : AppColors.inactiveText,
                             fontSize: AppFonts.sizeLG,
                             fontWeight: FontWeight.bold,
                           ),
@@ -185,8 +185,8 @@ class _PluginCardState extends State<_PluginCard> {
                             padding: const EdgeInsets.only(top: 4),
                             child: Text(
                               widget.plugin.description,
-                              style: const TextStyle(
-                                color: AppColors.textDisabled,
+                              style: TextStyle(
+                                color: AppColors.disabledText,
                                 fontSize: AppFonts.sizeSM,
                               ),
                             ),

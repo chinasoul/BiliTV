@@ -74,8 +74,8 @@ class HistoryVideoCard extends StatelessWidget {
   }
 
   Widget _buildFocusedTitle() {
-    const focusedStyle = TextStyle(
-      color: Colors.white,
+    final focusedStyle = TextStyle(
+      color: AppColors.primaryText,
       fontSize: AppFonts.sizeMD,
       fontWeight: FontWeight.bold,
     );
@@ -164,7 +164,7 @@ class HistoryVideoCard extends StatelessWidget {
                 ),
                 child: Text(
                   video.badge,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
                     fontSize: AppFonts.sizeXS,
                     fontWeight: FontWeight.bold,
@@ -210,7 +210,7 @@ class HistoryVideoCard extends StatelessWidget {
                       if (video.historyVideos > 1)
                         Text(
                           '已看至 P${video.historyPage}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Colors.white,
                             fontSize: AppFonts.sizeXS,
                             fontWeight: FontWeight.bold,
@@ -273,8 +273,8 @@ class HistoryVideoCard extends StatelessWidget {
                   ? _buildFocusedTitle()
                   : Text(
                       video.title,
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
+                      style: TextStyle(
+                        color: AppColors.secondaryText,
                         fontSize: AppFonts.sizeMD,
                         fontWeight: AppFonts.semibold,
                       ),
@@ -290,18 +290,18 @@ class HistoryVideoCard extends StatelessWidget {
             const SizedBox(height: 4),
             Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.person_outline,
                   size: 12,
-                  color: AppColors.textTertiary,
+                  color: AppColors.inactiveText,
                 ),
                 const SizedBox(width: 4),
                 // UP主名字 - 可省略
                 Expanded(
                   child: Text(
                     video.ownerName,
-                    style: const TextStyle(
-                      color: AppColors.textTertiary,
+                    style: TextStyle(
+                      color: AppColors.inactiveText,
                       fontSize: AppFonts.sizeSM,
                       fontWeight: AppFonts.medium,
                     ),
@@ -313,8 +313,8 @@ class HistoryVideoCard extends StatelessWidget {
                 if (video.viewAtFormatted.isNotEmpty)
                   Text(
                     video.viewAtFormatted,
-                    style: const TextStyle(
-                      color: AppColors.textTertiary,
+                    style: TextStyle(
+                      color: AppColors.inactiveText,
                       fontSize: AppFonts.sizeSM,
                       fontWeight: AppFonts.medium,
                     ),
@@ -342,7 +342,7 @@ class HistoryVideoCard extends StatelessWidget {
       placeholder: (context, url) => Container(color: const Color(0xFF2d2d2d)),
       errorWidget: (context, url, error) => Container(
         color: Colors.grey[900],
-        child: const Icon(Icons.broken_image, size: 20, color: Colors.white24),
+        child: Icon(Icons.broken_image, size: 20, color: Colors.white24),
       ),
     );
   }

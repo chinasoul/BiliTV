@@ -33,7 +33,7 @@ class CommentPopup extends StatelessWidget {
           Positioned.fill(
             child: GestureDetector(
               onTap: onClose,
-              child: Container(color: Colors.black.withValues(alpha: 0.6)),
+              child: Container(color: AppColors.popupBarrier),
             ),
           ),
           Center(
@@ -41,9 +41,9 @@ class CommentPopup extends StatelessWidget {
               width: popupWidth,
               height: popupHeight,
               decoration: BoxDecoration(
-                color: AppColors.surfaceBackground,
+                color: AppColors.popupBackgroundAdaptive,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white12, width: 0.8),
+                border: Border.all(color: AppColors.navItemSelectedBackground, width: 0.8),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.55),

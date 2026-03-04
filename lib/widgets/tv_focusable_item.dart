@@ -86,8 +86,12 @@ class TvFocusableItem extends StatelessWidget {
               margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
               decoration: BoxDecoration(
                 color: f
-                    ? SettingsService.themeColor.withValues(alpha: 0.6)
-                    : (isSelected ? Colors.white10 : Colors.transparent),
+                    ? SettingsService.themeColor.withValues(
+                        alpha: AppColors.focusAlpha,
+                      )
+                    : (isSelected
+                          ? AppColors.navItemSelectedBackground
+                          : Colors.transparent),
                 borderRadius: BorderRadius.circular(12),
                 border: null,
               ),
@@ -120,13 +124,13 @@ class TvFocusableItem extends StatelessWidget {
               width: 36,
               height: 36,
               color: Colors.grey[700],
-              child: const Icon(Icons.person, size: 20, color: AppColors.textHint),
+              child: Icon(Icons.person, size: 20, color: AppColors.inactiveText),
             ),
             errorWidget: (_, _, _) => Container(
               width: 36,
               height: 36,
               color: Colors.grey[700],
-              child: const Icon(Icons.person, size: 20, color: AppColors.textHint),
+              child: Icon(Icons.person, size: 20, color: AppColors.inactiveText),
             ),
           ),
         ),
@@ -140,7 +144,9 @@ class TvFocusableItem extends StatelessWidget {
         width: 32,
         height: 32,
         colorFilter: ColorFilter.mode(
-          focused ? Colors.white : (isSelected ? Colors.white : Colors.grey),
+          focused
+              ? AppColors.primaryText
+              : (isSelected ? AppColors.primaryText : AppColors.inactiveText),
           BlendMode.srcIn,
         ),
       );
@@ -150,7 +156,9 @@ class TvFocusableItem extends StatelessWidget {
     return Icon(
       Icons.circle,
       size: 32,
-      color: focused ? Colors.white : (isSelected ? Colors.white : Colors.grey),
+      color: focused
+          ? AppColors.primaryText
+          : (isSelected ? AppColors.primaryText : AppColors.inactiveText),
     );
   }
 }

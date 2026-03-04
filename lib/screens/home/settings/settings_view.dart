@@ -262,7 +262,7 @@ class SettingsViewState extends State<SettingsView> {
                 padding: TabStyle.tabPadding,
                 decoration: BoxDecoration(
                   color: isFocused
-                      ? SettingsService.themeColor.withValues(alpha: 0.6)
+                      ? SettingsService.themeColor.withValues(alpha: AppColors.focusAlpha)
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(TabStyle.tabBorderRadius),
                 ),
@@ -273,10 +273,8 @@ class SettingsViewState extends State<SettingsView> {
                       label,
                       style: TextStyle(
                         color: isFocused
-                            ? AppColors.textPrimary
-                            : (isSelected
-                                  ? SettingsService.themeColor
-                                  : AppColors.textTertiary),
+                            ? AppColors.primaryText
+                            : (isSelected ? AppColors.primaryText : AppColors.inactiveText),
                         fontSize: TabStyle.tabFontSize,
                         fontWeight: isFocused || isSelected
                             ? AppFonts.bold
@@ -290,7 +288,7 @@ class SettingsViewState extends State<SettingsView> {
                       width: TabStyle.tabUnderlineWidth,
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? SettingsService.themeColor
+                            ? SettingsService.themeColor.withValues(alpha: AppColors.focusAlpha)
                             : Colors.transparent,
                         borderRadius: BorderRadius.circular(
                           TabStyle.tabUnderlineRadius,

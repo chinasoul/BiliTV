@@ -180,7 +180,9 @@ class _BaseTvCardState extends State<BaseTvCard> {
                 padding: const EdgeInsets.all(3),
                 decoration: BoxDecoration(
                   color: _isFocused
-                      ? SettingsService.themeColor.withValues(alpha: 0.6)
+                      ? SettingsService.themeColor.withValues(
+                          alpha: SettingsService.videoCardThemeAlpha,
+                        )
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(12),
                 ),

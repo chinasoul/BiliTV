@@ -67,14 +67,14 @@ class _TvKeyboardButtonState extends State<TvKeyboardButton> {
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
               decoration: BoxDecoration(
-                color: _isFocused ? SettingsService.themeColor : Colors.white12,
+                color: _isFocused ? SettingsService.themeColor : AppColors.navItemSelectedBackground,
                 borderRadius: BorderRadius.circular(8),
               ),
               alignment: Alignment.center,
               child: Text(
                 widget.label,
                 style: TextStyle(
-                  color: _isFocused ? Colors.white : AppColors.textTertiary,
+                  color: _isFocused ? Colors.white : AppColors.inactiveText,
                   fontSize: AppFonts.sizeXL,
                   fontWeight: FontWeight.bold,
                 ),
@@ -145,14 +145,14 @@ class _TvActionButtonState extends State<TvActionButton> {
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
               decoration: BoxDecoration(
-                color: _isFocused ? widget.color : Colors.white12,
+                color: _isFocused ? widget.color : AppColors.navItemSelectedBackground,
                 borderRadius: BorderRadius.circular(8),
               ),
               alignment: Alignment.center,
               child: Text(
                 widget.label,
                 style: TextStyle(
-                  color: _isFocused ? Colors.white : AppColors.textTertiary,
+                  color: _isFocused ? Colors.white : AppColors.inactiveText,
                   fontSize: AppFonts.sizeXL,
                   fontWeight: FontWeight.bold,
                 ),

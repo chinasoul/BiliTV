@@ -182,14 +182,14 @@ class _RelatedPanelState extends State<RelatedPanel> {
               // 头部
               Container(
                 padding: const EdgeInsets.all(16),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.expand_more, color: Colors.white, size: 24),
-                    SizedBox(width: 8),
+                    Icon(Icons.expand_more, color: AppColors.primaryText, size: 24),
+                    const SizedBox(width: 8),
                     Text(
                       '更多视频',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: AppColors.primaryText,
                         fontSize: AppFonts.sizeXL,
                         fontWeight: FontWeight.bold,
                       ),
@@ -197,7 +197,7 @@ class _RelatedPanelState extends State<RelatedPanel> {
                   ],
                 ),
               ),
-              const Divider(color: Colors.grey, height: 1),
+              Divider(color: AppColors.navItemSelectedBackground, height: 1),
               // 视频列表
               Expanded(
                 child: _isLoading
@@ -243,11 +243,11 @@ class _RelatedPanelState extends State<RelatedPanel> {
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: isFocused
-            ? themeColor.withValues(alpha: 0.45)
-            : Colors.white.withValues(alpha: 0.08),
+            ? themeColor.withValues(alpha: AppColors.focusAlpha)
+            : AppColors.navItemSelectedBackground,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: isFocused ? Colors.white : Colors.transparent,
+          color: isFocused ? AppColors.primaryText : Colors.transparent,
           width: 2,
         ),
       ),
@@ -294,7 +294,7 @@ class _RelatedPanelState extends State<RelatedPanel> {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: isFocused ? Colors.white : Colors.grey[300],
+                    color: isFocused ? AppColors.primaryText : AppColors.secondaryText,
                     fontSize: AppFonts.sizeMD,
                   ),
                 ),
@@ -307,7 +307,7 @@ class _RelatedPanelState extends State<RelatedPanel> {
                   ].join(' · '),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: Colors.grey[500], fontSize: AppFonts.sizeSM),
+                  style: TextStyle(color: AppColors.inactiveText, fontSize: AppFonts.sizeSM),
                 ),
               ],
             ),

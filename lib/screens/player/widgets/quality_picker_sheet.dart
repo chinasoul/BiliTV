@@ -21,18 +21,17 @@ class QualityPickerSheet extends StatefulWidget {
 
 class _QualityPickerSheetState extends State<QualityPickerSheet> {
   final ScrollController _scrollController = ScrollController();
+  final Map<int, GlobalKey> _itemKeys = {};
   late int _focusedIndex;
 
   @override
   void initState() {
     super.initState();
-    // Find initial index based on current quality
     final index = widget.qualities.indexWhere(
       (q) => q['qn'] == widget.currentQuality,
     );
     _focusedIndex = index != -1 ? index : 0;
 
-    // Scroll to focused item after layout
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToFocused();
     });
@@ -45,16 +44,15 @@ class _QualityPickerSheetState extends State<QualityPickerSheet> {
   }
 
   void _scrollToFocused() {
-    if (!_scrollController.hasClients) return;
-    const itemHeight = 56.0; // ListTile default height approx
-    final offset = _focusedIndex * itemHeight;
-    final viewport = _scrollController.position.viewportDimension;
-
-    // Simple centering logic or ensure visible
-    if (offset < _scrollController.offset ||
-        offset + itemHeight > _scrollController.offset + viewport) {
-      _scrollController.jumpTo(
-        offset.clamp(0.0, _scrollController.position.maxScrollExtent),
+    if (!mounted) return;
+    final key = _itemKeys[_focusedIndex];
+    final ctx = key?.currentContext;
+    if (ctx != null) {
+      Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 150),
+        curve: Curves.easeOut,
+        alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
       );
     }
   }
@@ -86,12 +84,12 @@ class _QualityPickerSheetState extends State<QualityPickerSheet> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Padding(
-              padding: EdgeInsets.all(16),
+            Padding(
+              padding: const EdgeInsets.all(16),
               child: Text(
                 '画质',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: AppColors.primaryText,
                   fontSize: AppFonts.sizeXL,
                   fontWeight: FontWeight.bold,
                 ),
@@ -108,8 +106,9 @@ class _QualityPickerSheetState extends State<QualityPickerSheet> {
                   final isFocused = index == _focusedIndex;
 
                   return Container(
+                    key: _itemKeys.putIfAbsent(index, () => GlobalKey()),
                     color: isFocused
-                        ? Colors.white.withValues(alpha: 0.1)
+                        ? AppColors.navItemSelectedBackground
                         : Colors.transparent,
                     child: ListTile(
                       title: Text(
@@ -117,7 +116,7 @@ class _QualityPickerSheetState extends State<QualityPickerSheet> {
                         style: TextStyle(
                           color: isCurrent
                               ? SettingsService.themeColor
-                              : Colors.white,
+                              : AppColors.primaryText,
                           fontWeight: isCurrent || isFocused
                               ? FontWeight.bold
                               : AppFonts.regular,

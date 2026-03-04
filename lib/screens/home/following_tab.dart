@@ -876,11 +876,11 @@ class FollowingTabState extends State<FollowingTab> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 80, color: AppColors.textDisabled),
+          Icon(icon, size: 80, color: AppColors.disabledText),
           const SizedBox(height: 20),
           Text(
             text,
-            style: const TextStyle(color: AppColors.textTertiary, fontSize: AppFonts.sizeXL),
+            style: TextStyle(color: AppColors.inactiveText, fontSize: AppFonts.sizeXL),
           ),
         ],
       ),
@@ -1095,12 +1095,12 @@ class FollowingTabState extends State<FollowingTab> {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Text('请先登录', style: TextStyle(color: AppColors.textTertiary, fontSize: AppFonts.sizeXL)),
-            SizedBox(height: 10),
+          children: [
+            Text('请先登录', style: TextStyle(color: AppColors.inactiveText, fontSize: AppFonts.sizeXL)),
+            const SizedBox(height: 10),
             Text(
               '登录后可查看关注列表',
-              style: TextStyle(color: AppColors.textDisabled, fontSize: AppFonts.sizeMD),
+              style: TextStyle(color: AppColors.disabledText, fontSize: AppFonts.sizeMD),
             ),
           ],
         ),
@@ -1188,7 +1188,7 @@ class _TopTab extends StatelessWidget {
               padding: TabStyle.tabPadding,
               decoration: BoxDecoration(
                 color: focused
-                    ? SettingsService.themeColor.withValues(alpha: 0.6)
+                    ? SettingsService.themeColor.withValues(alpha: AppColors.focusAlpha)
                     : Colors.transparent,
                 borderRadius: BorderRadius.circular(TabStyle.tabBorderRadius),
               ),
@@ -1199,10 +1199,8 @@ class _TopTab extends StatelessWidget {
                     label,
                     style: TextStyle(
                       color: focused
-                          ? AppColors.textPrimary
-                          : (isSelected
-                                ? SettingsService.themeColor
-                                : AppColors.textTertiary),
+                          ? AppColors.primaryText
+                          : (isSelected ? AppColors.primaryText : AppColors.inactiveText),
                       fontSize: TabStyle.tabFontSize,
                       fontWeight: focused || isSelected
                           ? AppFonts.bold
@@ -1216,7 +1214,7 @@ class _TopTab extends StatelessWidget {
                     width: TabStyle.tabUnderlineWidth,
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? SettingsService.themeColor
+                          ? SettingsService.themeColor.withValues(alpha: AppColors.focusAlpha)
                           : Colors.transparent,
                       borderRadius: BorderRadius.circular(
                         TabStyle.tabUnderlineRadius,
@@ -1275,12 +1273,12 @@ class _FolderTab extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 color: focused
-                    ? SettingsService.themeColor.withValues(alpha: 0.6)
-                    : Colors.white10,
+                    ? SettingsService.themeColor.withValues(alpha: AppColors.focusAlpha)
+                    : AppColors.navItemSelectedBackground,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
                   color: isSelected && !focused
-                      ? SettingsService.themeColor
+                      ? SettingsService.themeColor.withValues(alpha: AppColors.focusAlpha)
                       : Colors.transparent,
                   width: 1,
                 ),
@@ -1289,10 +1287,8 @@ class _FolderTab extends StatelessWidget {
                 label,
                 style: TextStyle(
                   color: focused
-                      ? Colors.white
-                      : (isSelected
-                            ? SettingsService.themeColor
-                            : AppColors.textTertiary),
+                      ? AppColors.primaryText
+                      : (isSelected ? AppColors.primaryText : AppColors.inactiveText),
                   fontSize: AppFonts.sizeSM,
                 ),
               ),
@@ -1355,8 +1351,8 @@ class _FollowingUserCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             decoration: BoxDecoration(
               color: focused
-                  ? SettingsService.themeColor.withValues(alpha: 0.6)
-                  : Colors.white10,
+                  ? SettingsService.themeColor.withValues(alpha: AppColors.focusAlpha)
+                  : AppColors.navItemSelectedBackground,
               borderRadius: BorderRadius.circular(10),
               border: null,
             ),
@@ -1381,14 +1377,14 @@ class _FollowingUserCard extends StatelessWidget {
                       fadeInDuration: Duration.zero,
                       fadeOutDuration: Duration.zero,
                       placeholder: (_, _) => Container(
-                        color: Colors.white12,
+                        color: AppColors.navItemSelectedBackground,
                         alignment: Alignment.center,
-                        child: const Icon(Icons.person, color: AppColors.textHint),
+                        child: Icon(Icons.person, color: AppColors.inactiveText),
                       ),
                       errorWidget: (_, _, _) => Container(
-                        color: Colors.white12,
+                        color: AppColors.navItemSelectedBackground,
                         alignment: Alignment.center,
-                        child: const Icon(Icons.person, color: AppColors.textHint),
+                        child: Icon(Icons.person, color: AppColors.inactiveText),
                       ),
                     ),
                   ),
@@ -1402,8 +1398,8 @@ class _FollowingUserCard extends StatelessWidget {
                           user.uname,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: focused ? AppColors.primaryText : AppColors.secondaryText,
                             fontSize: AppFonts.sizeLG,
                             fontWeight: AppFonts.semibold,
                           ),
@@ -1414,7 +1410,9 @@ class _FollowingUserCard extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.75),
+                            color: focused
+                                ? AppColors.inactiveText
+                                : AppColors.disabledText,
                             fontSize: AppFonts.sizeXS,
                           ),
                         ),

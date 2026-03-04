@@ -15,6 +15,8 @@ class SettingDropdownRow<T> extends StatelessWidget {
   final T value;
   final List<T> items;
   final String Function(T) itemLabel;
+  final Widget Function(T item, bool isFocused, bool isSelected)?
+  pickerItemBuilder;
   final ValueChanged<T?> onChanged;
   final bool autofocus;
   final FocusNode? focusNode;
@@ -32,6 +34,7 @@ class SettingDropdownRow<T> extends StatelessWidget {
     required this.value,
     required this.items,
     required this.itemLabel,
+    this.pickerItemBuilder,
     required this.onChanged,
     this.autofocus = false,
     this.focusNode,
@@ -49,6 +52,7 @@ class SettingDropdownRow<T> extends StatelessWidget {
       items: items,
       currentValue: value,
       itemLabel: itemLabel,
+      itemBuilder: pickerItemBuilder,
       onSelected: (selectedValue) {
         onChanged(selectedValue);
       },
@@ -87,7 +91,7 @@ class SettingDropdownRow<T> extends StatelessWidget {
                 ),
                 decoration: BoxDecoration(
                   color: isFocused
-                      ? Colors.white.withValues(alpha: 0.1)
+                      ? AppColors.navItemSelectedBackground
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -101,7 +105,9 @@ class SettingDropdownRow<T> extends StatelessWidget {
                           Text(
                             label,
                             style: TextStyle(
-                              color: isFocused ? AppColors.textPrimary : AppColors.textSecondary,
+                              color: isFocused
+                                  ? AppColors.primaryText
+                                  : AppColors.secondaryText,
                               fontSize: AppFonts.sizeMD,
                               fontWeight: AppFonts.medium,
                             ),
@@ -116,8 +122,8 @@ class SettingDropdownRow<T> extends StatelessWidget {
                               padding: const EdgeInsets.only(top: 2),
                               child: Text(
                                 subtitle!,
-                                style: const TextStyle(
-                                  color: AppColors.textHint,
+                                style: TextStyle(
+                                  color: AppColors.inactiveText,
                                   fontSize: AppFonts.sizeSM,
                                 ),
                                 maxLines: 1,
@@ -134,8 +140,8 @@ class SettingDropdownRow<T> extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 10),
                         decoration: BoxDecoration(
                           color: isFocused
-                              ? SettingsService.themeColor
-                              : Colors.white.withValues(alpha: 0.1),
+                              ? SettingsService.themeColor.withValues(alpha: AppColors.focusAlpha)
+                              : AppColors.navItemSelectedBackground,
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Row(
@@ -145,8 +151,8 @@ class SettingDropdownRow<T> extends StatelessWidget {
                               itemLabel(value),
                               style: TextStyle(
                                 color: isFocused
-                                    ? AppColors.textPrimary
-                                    : AppColors.textSecondary,
+                                    ? AppColors.primaryText
+                                    : AppColors.secondaryText,
                                 fontSize: AppFonts.sizeMD,
                               ),
                             ),
@@ -154,7 +160,9 @@ class SettingDropdownRow<T> extends StatelessWidget {
                             Icon(
                               Icons.unfold_more,
                               size: 16,
-                              color: isFocused ? AppColors.textPrimary : AppColors.textHint,
+                              color: isFocused
+                                  ? AppColors.primaryText
+                                  : AppColors.inactiveText,
                             ),
                           ],
                         ),

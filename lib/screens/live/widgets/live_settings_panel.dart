@@ -58,6 +58,7 @@ class LiveSettingsPanel extends StatefulWidget {
 
 class _LiveSettingsPanelState extends State<LiveSettingsPanel> {
   final ScrollController _scrollController = ScrollController();
+  final Map<int, GlobalKey> _itemKeys = {};
   static const List<double> _danmakuAreaOptions = [0.125, 0.25, 0.5, 0.75, 1.0];
 
   @override
@@ -72,25 +73,16 @@ class _LiveSettingsPanelState extends State<LiveSettingsPanel> {
 
   void _scrollToFocused() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        const itemHeight = 80.0;
-        final targetOffset = widget.focusedIndex * itemHeight;
-        final currentOffset = _scrollController.offset;
-        final viewport = _scrollController.position.viewportDimension;
-
-        if (targetOffset < currentOffset) {
-          _scrollController.animateTo(
-            targetOffset,
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOut,
-          );
-        } else if (targetOffset + itemHeight > currentOffset + viewport) {
-          _scrollController.animateTo(
-            targetOffset + itemHeight - viewport,
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOut,
-          );
-        }
+      if (!mounted) return;
+      final key = _itemKeys[widget.focusedIndex];
+      final ctx = key?.currentContext;
+      if (ctx != null) {
+        Scrollable.ensureVisible(
+          ctx,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
+        );
       }
     });
   }
@@ -114,7 +106,7 @@ class _LiveSettingsPanelState extends State<LiveSettingsPanel> {
       bottom: 0,
       width: 250,
       child: Container(
-        color: const Color(0xFF1F1F1F).withValues(alpha: 0.95),
+        color: SidePanelStyle.background,
         child: Column(
           children: [
             // 标题栏
@@ -123,7 +115,7 @@ class _LiveSettingsPanelState extends State<LiveSettingsPanel> {
               decoration: BoxDecoration(
                 border: Border(
                   bottom: BorderSide(
-                    color: Colors.white.withValues(alpha: 0.1),
+                    color: AppColors.navItemSelectedBackground,
                   ),
                 ),
               ),
@@ -131,15 +123,15 @@ class _LiveSettingsPanelState extends State<LiveSettingsPanel> {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: AppColors.primaryText,
                       fontSize: AppFonts.sizeXL,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const Spacer(),
                   if (widget.menuType == LiveSettingsMenuType.main)
-                    const Icon(Icons.settings, color: AppColors.textHint),
+                    Icon(Icons.settings, color: AppColors.inactiveText),
                 ],
               ),
             ),
@@ -209,7 +201,7 @@ class _LiveSettingsPanelState extends State<LiveSettingsPanel> {
           child: Text(
             '仅对当前直播生效，全局默认值请在 设置→弹幕设置 中修改',
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.4),
+              color: AppColors.inactiveText,
               fontSize: AppFonts.sizeSM,
             ),
           ),
@@ -363,13 +355,16 @@ class _LiveSettingsPanelState extends State<LiveSettingsPanel> {
   }) {
     final isFocused = widget.focusedIndex == index;
     return Material(
+      key: _itemKeys.putIfAbsent(index, () => GlobalKey()),
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            color: isFocused ? SettingsService.themeColor : Colors.transparent,
+            color: isFocused
+                ? SettingsService.themeColor.withValues(alpha: AppColors.focusAlpha)
+                : Colors.transparent,
             border: isFocused
                 ? Border(
                     left: BorderSide(color: SettingsService.themeColor, width: 3),
@@ -381,8 +376,8 @@ class _LiveSettingsPanelState extends State<LiveSettingsPanel> {
               Icon(
                 icon,
                 color: isFocused
-                    ? Colors.white
-                    : Colors.white.withValues(alpha: 0.7),
+                    ? SettingsService.themeColor
+                    : AppColors.inactiveText,
                 size: 22,
               ),
               const SizedBox(width: 12),
@@ -394,8 +389,8 @@ class _LiveSettingsPanelState extends State<LiveSettingsPanel> {
                       title,
                       style: TextStyle(
                         color: isFocused
-                            ? Colors.white
-                            : Colors.white.withValues(alpha: 0.9),
+                            ? AppColors.primaryText
+                            : AppColors.secondaryText,
                         fontSize: AppFonts.sizeLG,
                         fontWeight: isFocused
                             ? FontWeight.bold
@@ -407,7 +402,7 @@ class _LiveSettingsPanelState extends State<LiveSettingsPanel> {
                       Text(
                         value,
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.6),
+                          color: AppColors.inactiveText,
                           fontSize: AppFonts.sizeSM,
                         ),
                       ),
@@ -418,7 +413,7 @@ class _LiveSettingsPanelState extends State<LiveSettingsPanel> {
               if (widget.menuType == LiveSettingsMenuType.main)
                 Icon(
                   Icons.chevron_right,
-                  color: Colors.white.withValues(alpha: 0.5),
+                  color: AppColors.inactiveText,
                   size: 20,
                 ),
             ],

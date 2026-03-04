@@ -44,12 +44,12 @@ class ProfileViewState extends State<ProfileView> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF2A2A2A),
-        title: Text(title, style: const TextStyle(color: Colors.white)),
-        content: Text(message, style: const TextStyle(color: AppColors.textTertiary)),
+        title: Text(title, style: TextStyle(color: AppColors.primaryText)),
+        content: Text(message, style: TextStyle(color: AppColors.inactiveText)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('取消', style: TextStyle(color: AppColors.textHint)),
+            child: Text('取消', style: TextStyle(color: AppColors.inactiveText)),
           ),
           TextButton(
             autofocus: true,
@@ -73,7 +73,7 @@ class ProfileViewState extends State<ProfileView> {
         color: Colors.grey[700],
         shape: BoxShape.circle,
       ),
-      child: const Icon(Icons.person, size: 48, color: AppColors.textHint),
+      child: Icon(Icons.person, size: 48, color: AppColors.inactiveText),
     );
   }
 
@@ -113,7 +113,7 @@ class ProfileViewState extends State<ProfileView> {
                   style: TextStyle(
                     color: AuthService.isVip
                         ? SettingsService.themeColor
-                        : Colors.white,
+                        : AppColors.primaryText,
                     fontSize: AppFonts.sizeXL,
                     fontWeight: FontWeight.bold,
                   ),
@@ -123,7 +123,7 @@ class ProfileViewState extends State<ProfileView> {
                 // UID
                 Text(
                   'UID: ${AuthService.mid ?? ""}',
-                  style: const TextStyle(color: AppColors.textHint, fontSize: AppFonts.sizeMD),
+                  style: TextStyle(color: AppColors.inactiveText, fontSize: AppFonts.sizeMD),
                 ),
                 const SizedBox(height: 24),
 
@@ -142,7 +142,7 @@ class ProfileViewState extends State<ProfileView> {
                 Text(
                   '个人空间信息将在后续版本完善',
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.3),
+                    color: AppColors.disabledText,
                     fontSize: AppFonts.sizeSM,
                   ),
                 ),
@@ -174,7 +174,7 @@ class ProfileViewState extends State<ProfileView> {
                                 : Colors.red.withValues(alpha: 0.3),
                             borderRadius: BorderRadius.circular(8),
                             border: isFocused
-                                ? Border.all(color: Colors.white, width: 2)
+                                ? Border.all(color: AppColors.primaryText, width: 2)
                                 : null,
                           ),
                           child: Text(
@@ -203,8 +203,8 @@ class ProfileViewState extends State<ProfileView> {
       children: [
         Text(
           value,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: AppColors.primaryText,
             fontSize: AppFonts.sizeXL,
             fontWeight: FontWeight.bold,
           ),
@@ -212,7 +212,7 @@ class ProfileViewState extends State<ProfileView> {
         const SizedBox(height: 4),
         Text(
           label,
-          style: const TextStyle(color: AppColors.textHint, fontSize: AppFonts.sizeSM),
+          style: TextStyle(color: AppColors.inactiveText, fontSize: AppFonts.sizeSM),
         ),
       ],
     );

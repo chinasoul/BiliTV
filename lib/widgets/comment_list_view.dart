@@ -474,7 +474,7 @@ class _CommentListViewState extends State<CommentListView> {
       child: Column(
         children: [
           _buildHeader(),
-          const Divider(color: Colors.white12, height: 1),
+          Divider(color: AppColors.navItemSelectedBackground, height: 1),
           Expanded(child: _buildBody()),
         ],
       ),
@@ -489,12 +489,12 @@ class _CommentListViewState extends State<CommentListView> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          const Icon(Icons.comment_outlined, color: Colors.white, size: 20),
+          Icon(Icons.comment_outlined, color: AppColors.primaryText, size: 20),
           const SizedBox(width: 8),
           Text(
             '评论 $_totalCount',
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: AppColors.primaryText,
               fontSize: AppFonts.sizeLG,
               fontWeight: FontWeight.bold,
             ),
@@ -521,19 +521,21 @@ class _CommentListViewState extends State<CommentListView> {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
           color: isFocused
-              ? themeColor.withValues(alpha: 0.6)
+              ? themeColor.withValues(alpha: AppColors.focusAlpha)
               : isActive
-                  ? Colors.white.withValues(alpha: 0.12)
+                  ? AppColors.navItemSelectedBackground
                   : Colors.transparent,
           borderRadius: BorderRadius.circular(4),
           border: isActive && !isFocused
-              ? Border.all(color: Colors.white24, width: 0.5)
+              ? Border.all(color: AppColors.inactiveText, width: 0.5)
               : null,
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: isFocused || isActive ? Colors.white : AppColors.textHint,
+            color: isFocused || isActive
+                ? AppColors.primaryText
+                : AppColors.inactiveText,
             fontSize: AppFonts.sizeSM,
             fontWeight: isActive ? AppFonts.semibold : AppFonts.regular,
           ),
@@ -548,11 +550,11 @@ class _CommentListViewState extends State<CommentListView> {
     }
 
     if (_comments.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           '暂无评论',
           style:
-              TextStyle(color: AppColors.textHint, fontSize: AppFonts.sizeMD),
+              TextStyle(color: AppColors.inactiveText, fontSize: AppFonts.sizeMD),
         ),
       );
     }
@@ -616,14 +618,14 @@ class _CommentListViewState extends State<CommentListView> {
                     memCacheHeight: 64,
                     fit: BoxFit.cover,
                     placeholder: (_, _) =>
-                        Container(width: 32, height: 32, color: Colors.white12),
+                        Container(width: 32, height: 32, color: AppColors.navItemSelectedBackground),
                     errorWidget: (_, _, _) => Container(
                       width: 32,
                       height: 32,
-                      color: Colors.white12,
-                      child: const Icon(
+                      color: AppColors.navItemSelectedBackground,
+                      child: Icon(
                         Icons.person,
-                        color: Colors.white24,
+                        color: AppColors.inactiveText,
                         size: 18,
                       ),
                     ),
@@ -640,8 +642,7 @@ class _CommentListViewState extends State<CommentListView> {
                             child: Text(
                               comment.uname,
                               style: TextStyle(
-                                color:
-                                    isFocused ? themeColor : Colors.white60,
+                                color: AppColors.inactiveText,
                                 fontSize: AppFonts.sizeSM,
                                 fontWeight: AppFonts.medium,
                               ),
@@ -652,8 +653,8 @@ class _CommentListViewState extends State<CommentListView> {
                           const SizedBox(width: 6),
                           Text(
                             comment.timeText,
-                            style: const TextStyle(
-                              color: Colors.white30,
+                            style: TextStyle(
+                              color: AppColors.disabledText,
                               fontSize: AppFonts.sizeXS,
                             ),
                           ),
@@ -662,8 +663,8 @@ class _CommentListViewState extends State<CommentListView> {
                       const SizedBox(height: 4),
                       Text(
                         comment.content,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: AppColors.secondaryText,
                           fontSize: AppFonts.sizeSM,
                           height: 1.4,
                         ),
@@ -673,16 +674,16 @@ class _CommentListViewState extends State<CommentListView> {
                       const SizedBox(height: 6),
                       Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.thumb_up_outlined,
-                            color: AppColors.textDisabled,
+                            color: AppColors.disabledText,
                             size: 13,
                           ),
                           const SizedBox(width: 3),
                           Text(
                             comment.likeText,
-                            style: const TextStyle(
-                              color: AppColors.textDisabled,
+                            style: TextStyle(
+                              color: AppColors.disabledText,
                               fontSize: AppFonts.sizeXS,
                             ),
                           ),
@@ -692,9 +693,7 @@ class _CommentListViewState extends State<CommentListView> {
                               isExpanded
                                   ? Icons.expand_less
                                   : Icons.expand_more,
-                              color: isFocused
-                                  ? themeColor
-                                  : AppColors.textDisabled,
+                              color: AppColors.disabledText,
                               size: 15,
                             ),
                             const SizedBox(width: 2),
@@ -703,9 +702,7 @@ class _CommentListViewState extends State<CommentListView> {
                                   ? '收起回复'
                                   : '${comment.rcount}条回复',
                               style: TextStyle(
-                                color: isFocused
-                                    ? themeColor
-                                    : AppColors.textDisabled,
+                                color: AppColors.disabledText,
                                 fontSize: AppFonts.sizeXS,
                               ),
                             ),
@@ -723,7 +720,7 @@ class _CommentListViewState extends State<CommentListView> {
               margin: const EdgeInsets.only(left: 52, right: 12, bottom: 8),
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.04),
+                color: AppColors.navItemSelectedBackground,
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Column(
@@ -766,9 +763,9 @@ class _CommentListViewState extends State<CommentListView> {
               memCacheHeight: 48,
               fit: BoxFit.cover,
               placeholder: (_, _) =>
-                  Container(width: 20, height: 20, color: Colors.white12),
+                  Container(width: 20, height: 20, color: AppColors.navItemSelectedBackground),
               errorWidget: (_, _, _) =>
-                  Container(width: 20, height: 20, color: Colors.white12),
+                  Container(width: 20, height: 20, color: AppColors.navItemSelectedBackground),
             ),
           ),
           const SizedBox(width: 6),
@@ -778,16 +775,16 @@ class _CommentListViewState extends State<CommentListView> {
                 children: [
                   TextSpan(
                     text: '${reply.uname}  ',
-                    style: const TextStyle(
-                      color: AppColors.textHint,
+                    style: TextStyle(
+                      color: AppColors.inactiveText,
                       fontSize: AppFonts.sizeSM,
                       fontWeight: AppFonts.medium,
                     ),
                   ),
                   TextSpan(
                     text: reply.content,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: AppColors.secondaryText,
                       fontSize: AppFonts.sizeSM,
                       height: 1.3,
                     ),

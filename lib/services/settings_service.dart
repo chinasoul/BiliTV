@@ -84,6 +84,15 @@ enum PlaybackCompletionAction {
   const PlaybackCompletionAction(this.label);
 }
 
+/// 应用主题模式
+enum AppThemeMode {
+  dark('深色'),
+  light('浅色');
+
+  final String label;
+  const AppThemeMode(this.label);
+}
+
 /// 自定义缓存管理器
 class BiliCacheManager {
   static const key = 'biliTvCache';
@@ -106,6 +115,9 @@ class SettingsService {
   static const String _useHardwareDecodeKey = 'use_hardware_decode';
   static SharedPreferences? _prefs;
   static final ValueNotifier<double> _fontScaleNotifier = ValueNotifier(1.0);
+  static final ValueNotifier<ThemeMode> _themeModeNotifier = ValueNotifier(
+    ThemeMode.dark,
+  );
 
   /// Android SDK 版本号（缓存），非 Android 平台为 99
   static int androidSdkInt = 99;
@@ -114,6 +126,7 @@ class SettingsService {
   static Future<void> init() async {
     _prefs ??= await SharedPreferences.getInstance();
     _fontScaleNotifier.value = fontScale;
+    _themeModeNotifier.value = themeMode;
     // 初始化完成后通知监听者
     onShowMemoryInfoChanged?.call();
   }
@@ -660,6 +673,7 @@ class SettingsService {
     _sidePanelWidthKey,
     _showTimeDisplayKey,
     _fontScaleKey,
+    _appThemeModeKey,
     _themeColorKey,
     _categoryOrderKey,
     _enabledCategoriesKey,
@@ -681,6 +695,12 @@ class SettingsService {
     _nativeDanmakuStrokeAlphaMinKey,
     _commentFocusAlphaKey,
     _videoCardOverlayAlphaKey,
+    _videoCardThemeAlphaKey,
+    _popupBarrierAlphaKey,
+    _panelBackgroundColorKey,
+    _panelBackgroundAlphaKey,
+    _popupBackgroundColorKey,
+    _popupBackgroundAlphaKey,
   ];
 
   static Future<void> _removePreferenceKeys(List<String> keys) async {
@@ -737,6 +757,12 @@ class SettingsService {
       _nativeDanmakuStrokeAlphaMinKey,
       _commentFocusAlphaKey,
       _videoCardOverlayAlphaKey,
+      _videoCardThemeAlphaKey,
+      _popupBarrierAlphaKey,
+      _panelBackgroundColorKey,
+      _panelBackgroundAlphaKey,
+      _popupBackgroundColorKey,
+      _popupBackgroundAlphaKey,
       _tunnelSpeedSupportedKey,
     }.toList();
 
@@ -1181,6 +1207,8 @@ class SettingsService {
 
   static ValueNotifier<double> get fontScaleListenable => _fontScaleNotifier;
 
+  static ValueNotifier<ThemeMode> get themeModeListenable => _themeModeNotifier;
+
   /// 设置字体缩放比例
   static Future<void> setFontScale(double value) async {
     await init();
@@ -1205,6 +1233,28 @@ class SettingsService {
     if (scale == 1.0) return '默认';
     final pct = ((scale - 1.0) * 100).round();
     return pct > 0 ? '+$pct%' : '$pct%';
+  }
+
+  // ==================== 主题模式 ====================
+  static const String _appThemeModeKey = 'app_theme_mode';
+
+  static AppThemeMode get appThemeMode {
+    final index = _prefs?.getInt(_appThemeModeKey) ?? AppThemeMode.dark.index;
+    return AppThemeMode.values[index.clamp(0, AppThemeMode.values.length - 1)];
+  }
+
+  static ThemeMode get themeMode {
+    return appThemeMode == AppThemeMode.light
+        ? ThemeMode.light
+        : ThemeMode.dark;
+  }
+
+  static Future<void> setAppThemeMode(AppThemeMode value) async {
+    await init();
+    await _prefs!.setInt(_appThemeModeKey, value.index);
+    _themeModeNotifier.value = value == AppThemeMode.light
+        ? ThemeMode.light
+        : ThemeMode.dark;
   }
 
   // ==================== 标签页切换策略 ====================
@@ -1384,6 +1434,17 @@ class SettingsService {
       'native_danmaku_stroke_alpha_min';
   static const String _commentFocusAlphaKey = 'comment_focus_alpha';
   static const String _videoCardOverlayAlphaKey = 'video_card_overlay_alpha';
+  static const String _videoCardThemeAlphaKey = 'video_card_theme_alpha';
+  static const String _popupBarrierAlphaKey =
+      'popup_barrier_alpha';
+  static const String _panelBackgroundColorKey =
+      'panel_background_color';
+  static const String _panelBackgroundAlphaKey =
+      'panel_background_alpha';
+  static const String _popupBackgroundColorKey =
+      'popup_background_color';
+  static const String _popupBackgroundAlphaKey =
+      'popup_background_alpha';
 
   /// 开发者选项变更回调（用于刷新设置标签页列表）
   static VoidCallback? onDeveloperModeChanged;
@@ -1488,6 +1549,79 @@ class SettingsService {
   static Future<void> setVideoCardOverlayAlpha(double value) async {
     await init();
     await _prefs!.setDouble(_videoCardOverlayAlphaKey, value.clamp(0.50, 1.0));
+  }
+
+  /// 视频卡片整体主题背景 alpha（开发者选项）
+  static double get videoCardThemeAlpha {
+    final raw = _prefs?.getDouble(_videoCardThemeAlphaKey) ?? 0.60;
+    return raw.clamp(0.20, 0.90);
+  }
+
+  static Future<void> setVideoCardThemeAlpha(double value) async {
+    await init();
+    await _prefs!.setDouble(_videoCardThemeAlphaKey, value.clamp(0.20, 0.90));
+  }
+
+  /// 评论弹窗遮罩 alpha（开发者选项）
+  static double get popupBarrierAlpha {
+    final raw = _prefs?.getDouble(_popupBarrierAlphaKey) ?? 0.60;
+    return raw.clamp(0.30, 0.90);
+  }
+
+  static Future<void> setCommentPopupBarrierAlpha(double value) async {
+    await init();
+    await _prefs!.setDouble(
+      _popupBarrierAlphaKey,
+      value.clamp(0.30, 0.90),
+    );
+  }
+
+  /// 评论侧栏背景颜色（开发者选项）
+  static int get panelBackgroundColorValue {
+    return _prefs?.getInt(_panelBackgroundColorKey) ?? 0xFF2A2A2A;
+  }
+
+  static Future<void> setCommentPanelBackgroundColorValue(int value) async {
+    await init();
+    await _prefs!.setInt(_panelBackgroundColorKey, value);
+  }
+
+  /// 评论侧栏背景 alpha（开发者选项）
+  static double get panelBackgroundAlpha {
+    final raw = _prefs?.getDouble(_panelBackgroundAlphaKey) ?? 0.95;
+    return raw.clamp(0.30, 1.0);
+  }
+
+  static Future<void> setCommentPanelBackgroundAlpha(double value) async {
+    await init();
+    await _prefs!.setDouble(
+      _panelBackgroundAlphaKey,
+      value.clamp(0.30, 1.0),
+    );
+  }
+
+  /// 评论弹窗背景颜色（开发者选项）
+  static int get popupBackgroundColorValue {
+    return _prefs?.getInt(_popupBackgroundColorKey) ?? 0xFF2A2A2A;
+  }
+
+  static Future<void> setCommentPopupBackgroundColorValue(int value) async {
+    await init();
+    await _prefs!.setInt(_popupBackgroundColorKey, value);
+  }
+
+  /// 评论弹窗背景 alpha（开发者选项）
+  static double get popupBackgroundAlpha {
+    final raw = _prefs?.getDouble(_popupBackgroundAlphaKey) ?? 0.95;
+    return raw.clamp(0.30, 1.0);
+  }
+
+  static Future<void> setCommentPopupBackgroundAlpha(double value) async {
+    await init();
+    await _prefs!.setDouble(
+      _popupBackgroundAlphaKey,
+      value.clamp(0.30, 1.0),
+    );
   }
 
   // ==================== 主题色 ====================

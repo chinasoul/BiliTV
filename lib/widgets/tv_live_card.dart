@@ -39,8 +39,8 @@ class TvLiveCard extends StatelessWidget {
   });
 
   Widget _buildFocusedTitle(String title) {
-    const focusedStyle = TextStyle(
-      color: Colors.white,
+    final focusedStyle = TextStyle(
+      color: AppColors.primaryText,
       fontSize: AppFonts.sizeMD,
       fontWeight: FontWeight.bold,
     );
@@ -156,11 +156,11 @@ class TvLiveCard extends StatelessWidget {
             bottom: 6,
             child: Row(
               children: [
-                const Icon(Icons.person, size: 12, color: AppColors.textTertiary),
+                Icon(Icons.person, size: 12, color: AppColors.inactiveText),
                 const SizedBox(width: 4),
                 Text(
                   onlineText,
-                  style: const TextStyle(color: Colors.white, fontSize: AppFonts.sizeXS),
+                  style: TextStyle(color: Colors.white, fontSize: AppFonts.sizeXS),
                 ),
               ],
             ),
@@ -184,8 +184,8 @@ class TvLiveCard extends StatelessWidget {
                   ? _buildFocusedTitle(title)
                   : Text(
                       title,
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
+                      style: TextStyle(
+                        color: AppColors.secondaryText,
                         fontSize: AppFonts.sizeMD,
                         fontWeight: AppFonts.semibold,
                       ),
@@ -201,16 +201,19 @@ class TvLiveCard extends StatelessWidget {
             // UP主
             Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.person_outline,
                   size: 12,
-                  color: AppColors.textTertiary,
+                  color: AppColors.inactiveText,
                 ),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
                     uname,
-                    style: const TextStyle(color: AppColors.textTertiary, fontSize: AppFonts.sizeSM),
+                    style: TextStyle(
+                      color: AppColors.inactiveText,
+                      fontSize: AppFonts.sizeSM,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -240,7 +243,7 @@ class TvLiveCard extends StatelessWidget {
       placeholder: (context, url) => Container(color: const Color(0xFF2d2d2d)),
       errorWidget: (context, url, error) => Container(
         color: Colors.grey[900],
-        child: const Icon(Icons.broken_image, size: 20, color: Colors.white24),
+        child: Icon(Icons.broken_image, size: 20, color: Colors.white24),
       ),
     );
   }

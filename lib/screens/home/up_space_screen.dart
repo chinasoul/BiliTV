@@ -401,7 +401,7 @@ class _UpSpaceScreenState extends State<UpSpaceScreen> {
     final themeColor = SettingsService.themeColor;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: AppColors.headerBackground,
       body: Focus(
         focusNode: _mainFocusNode,
         onKeyEvent: _handleKeyEvent,
@@ -412,10 +412,10 @@ class _UpSpaceScreenState extends State<UpSpaceScreen> {
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _videos.isEmpty
-                  ? const Center(
+                  ? Center(
                       child: Text(
                         '该 UP 暂无投稿视频',
-                        style: TextStyle(color: AppColors.textTertiary, fontSize: AppFonts.sizeXL),
+                        style: TextStyle(color: AppColors.inactiveText, fontSize: AppFonts.sizeXL),
                       ),
                     )
                   : CustomScrollView(
@@ -465,7 +465,7 @@ class _UpSpaceScreenState extends State<UpSpaceScreen> {
               right: 0,
               height: _headerHeight,
               child: Container(
-                color: const Color(0xFF121212),
+                color: AppColors.headerBackground,
                 padding: const EdgeInsets.fromLTRB(30, 20, 30, 12),
                 child: _buildHeader(themeColor),
               ),
@@ -503,14 +503,14 @@ class _UpSpaceScreenState extends State<UpSpaceScreen> {
                   height: 48,
                   fit: BoxFit.cover,
                   placeholder: (_, _) => Container(
-                    color: Colors.white12,
+                    color: AppColors.navItemSelectedBackground,
                     alignment: Alignment.center,
-                    child: const Icon(Icons.person, color: AppColors.textHint),
+                    child: Icon(Icons.person, color: AppColors.inactiveText),
                   ),
                   errorWidget: (_, _, _) => Container(
-                    color: Colors.white12,
+                    color: AppColors.navItemSelectedBackground,
                     alignment: Alignment.center,
-                    child: const Icon(Icons.person, color: AppColors.textHint),
+                    child: Icon(Icons.person, color: AppColors.inactiveText),
                   ),
                 ),
               ),
@@ -529,10 +529,10 @@ class _UpSpaceScreenState extends State<UpSpaceScreen> {
                           Flexible(
                             child: Text(
                               widget.upName,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: AppFonts.sizeXL,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                                color: AppColors.primaryText,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -540,9 +540,9 @@ class _UpSpaceScreenState extends State<UpSpaceScreen> {
                           ),
                           const SizedBox(width: 8),
                           if (sex == '男')
-                            const Icon(Icons.male, color: Colors.blue, size: 18)
+                            Icon(Icons.male, color: Colors.blue, size: 18)
                           else if (sex == '女')
-                            const Icon(
+                            Icon(
                               Icons.female,
                               color: Colors.pink,
                               size: 18,
@@ -628,15 +628,15 @@ class _UpSpaceScreenState extends State<UpSpaceScreen> {
         Text(
           label,
           style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.6),
+            color: AppColors.inactiveText,
             fontSize: AppFonts.sizeSM,
           ),
         ),
         const SizedBox(width: 3),
         Text(
           isLoading ? '--' : _formatNumber(value),
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: AppColors.primaryText,
             fontSize: AppFonts.sizeSM,
             fontWeight: AppFonts.semibold,
           ),
@@ -660,14 +660,14 @@ class _UpSpaceScreenState extends State<UpSpaceScreen> {
           color: isFocused
               ? themeColor.withValues(alpha: 0.7)
               : isActive
-              ? Colors.white.withValues(alpha: 0.15)
+              ? AppColors.navItemSelectedBackground
               : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
           border: Border.all(
             color: isFocused
-                ? Colors.white
+                ? AppColors.primaryText
                 : isActive
-                ? Colors.white24
+                ? AppColors.inactiveText
                 : Colors.transparent,
             width: isFocused ? 2 : 1,
           ),
@@ -677,14 +677,18 @@ class _UpSpaceScreenState extends State<UpSpaceScreen> {
           children: [
             Icon(
               index == 0 ? Icons.schedule : Icons.whatshot,
-              color: isFocused || isActive ? Colors.white : AppColors.textHint,
+              color: isFocused || isActive
+                  ? AppColors.primaryText
+                  : AppColors.inactiveText,
               size: 14,
             ),
             const SizedBox(width: 4),
             Text(
               label,
               style: TextStyle(
-                color: isFocused || isActive ? Colors.white : AppColors.textHint,
+                color: isFocused || isActive
+                    ? AppColors.primaryText
+                    : AppColors.inactiveText,
                 fontSize: AppFonts.sizeSM,
                 fontWeight: isActive ? AppFonts.semibold : AppFonts.regular,
               ),
@@ -724,13 +728,13 @@ class _UpSpaceScreenState extends State<UpSpaceScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (icon != null) ...[
-              Icon(icon, color: Colors.white, size: 14),
+              Icon(icon, color: AppColors.primaryText, size: 14),
               const SizedBox(width: 4),
             ],
             Text(
               label,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: AppColors.primaryText,
                 fontSize: AppFonts.sizeSM,
                 fontWeight: AppFonts.semibold,
               ),
@@ -788,7 +792,7 @@ class _UpSpaceScreenState extends State<UpSpaceScreen> {
                   placeholder: (_, _) => Container(color: Colors.grey[850]),
                   errorWidget: (_, _, _) => Container(
                     color: Colors.grey[850],
-                    child: const Icon(Icons.error, color: AppColors.textHint),
+                    child: Icon(Icons.error, color: AppColors.inactiveText),
                   ),
                 ),
                 // 时长
@@ -806,7 +810,7 @@ class _UpSpaceScreenState extends State<UpSpaceScreen> {
                     ),
                     child: Text(
                       video.durationFormatted,
-                      style: const TextStyle(color: Colors.white, fontSize: AppFonts.sizeXS),
+                      style: TextStyle(color: Colors.white, fontSize: AppFonts.sizeXS),
                     ),
                   ),
                 ),
@@ -820,14 +824,14 @@ class _UpSpaceScreenState extends State<UpSpaceScreen> {
           video.title,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(color: Colors.white, fontSize: AppFonts.sizeSM),
+          style: TextStyle(color: AppColors.secondaryText, fontSize: AppFonts.sizeSM),
         ),
         const SizedBox(height: 2),
         // 播放量
         Text(
           '${video.viewFormatted}播放',
           style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.6),
+            color: AppColors.inactiveText,
             fontSize: AppFonts.sizeXS,
           ),
         ),

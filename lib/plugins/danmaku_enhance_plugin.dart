@@ -281,14 +281,14 @@ class _DanmakuBlockSettingsState extends State<_DanmakuBlockSettings> {
             Expanded(
               child: TextField(
                 controller: controller,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: '输入关键词',
                   border: OutlineInputBorder(),
                   filled: true,
-                  fillColor: Colors.white12,
+                  fillColor: AppColors.navItemSelectedBackground,
                   isDense: true,
                 ),
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: AppColors.primaryText),
                 onSubmitted: (_) {
                   final val = controller.text.trim();
                   if (val.isNotEmpty) {
@@ -311,7 +311,7 @@ class _DanmakuBlockSettingsState extends State<_DanmakuBlockSettings> {
                   });
                 }
               },
-              icon: const Icon(Icons.add, color: Colors.blue),
+              icon: Icon(Icons.add, color: Colors.blue),
             ),
           ],
         ),
@@ -319,10 +319,10 @@ class _DanmakuBlockSettingsState extends State<_DanmakuBlockSettings> {
 
         // 关键词列表
         keywords.isEmpty
-            ? const Text(
+            ? Text(
                 '暂无屏蔽词',
                 style: TextStyle(
-                  color: AppColors.textDisabled,
+                  color: AppColors.disabledText,
                   fontStyle: FontStyle.italic,
                 ),
               )

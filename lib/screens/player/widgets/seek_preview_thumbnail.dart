@@ -135,13 +135,13 @@ class _SeekPreviewThumbnailState extends State<SeekPreviewThumbnail> {
             },
             placeholder: (context, url) => Container(
               color: Colors.grey[900],
-              child: const Center(
+              child: Center(
                 child: SizedBox(
                   width: 24,
                   height: 24,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: AppColors.textHint,
+                    color: AppColors.inactiveText,
                   ),
                 ),
               ),
@@ -150,9 +150,9 @@ class _SeekPreviewThumbnailState extends State<SeekPreviewThumbnail> {
               width: displayWidth,
               height: displayHeight,
               color: Colors.grey[800],
-              child: const Icon(
+              child: Icon(
                 Icons.image_not_supported,
-                color: AppColors.textHint,
+                color: AppColors.inactiveText,
                 size: 32,
               ),
             ),

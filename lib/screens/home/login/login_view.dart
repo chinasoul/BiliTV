@@ -150,11 +150,11 @@ class _LoginViewState extends State<LoginView> {
     switch (_status) {
       case 'loading':
         text = '正在加载...';
-        color = AppColors.textHint;
+        color = AppColors.inactiveText;
         break;
       case 'waiting':
         text = '请使用 Bilibili 手机客户端扫描二维码';
-        color = AppColors.textHint;
+        color = AppColors.inactiveText;
         break;
       case 'scanned':
         text = '已扫描，请在手机上确认登录';
@@ -188,10 +188,10 @@ class _LoginViewState extends State<LoginView> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text(
+          Text(
             'TV 扫码登录',
             style: TextStyle(
-              color: Colors.white,
+              color: AppColors.primaryText,
               fontSize: AppFonts.sizeXXL,
               fontWeight: FontWeight.bold,
             ),

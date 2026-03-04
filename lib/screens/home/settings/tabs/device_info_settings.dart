@@ -184,8 +184,8 @@ class _DeviceInfoSettingsState extends State<DeviceInfoSettings> {
             ),
             decoration: BoxDecoration(
               color: focused
-                  ? Colors.white.withValues(alpha: 0.12)
-                  : Colors.white.withValues(alpha: 0.06),
+                  ? SettingsService.themeColor.withValues(alpha: AppColors.focusAlpha)
+                  : AppColors.navItemSelectedBackground,
               borderRadius: BorderRadius.circular(8),
               border: focused
                   ? Border.all(color: SettingsService.themeColor, width: 2)
@@ -199,7 +199,7 @@ class _DeviceInfoSettingsState extends State<DeviceInfoSettings> {
                   child: Text(
                     label,
                     style: TextStyle(
-                      color: focused ? Colors.white : AppColors.textTertiary,
+                      color: focused ? AppColors.primaryText : AppColors.inactiveText,
                       fontSize: AppFonts.sizeMD,
                     ),
                   ),
@@ -207,7 +207,10 @@ class _DeviceInfoSettingsState extends State<DeviceInfoSettings> {
                 Expanded(
                   child: Text(
                     value,
-                    style: const TextStyle(color: Colors.white, fontSize: AppFonts.sizeMD),
+                    style: TextStyle(
+                      color: AppColors.secondaryText,
+                      fontSize: AppFonts.sizeMD,
+                    ),
                   ),
                 ),
               ],
