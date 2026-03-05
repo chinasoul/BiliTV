@@ -349,6 +349,7 @@ class ActionButtonsState extends State<ActionButtons> {
       return Container(
         key: _getButtonKey(index),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        constraints: const BoxConstraints(minHeight: 30),
         decoration: BoxDecoration(
           color: isFocused
               ? themeColor.withValues(alpha: AppColors.focusAlpha)

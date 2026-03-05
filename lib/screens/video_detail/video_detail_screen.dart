@@ -974,34 +974,63 @@ class _VideoDetailScreenState extends State<VideoDetailScreen> {
                       ),
                     ),
                   ),
-                // Bottom-right: duration badge
+                // Bottom gradient overlay + stats
                 Positioned(
-                  right: 6,
-                  bottom: 6,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  height: 60,
+                  child: DecoratedBox(
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.7),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      widget.video.durationFormatted,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: AppFonts.sizeMD,
-                        fontWeight: AppFonts.bold,
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          AppColors.videoCardOverlay,
+                        ],
                       ),
                     ),
                   ),
+                ),
+                Positioned(
+                  left: 6,
+                  right: 6,
+                  bottom: 6,
+                  child: _buildCoverStats(),
                 ),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildCoverStats() {
+    final iconSize = 16.0 * MediaQuery.textScalerOf(context).scale(1);
+    const iconGap = SizedBox(width: 2);
+    const groupGap = SizedBox(width: 8);
+    const statStyle = TextStyle(
+      color: Colors.white,
+      fontSize: AppFonts.sizeSM,
+      // fontWeight: AppFonts.bold,
+      height: 1.0,
+    );
+
+    return Row(
+      // crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Icon(Icons.smart_display_outlined, size: iconSize, color: Colors.white),
+        iconGap,
+        Text(widget.video.viewFormatted, style: statStyle),
+        groupGap,
+        Icon(Icons.subtitles_outlined, size: iconSize, color: Colors.white),
+        iconGap,
+        Text(widget.video.danmakuFormatted, style: statStyle),
+        const Spacer(),
+        Text(widget.video.durationFormatted, style: statStyle),
+      ],
     );
   }
 
@@ -1083,7 +1112,6 @@ class _VideoDetailScreenState extends State<VideoDetailScreen> {
   Widget _buildPubdateRow(Color themeColor) {
     final pubdate = _videoInfo?['pubdate'] as int? ?? widget.video.pubdate;
     final pubdateStr = _formatPubdateFull(pubdate);
-    final viewCount = _videoInfo?['stat']?['view'] as int?;
 
     return Row(
       children: [
@@ -1095,22 +1123,6 @@ class _VideoDetailScreenState extends State<VideoDetailScreen> {
               fontSize: AppFonts.sizeSM,
             ),
           ),
-        if (viewCount != null) ...[
-          const SizedBox(width: 12),
-          Icon(
-            Icons.play_arrow,
-            color: Colors.white.withValues(alpha: 0.6),
-            size: 16,
-          ),
-          const SizedBox(width: 2),
-          Text(
-            _formatCount(viewCount),
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.6),
-              fontSize: AppFonts.sizeSM,
-            ),
-          ),
-        ],
         if (_honorText != null) ...[
           const SizedBox(width: 12),
           Text(
@@ -1141,6 +1153,7 @@ class _VideoDetailScreenState extends State<VideoDetailScreen> {
       child: Container(
         key: _commentButtonKey,
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        constraints: const BoxConstraints(minHeight: 30),
         decoration: BoxDecoration(
           color: isFocused
               ? themeColor.withValues(alpha: AppColors.focusAlpha)

@@ -9,7 +9,7 @@ todos:
     content: Create VideoDetailScreen with 3-section layout, data fetching, and full TV focus navigation
     status: completed
   - id: section1-header
-    content: "Implement Section 1: cover with duration badge, title/pubdate/actions/labels, UP主 card with bio"
+    content: "Implement Section 1: cover with stats overlay, title/pubdate/actions/labels, UP主 card with bio"
     status: completed
   - id: section2-episodes
     content: "Implement Section 2: reversed episode/collection grid with sequence numbers and 2-line text"
@@ -67,19 +67,19 @@ Video cover image as a blurred background (`ImageFilter.blur(sigmaX: 15, sigmaY:
 
 ```
  ┌──────────────┐  标题文字（1行）                          ┌──────────────┐
- │              │  发布时间 2024年01月15日 14:30:00 ▶1.2万 全站排行榜最高第28名  │   👤 UP主名称  │
+ │              │  发布时间 2024年01月15日 14:30:00 全站排行榜最高第28名       │   👤 UP主名称  │
  │    中号封面    │  👍1.2万 🪙300 ⭐800 📤500 💬300        │   LV6 ♂     │
  │              │  [分区] [标签1] [标签2] [标签3] ...        │   UP主简介    │
- │    12:34     │                                         │  粉丝 关注 获赞│
+ │▶1.2万 💬300 12:34│                                      │  粉丝 关注 获赞│
  └──────────────┘                                         │   + 关注      │
                                                           └──────────────┘
 ```
 
-- **Left**: Cover image (28% screen width, 16:9), only duration badge (bold, bottom-right). Focus shows play icon overlay.
+- **Left**: Cover image (28% screen width, 16:9). Bottom has gradient overlay (`AppColors.videoCardOverlay`, same as global video cards) with stats row: `smart_display_outlined` playCount + `subtitles_outlined` danmakuCount + duration. All use unified `_buildCoverStats()` with shared style constants. Icon sizes scale with `MediaQuery.textScalerOf`. Focus shows play icon overlay.
 - **Middle**: Video metadata rows
   - Row 1: Title (bold, 1 line, ellipsis)
-  - Row 2: `"发布时间 年月日 时:分:秒"` + `▶ viewCount` + honor text (if any). All same style, no separators.
-  - Row 3: `ActionButtons` (compact mode: like/coin/fav/share with counts, no text labels) + Comment button. Same row, same height.
+  - Row 2: `"发布时间 年月日 时:分:秒"` + honor text (if any). All same style, no separators.
+  - Row 3: `ActionButtons` (compact mode: like/coin/fav/share with counts, no text labels) + Comment button. Same row, `minHeight: 30` constraint ensures uniform background height.
   - Row 4: Video tags as individually focusable chips in a `Wrap` (tname + API tags). Click triggers search.
 - **Right**: UP主 card (18% screen width, left-aligned)
   - Row: Avatar (48px circle) + Column(name bold max 2 lines, Row(level badge + sex icon))
@@ -121,7 +121,7 @@ Currently empty, Section 2 expands into this space.
 ```
         左列(封面)          中列(视频信息)              右列(UP主卡片)
 Row 1                      标题 (不可聚焦)
-Row 2                      发布时间+播放量+排名 (不可聚焦)
+Row 2                      发布时间+排名 (不可聚焦)
 Row 3   Cover (Play)       [点赞][投币][收藏][分享] [评论]  关注按钮
 Row 4                      [tag1][tag2][tag3]...
 Row 5   ─────────────── Section 2: Episode Grid ───────────────
@@ -181,7 +181,8 @@ All navigation uses `handleNavigationWithRepeat` to support long-press (key repe
 
 - `lib/services/settings_service.dart` -- `showVideoDetailBeforePlay`, `videoDetailHintShown` settings
 - `lib/screens/home/settings/tabs/playback_settings.dart` -- Toggle row for detail page setting
-- `lib/screens/player/widgets/action_buttons.dart` -- Compact mode, share button, GlobalKeys for position queries, `requestInternalFocus()`, `setFocusedIndex()`, `getButtonCenter()`, `handleNavigationWithRepeat`
+- `lib/screens/player/widgets/action_buttons.dart` -- Compact mode with `minHeight: 30` constraint, share button, GlobalKeys for position queries, `requestInternalFocus()`, `setFocusedIndex()`, `getButtonCenter()`, `handleNavigationWithRepeat`
+- `lib/widgets/tv_video_card.dart` -- Play count icon changed to `smart_display_outlined`, icon size scales with `textScalerOf`, duration font weight unified
 - `lib/services/api/playback_api.dart` -- `getVideoTags(bvid)`
 - `lib/services/api/interaction_api.dart` -- `shareVideo()` with `buvid3` cookie
 - `lib/services/bilibili_api.dart` -- Facades for `getVideoTags`, `shareVideo`

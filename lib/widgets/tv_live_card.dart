@@ -156,7 +156,7 @@ class TvLiveCard extends StatelessWidget {
             bottom: 6,
             child: Row(
               children: [
-                Icon(Icons.person, size: 12, color: AppColors.inactiveText),
+                Icon(Icons.person, size: 12, color: Colors.white),
                 const SizedBox(width: 4),
                 Text(
                   onlineText,

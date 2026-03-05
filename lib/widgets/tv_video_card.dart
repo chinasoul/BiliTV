@@ -149,14 +149,15 @@ class TvVideoCard extends StatelessWidget {
             child: Row(
               children: [
                 Icon(
-                  Icons.play_arrow_rounded,
-                  size: 14,
-                  color: AppColors.inactiveText,
+                  Icons.smart_display_outlined,
+                  size: 14 * MediaQuery.textScalerOf(context).scale(1),
+                  color: Colors.white,
                 ),
+                const SizedBox(width: 2),
                 Text(
                   video.viewFormatted,
                   style: TextStyle(
-                    color: AppColors.primaryText,
+                    color: Colors.white,
                     fontSize: AppFonts.sizeXS,
                   ),
                 ),
@@ -164,9 +165,8 @@ class TvVideoCard extends StatelessWidget {
                 Text(
                   _durationText,
                   style: TextStyle(
-                    color: AppColors.primaryText,
+                    color: Colors.white,
                     fontSize: AppFonts.sizeXS,
-                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ],

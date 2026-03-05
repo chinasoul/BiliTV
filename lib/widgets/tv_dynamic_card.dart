@@ -137,18 +137,18 @@ class TvDynamicDrawCard extends StatelessWidget {
             bottom: 6,
             child: Row(
               children: [
-                Icon(Icons.favorite_outline, size: 13, color: AppColors.inactiveText),
+                Icon(Icons.favorite_outline, size: 13, color: Colors.white),
                 const SizedBox(width: 2),
                 Text(
                   item.likeFormatted,
-                  style: TextStyle(color: AppColors.primaryText, fontSize: AppFonts.sizeXS),
+                  style: TextStyle(color: Colors.white, fontSize: AppFonts.sizeXS),
                 ),
                 const SizedBox(width: 10),
-                Icon(Icons.chat_bubble_outline, size: 12, color: AppColors.inactiveText),
+                Icon(Icons.chat_bubble_outline, size: 12, color: Colors.white),
                 const SizedBox(width: 2),
                 Text(
                   item.commentFormatted,
-                  style: TextStyle(color: AppColors.primaryText, fontSize: AppFonts.sizeXS),
+                  style: TextStyle(color: Colors.white, fontSize: AppFonts.sizeXS),
                 ),
               ],
             ),
