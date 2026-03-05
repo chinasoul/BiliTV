@@ -344,6 +344,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           case 0:
             handled = _homeTabKey.currentState?.handleBack() ?? false;
             break;
+          case 1:
+            handled = _dynamicTabKey.currentState?.handleBack() ?? false;
+            break;
           case 2:
             handled = _followingTabKey.currentState?.handleBack() ?? false;
             break;

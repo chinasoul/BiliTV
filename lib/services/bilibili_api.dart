@@ -8,6 +8,7 @@
 /// - playback_api.dart: 播放、弹幕、进度
 /// - interaction_api.dart: 点赞、投币、收藏、关注
 /// - comment_api.dart: 评论区
+/// - article_api.dart: 专栏文章
 library;
 
 // 导出子模块，供外部直接使用
@@ -15,10 +16,12 @@ export 'api/video_api.dart' show DynamicFeed, HotSearchItem;
 
 import 'api/auth_api.dart';
 import 'api/video_api.dart' show DynamicFeed, HotSearchItem, VideoApi;
+import '../models/dynamic_item.dart';
 import 'api/playback_api.dart';
 import 'api/interaction_api.dart';
 import 'api/videoshot_api.dart';
 import 'api/comment_api.dart';
+import 'api/article_api.dart';
 import '../models/comment.dart';
 import 'settings_service.dart' show VideoCodec;
 import '../models/favorite_folder.dart';
@@ -109,6 +112,14 @@ class BilibiliApi {
   /// 获取动态视频列表
   static Future<DynamicFeed> getDynamicFeed({String offset = ''}) =>
       VideoApi.getDynamicFeed(offset: offset);
+
+  /// 获取动态图文列表
+  static Future<DynamicDrawFeed> getDynamicDrawFeed({String offset = ''}) =>
+      VideoApi.getDynamicDrawFeed(offset: offset);
+
+  /// 获取动态专栏列表
+  static Future<DynamicArticleFeed> getDynamicArticleFeed({String offset = ''}) =>
+      VideoApi.getDynamicArticleFeed(offset: offset);
 
   /// 获取相关视频
   static Future<List<Video>> getRelatedVideos(String bvid) =>
@@ -253,19 +264,27 @@ class BilibiliApi {
   static Future<Map<String, dynamic>?> getUserCardInfo(int mid) =>
       InteractionApi.getUserCardInfo(mid);
 
+  // ========== 专栏文章相关 ==========
+
+  /// 获取专栏文章全文 HTML
+  static Future<String> getArticleContent(int cvid) =>
+      ArticleApi.getArticleContent(cvid);
+
   // ========== 评论相关 ==========
 
-  /// 获取视频评论
+  /// 获取评论
   static Future<CommentResult> getComments({
     required int oid,
+    int type = 1,
     int mode = 3,
     String? nextOffset,
-  }) => CommentApi.getComments(oid: oid, mode: mode, nextOffset: nextOffset);
+  }) => CommentApi.getComments(oid: oid, type: type, mode: mode, nextOffset: nextOffset);
 
   /// 获取评论回复 (楼中楼)
   static Future<List<Comment>> getReplies({
     required int oid,
+    int type = 1,
     required int root,
     int page = 1,
-  }) => CommentApi.getReplies(oid: oid, root: root, page: page);
+  }) => CommentApi.getReplies(oid: oid, type: type, root: root, page: page);
 }

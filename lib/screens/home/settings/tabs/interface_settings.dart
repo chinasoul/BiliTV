@@ -24,6 +24,7 @@ class InterfaceSettings extends StatefulWidget {
 
 class _InterfaceSettingsState extends State<InterfaceSettings> {
   int _videoGridColumns = SettingsService.videoGridColumns;
+  int _drawGridColumns = SettingsService.drawGridColumns;
   double _fontScale = SettingsService.fontScale;
   AppThemeMode _appThemeMode = SettingsService.appThemeMode;
   int _themeColorValue = SettingsService.themeColorValue;
@@ -187,6 +188,7 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
     await SettingsService.resetInterfacePreferences();
     if (!mounted) return;
     _videoGridColumns = SettingsService.videoGridColumns;
+    _drawGridColumns = SettingsService.drawGridColumns;
     _fontScale = SettingsService.fontScale;
     _appThemeMode = SettingsService.appThemeMode;
     _themeColorValue = SettingsService.themeColorValue;
@@ -321,6 +323,23 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
             final columns = int.parse(selectedLabel.replaceAll(' 列', ''));
             await SettingsService.setVideoGridColumns(columns);
             setState(() => _videoGridColumns = columns);
+          },
+        ),
+        const SizedBox(height: AppSpacing.settingItemGap),
+        SettingActionRow(
+          label: '图文卡片列数',
+          value: '当前: $_drawGridColumns 列',
+          buttonLabel: '$_drawGridColumns 列',
+          autofocus: false,
+          onMoveUp: null,
+          sidebarFocusNode: widget.sidebarFocusNode,
+          optionLabels: const ['2 列', '3 列', '4 列', '5 列'],
+          selectedOption: '$_drawGridColumns 列',
+          onTap: null,
+          onOptionSelected: (selectedLabel) async {
+            final columns = int.parse(selectedLabel.replaceAll(' 列', ''));
+            await SettingsService.setDrawGridColumns(columns);
+            setState(() => _drawGridColumns = columns);
           },
         ),
         const SizedBox(height: AppSpacing.settingItemGap),

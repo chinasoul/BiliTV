@@ -1,5 +1,5 @@
 name: bili_tv_app
-description: "BiliTV - 哔哩哔哩电视版客户端"
+description: "BT - 哔哩哔哩电视版客户端"
 publish_to: 'none'
 version: 0.4.1+12
 
@@ -50,6 +50,9 @@ dependencies:
   wakelock_plus: ^1.2.8
   web_socket_channel: ^3.0.3
   brotli: ^0.6.0
+
+  # 专栏文章 HTML 解析（手动解析 + 原生 Widget 渲染）
+  html: ^0.15.5
 
 # 本地 fork 的 video_player_android，已加入自定义 LoadControl + 帧率策略
 dependency_overrides:

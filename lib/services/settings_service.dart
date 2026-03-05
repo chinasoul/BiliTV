@@ -1172,6 +1172,56 @@ class SettingsService {
     );
   }
 
+  // 图文动态缓存
+  static const String _cachedDynamicDrawKey = 'cached_dynamic_draws';
+  static const String _lastDynamicDrawRefreshTimeKey = 'last_dynamic_draw_refresh_time';
+
+  static int get lastDynamicDrawRefreshTime =>
+      _prefs?.getInt(_lastDynamicDrawRefreshTimeKey) ?? 0;
+
+  static String? get cachedDynamicDrawJson =>
+      _prefs?.getString(_cachedDynamicDrawKey);
+  static Future<void> setCachedDynamicDrawJson(String json) async {
+    await init();
+    await _prefs!.setString(_cachedDynamicDrawKey, json);
+    await _prefs!.setInt(
+      _lastDynamicDrawRefreshTimeKey,
+      DateTime.now().millisecondsSinceEpoch,
+    );
+  }
+
+  // 专栏动态缓存
+  static const String _cachedDynamicArticleKey = 'cached_dynamic_articles';
+  static const String _lastDynamicArticleRefreshTimeKey =
+      'last_dynamic_article_refresh_time';
+
+  static int get lastDynamicArticleRefreshTime =>
+      _prefs?.getInt(_lastDynamicArticleRefreshTimeKey) ?? 0;
+
+  static String? get cachedDynamicArticleJson =>
+      _prefs?.getString(_cachedDynamicArticleKey);
+  static Future<void> setCachedDynamicArticleJson(String json) async {
+    await init();
+    await _prefs!.setString(_cachedDynamicArticleKey, json);
+    await _prefs!.setInt(
+      _lastDynamicArticleRefreshTimeKey,
+      DateTime.now().millisecondsSinceEpoch,
+    );
+  }
+
+  // 图文卡片列数设置
+  static const String _drawGridColumnsKey = 'draw_grid_columns';
+
+  static int get drawGridColumns {
+    final raw = _prefs?.getInt(_drawGridColumnsKey) ?? 3;
+    return raw.clamp(2, 5);
+  }
+
+  static Future<void> setDrawGridColumns(int value) async {
+    await init();
+    await _prefs!.setInt(_drawGridColumnsKey, value.clamp(2, 5));
+  }
+
   // 历史记录缓存
   static const String _cachedHistoryKey = 'cached_history_videos';
   static const String _lastHistoryRefreshTimeKey = 'last_history_refresh_time';
@@ -1198,6 +1248,8 @@ class SettingsService {
     await _prefs!.remove(_cachedFavoriteVideosKey);
     await _prefs!.remove(_cachedWatchLaterKey);
     await _prefs!.remove(_cachedDynamicKey);
+    await _prefs!.remove(_cachedDynamicDrawKey);
+    await _prefs!.remove(_cachedDynamicArticleKey);
     await _prefs!.remove(_cachedHistoryKey);
   }
 

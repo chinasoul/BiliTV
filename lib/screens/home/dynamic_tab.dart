@@ -1,19 +1,23 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:bili_tv_app/core/focus/focus_navigation.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../models/video.dart';
+import '../../models/dynamic_item.dart';
 import '../../services/bilibili_api.dart';
 import '../../services/auth_service.dart';
 import '../../services/settings_service.dart';
 import '../../config/app_style.dart';
 import '../../widgets/tv_video_card.dart';
+import '../../widgets/tv_dynamic_card.dart';
 import '../../widgets/update_time_banner.dart';
 import '../player/player_screen.dart';
 import '../video_detail/video_detail_screen.dart';
+import '../dynamic_detail_screen.dart';
 
-/// 动态 Tab
+enum _DynamicSubTab { video, draw, article }
+
+/// 动态 Tab — 视频 / 图文 / 专栏 三个子 Tab
 class DynamicTab extends StatefulWidget {
   final FocusNode? sidebarFocusNode;
   final bool isVisible;
@@ -25,32 +29,109 @@ class DynamicTab extends StatefulWidget {
 }
 
 class DynamicTabState extends State<DynamicTab> {
+  // ========== Tab 管理 ==========
+  _DynamicSubTab _selectedTab = _DynamicSubTab.video;
+  final List<FocusNode> _tabFocusNodes =
+      List.generate(3, (_) => FocusNode());
+  bool _isSwitchingTab = false;
+
+  // ========== 视频子 Tab ==========
   List<Video> _videos = [];
-  bool _isLoading = true;
-  String _offset = '';
-  bool _hasMore = true;
-  final ScrollController _scrollController = ScrollController();
+  bool _videoLoading = true;
+  String _videoOffset = '';
+  bool _videoHasMore = true;
+  bool _videoHasLoaded = false;
+  int _videoLimit = SettingsService.listMaxItems;
+
+  // ========== 图文子 Tab ==========
+  List<DynamicDraw> _draws = [];
+  bool _drawLoading = true;
+  String _drawOffset = '';
+  bool _drawHasMore = true;
+  bool _drawHasLoaded = false;
+  int _drawLimit = SettingsService.listMaxItems;
+
+  // ========== 专栏子 Tab ==========
+  List<DynamicArticle> _articles = [];
+  bool _articleLoading = true;
+  String _articleOffset = '';
+  bool _articleHasMore = true;
+  bool _articleHasLoaded = false;
+  int _articleLimit = SettingsService.listMaxItems;
+
+  // ========== 共享 ==========
+  ScrollController _scrollController = ScrollController();
   bool _isLoadingMore = false;
-  bool _hasLoaded = false;
-  int _currentLimit = SettingsService.listMaxItems; // 当前加载上限（可被用户扩展）
-  String _updateTimeText = ''; // 用于显示更新时间的 Banner
-  int _updateTimeBannerKey = 0; // 用于强制重建 Banner
-  // 每个视频卡片的 FocusNode
-  final Map<int, FocusNode> _videoFocusNodes = {};
+  String _updateTimeText = '';
+  int _updateTimeBannerKey = 0;
   final FocusNode _loadMoreFocusNode = FocusNode();
 
-  /// 处理返回键：动态页没有顶部 Tab，直接返回 false 让上层处理
-  bool handleBack() => false;
+  // 每个子 Tab 独立的 FocusNode 表
+  final Map<_DynamicSubTab, Map<int, FocusNode>> _tabCardFocusNodes = {};
+  // 每个子 Tab 的滚动位置记忆
+  final Map<_DynamicSubTab, double> _tabScrollOffsets = {};
+
+  // ========== 公开 API（供 HomeScreen 调用） ==========
+
+  bool handleBack() {
+    for (final node in _tabFocusNodes) {
+      if (node.hasFocus) return false;
+    }
+    _tabFocusNodes[_selectedTab.index].requestFocus();
+    return true;
+  }
+
+  void focusFirstItem() {
+    _tabFocusNodes[_selectedTab.index].requestFocus();
+  }
+
+  void refresh() {
+    if (!AuthService.isLoggedIn) {
+      _videoHasLoaded = false;
+      _drawHasLoaded = false;
+      _articleHasLoaded = false;
+      if (!mounted) return;
+      setState(() {
+        _videoLoading = false;
+        _drawLoading = false;
+        _articleLoading = false;
+        _videos = [];
+        _draws = [];
+        _articles = [];
+        _videoOffset = '';
+        _drawOffset = '';
+        _articleOffset = '';
+        _videoHasMore = true;
+        _drawHasMore = true;
+        _articleHasMore = true;
+        _updateTimeText = '';
+      });
+      return;
+    }
+    setState(() => _updateTimeText = '');
+    switch (_selectedTab) {
+      case _DynamicSubTab.video:
+        _loadVideos(refresh: true, isManualRefresh: true);
+        break;
+      case _DynamicSubTab.draw:
+        _loadDraws(refresh: true, isManualRefresh: true);
+        break;
+      case _DynamicSubTab.article:
+        _loadArticles(refresh: true, isManualRefresh: true);
+        break;
+    }
+  }
+
+  // ========== 生命周期 ==========
 
   @override
   void initState() {
     super.initState();
-    // 只有第一次可见时才加载（优先缓存）
     if (widget.isVisible && AuthService.isLoggedIn) {
-      if (!_tryLoadFromCache()) {
-        _loadDynamic(refresh: true);
+      if (!_tryLoadVideosFromCache()) {
+        _loadVideos(refresh: true);
       }
-      _hasLoaded = true;
+      _videoHasLoaded = true;
     }
     _scrollController.addListener(_onScroll);
   }
@@ -58,15 +139,14 @@ class DynamicTabState extends State<DynamicTab> {
   @override
   void didUpdateWidget(DynamicTab oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // 之前不可见，现在可见了，且没加载过 -> 优先缓存
     if (widget.isVisible &&
         !oldWidget.isVisible &&
-        !_hasLoaded &&
+        !_videoHasLoaded &&
         AuthService.isLoggedIn) {
-      if (!_tryLoadFromCache()) {
-        _loadDynamic(refresh: true);
+      if (!_tryLoadVideosFromCache()) {
+        _loadVideos(refresh: true);
       }
-      _hasLoaded = true;
+      _videoHasLoaded = true;
     }
   }
 
@@ -75,163 +155,181 @@ class DynamicTabState extends State<DynamicTab> {
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     _loadMoreFocusNode.dispose();
-    // 清理所有视频卡片的 FocusNode
-    for (final node in _videoFocusNodes.values) {
+    for (final node in _tabFocusNodes) {
       node.dispose();
     }
-    _videoFocusNodes.clear();
+    for (final map in _tabCardFocusNodes.values) {
+      for (final node in map.values) {
+        node.dispose();
+      }
+    }
+    _tabCardFocusNodes.clear();
     super.dispose();
   }
 
-  // 获取或创建视频卡片的 FocusNode
-  FocusNode _getFocusNode(int index) {
-    return _videoFocusNodes.putIfAbsent(index, () => FocusNode());
+  // ========== FocusNode 管理 ==========
+
+  FocusNode _getCardFocusNode(int index) {
+    final map = _tabCardFocusNodes.putIfAbsent(_selectedTab, () => {});
+    return map.putIfAbsent(index, () => FocusNode());
   }
+
+  void _disposeCardFocusNodesFor(_DynamicSubTab tab) {
+    final map = _tabCardFocusNodes.remove(tab);
+    if (map != null) {
+      for (final node in map.values) {
+        node.dispose();
+      }
+    }
+  }
+
+  // ========== 滚动 ==========
 
   void _onScroll() {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
-      _loadMore();
+      _loadMoreForCurrentTab();
     }
   }
 
-  void focusFirstItem() {
-    if (_videos.isNotEmpty) {
-      _getFocusNode(0).requestFocus();
+  // ========== Tab 切换 ==========
+
+  void _switchTab(_DynamicSubTab tab) {
+    if (_selectedTab == tab || _isSwitchingTab) return;
+    _isSwitchingTab = true;
+
+    if (_scrollController.hasClients) {
+      _tabScrollOffsets[_selectedTab] = _scrollController.offset;
+    }
+
+    final prevTab = _selectedTab;
+
+    _scrollController.dispose();
+    _scrollController = ScrollController(
+      initialScrollOffset: _tabScrollOffsets[tab] ?? 0.0,
+      keepScrollOffset: false,
+    );
+    _scrollController.addListener(_onScroll);
+
+    setState(() {
+      _selectedTab = tab;
+      _updateTimeText = '';
+    });
+
+    _ensureTabDataLoaded(tab);
+
+    _isSwitchingTab = false;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _disposeCardFocusNodesFor(prevTab);
+    });
+  }
+
+  void _ensureTabDataLoaded(_DynamicSubTab tab) {
+    if (!AuthService.isLoggedIn) return;
+    switch (tab) {
+      case _DynamicSubTab.video:
+        if (!_videoHasLoaded) {
+          if (!_tryLoadVideosFromCache()) {
+            _loadVideos(refresh: true);
+          }
+          _videoHasLoaded = true;
+        }
+        break;
+      case _DynamicSubTab.draw:
+        if (!_drawHasLoaded) {
+          if (!_tryLoadDrawsFromCache()) {
+            _loadDraws(refresh: true);
+          }
+          _drawHasLoaded = true;
+        }
+        break;
+      case _DynamicSubTab.article:
+        if (!_articleHasLoaded) {
+          if (!_tryLoadArticlesFromCache()) {
+            _loadArticles(refresh: true);
+          }
+          _articleHasLoaded = true;
+        }
+        break;
     }
   }
 
-  /// 公开的刷新方法 - 供外部调用
-  void refresh() {
-    if (!AuthService.isLoggedIn) {
-      _hasLoaded = false;
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-        _isLoadingMore = false;
-        _videos = [];
-        _offset = '';
-        _hasMore = true;
-        _updateTimeText = ''; // 清除旧的更新时间
-      });
+  void _onTabTap(int index) {
+    final tab = _DynamicSubTab.values[index];
+    if (_selectedTab == tab) {
+      refresh();
       return;
     }
-    _hasLoaded = true; // 标记已加载，避免切换时重复加载
-    setState(() => _updateTimeText = ''); // 刷新时先清除旧的更新时间
-    _loadDynamic(refresh: true, isManualRefresh: true);
+    _switchTab(tab);
   }
 
-  Future<void> _loadDynamic({
+  // ========== 视频数据加载 ==========
+
+  Future<void> _loadVideos({
     bool refresh = false,
     bool isManualRefresh = false,
   }) async {
     if (!AuthService.isLoggedIn) return;
 
-    // 记录刷新前的第一个视频 bvid，用于判断是否有更新
-    final oldFirstBvid = isManualRefresh && _videos.isNotEmpty
-        ? _videos.first.bvid
-        : null;
+    final oldFirstBvid =
+        isManualRefresh && _videos.isNotEmpty ? _videos.first.bvid : null;
 
     if (refresh) {
-      // 释放旧的 FocusNode，防止内存泄漏
-      for (final node in _videoFocusNodes.values) {
-        node.dispose();
-      }
-      _videoFocusNodes.clear();
-      _currentLimit = SettingsService.listMaxItems; // 重置上限
+      _disposeCardFocusNodesFor(_DynamicSubTab.video);
+      _videoLimit = SettingsService.listMaxItems;
       setState(() {
-        _isLoading = true;
+        _videoLoading = true;
         _videos = [];
-        _offset = '';
-        _hasMore = true;
+        _videoOffset = '';
+        _videoHasMore = true;
       });
     }
-
-    if (!_hasMore && !refresh) return;
+    if (!_videoHasMore && !refresh) return;
 
     final feed = await BilibiliApi.getDynamicFeed(
-      offset: refresh ? '' : _offset,
+      offset: refresh ? '' : _videoOffset,
     );
-
     if (!mounted) return;
 
     setState(() {
       if (refresh) {
         _videos = feed.videos;
       } else {
-        // 去重：过滤掉已存在的视频
-        final existingBvids = _videos.map((v) => v.bvid).toSet();
-        final newVideos = feed.videos
-            .where((v) => !existingBvids.contains(v.bvid))
-            .toList();
-        _videos.addAll(newVideos);
+        final existing = _videos.map((v) => v.bvid).toSet();
+        _videos.addAll(feed.videos.where((v) => !existing.contains(v.bvid)));
       }
-      _offset = feed.offset;
-      _hasMore = feed.hasMore;
-      _isLoading = false;
+      _videoOffset = feed.offset;
+      _videoHasMore = feed.hasMore;
+      _videoLoading = false;
       _isLoadingMore = false;
     });
 
-    // 首次加载完成后保存缓存
     if (refresh && _videos.isNotEmpty) {
-      // 手动刷新时，先判断数据是否变化，再决定是否保存缓存
-      if (isManualRefresh) {
-        final newFirstBvid = _videos.isNotEmpty ? _videos.first.bvid : null;
-        final hasChanged = oldFirstBvid != newFirstBvid;
-        if (hasChanged) {
-          // 数据有变化，保存缓存并显示"更新于刚刚"
-          _saveDynamicCache();
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              setState(() {
-                _updateTimeText = '更新于刚刚';
-                _updateTimeBannerKey++;
-              });
-            }
-          });
-        } else {
-          // 数据无变化，显示上次缓存的时间
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              final timeStr = SettingsService.formatTimestamp(
-                SettingsService.lastDynamicRefreshTime,
-              );
-              if (timeStr.isNotEmpty) {
-                setState(() {
-                  _updateTimeText = timeStr;
-                  _updateTimeBannerKey++;
-                });
-              }
-            }
-          });
-        }
-      } else {
-        // 非手动刷新（如首次加载），只保存缓存
-        _saveDynamicCache();
-      }
+      _handlePostRefresh(
+        isManualRefresh: isManualRefresh,
+        hasChanged: oldFirstBvid != (_videos.isNotEmpty ? _videos.first.bvid : null),
+        saveCache: _saveVideoCache,
+        lastRefreshTime: SettingsService.lastDynamicRefreshTime,
+      );
     }
   }
 
-  /// 保存动态到本地缓存（包含分页 offset）
-  void _saveDynamicCache() {
+  void _saveVideoCache() {
     try {
       final data = {
         'videos': _videos.map((v) => v.toMap()).toList(),
-        'offset': _offset,
+        'offset': _videoOffset,
       };
-      final json = jsonEncode(data);
-      SettingsService.setCachedDynamicJson(json);
+      SettingsService.setCachedDynamicJson(jsonEncode(data));
     } catch (_) {}
   }
 
-  /// 从本地缓存加载动态，成功返回 true
-  bool _tryLoadFromCache() {
+  bool _tryLoadVideosFromCache() {
     final jsonStr = SettingsService.cachedDynamicJson;
     if (jsonStr == null) return false;
     try {
       final decoded = jsonDecode(jsonStr);
-
-      // 兼容旧格式（纯 List）和新格式（含 offset 的 Map）
       List videoList;
       String offset = '';
       if (decoded is List) {
@@ -242,110 +340,339 @@ class DynamicTabState extends State<DynamicTab> {
       } else {
         return false;
       }
-
       final videos = videoList
           .map((item) => Video.fromMap(item as Map<String, dynamic>))
           .toList();
       if (videos.isEmpty) return false;
       setState(() {
         _videos = videos;
-        _isLoading = false;
-        _offset = offset;
-        _hasMore = offset.isNotEmpty;
+        _videoLoading = false;
+        _videoOffset = offset;
+        _videoHasMore = offset.isNotEmpty;
       });
-      // 显示上次更新时间 Banner
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        final timeStr = SettingsService.formatTimestamp(
-          SettingsService.lastDynamicRefreshTime,
-        );
-        if (timeStr.isNotEmpty && mounted) {
-          setState(() {
-            _updateTimeText = timeStr;
-            _updateTimeBannerKey++;
-          });
-        }
-      });
+      _showCachedTimeBanner(SettingsService.lastDynamicRefreshTime);
       return true;
     } catch (_) {
       return false;
     }
   }
 
-  bool get _reachedLimit => _videos.length >= _currentLimit && _hasMore;
+  // ========== 图文数据加载 ==========
 
-  Future<void> _loadMore() async {
-    if (_isLoadingMore || !_hasMore) return;
-    // 达到上限后停止自动加载，等待用户手动触发
-    if (_videos.length >= _currentLimit) return;
-    setState(() => _isLoadingMore = true);
-    await _loadDynamic(refresh: false);
+  Future<void> _loadDraws({
+    bool refresh = false,
+    bool isManualRefresh = false,
+  }) async {
+    if (!AuthService.isLoggedIn) return;
+
+    final oldFirstId =
+        isManualRefresh && _draws.isNotEmpty ? _draws.first.id : null;
+
+    if (refresh) {
+      _disposeCardFocusNodesFor(_DynamicSubTab.draw);
+      _drawLimit = SettingsService.listMaxItems;
+      setState(() {
+        _drawLoading = true;
+        _draws = [];
+        _drawOffset = '';
+        _drawHasMore = true;
+      });
+    }
+    if (!_drawHasMore && !refresh) return;
+
+    final feed = await BilibiliApi.getDynamicDrawFeed(
+      offset: refresh ? '' : _drawOffset,
+    );
+    if (!mounted) return;
+
+    setState(() {
+      if (refresh) {
+        _draws = feed.items;
+      } else {
+        final existing = _draws.map((d) => d.id).toSet();
+        _draws.addAll(feed.items.where((d) => !existing.contains(d.id)));
+      }
+      _drawOffset = feed.offset;
+      _drawHasMore = feed.hasMore;
+      _drawLoading = false;
+      _isLoadingMore = false;
+    });
+
+    if (refresh && _draws.isNotEmpty) {
+      _handlePostRefresh(
+        isManualRefresh: isManualRefresh,
+        hasChanged: oldFirstId != (_draws.isNotEmpty ? _draws.first.id : null),
+        saveCache: _saveDrawCache,
+        lastRefreshTime: SettingsService.lastDynamicDrawRefreshTime,
+      );
+    }
   }
 
-  /// 用户主动点击"加载更多"时，扩展上限并继续加载
+  void _saveDrawCache() {
+    try {
+      final data = {
+        'items': _draws.map((d) => d.toMap()).toList(),
+        'offset': _drawOffset,
+      };
+      SettingsService.setCachedDynamicDrawJson(jsonEncode(data));
+    } catch (_) {}
+  }
+
+  bool _tryLoadDrawsFromCache() {
+    final jsonStr = SettingsService.cachedDynamicDrawJson;
+    if (jsonStr == null) return false;
+    try {
+      final decoded = jsonDecode(jsonStr);
+      if (decoded is! Map) return false;
+      final itemList = decoded['items'] as List? ?? [];
+      final offset = decoded['offset'] as String? ?? '';
+      final draws = itemList
+          .map((item) => DynamicDraw.fromMap(item as Map<String, dynamic>))
+          .toList();
+      if (draws.isEmpty) return false;
+      setState(() {
+        _draws = draws;
+        _drawLoading = false;
+        _drawOffset = offset;
+        _drawHasMore = offset.isNotEmpty;
+      });
+      _showCachedTimeBanner(SettingsService.lastDynamicDrawRefreshTime);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // ========== 专栏数据加载 ==========
+
+  Future<void> _loadArticles({
+    bool refresh = false,
+    bool isManualRefresh = false,
+  }) async {
+    if (!AuthService.isLoggedIn) return;
+
+    final oldFirstId =
+        isManualRefresh && _articles.isNotEmpty ? _articles.first.id : null;
+
+    if (refresh) {
+      _disposeCardFocusNodesFor(_DynamicSubTab.article);
+      _articleLimit = SettingsService.listMaxItems;
+      setState(() {
+        _articleLoading = true;
+        _articles = [];
+        _articleOffset = '';
+        _articleHasMore = true;
+      });
+    }
+    if (!_articleHasMore && !refresh) return;
+
+    final feed = await BilibiliApi.getDynamicArticleFeed(
+      offset: refresh ? '' : _articleOffset,
+    );
+    if (!mounted) return;
+
+    setState(() {
+      if (refresh) {
+        _articles = feed.items;
+      } else {
+        final existing = _articles.map((a) => a.id).toSet();
+        _articles.addAll(feed.items.where((a) => !existing.contains(a.id)));
+      }
+      _articleOffset = feed.offset;
+      _articleHasMore = feed.hasMore;
+      _articleLoading = false;
+      _isLoadingMore = false;
+    });
+
+    if (refresh && _articles.isNotEmpty) {
+      _handlePostRefresh(
+        isManualRefresh: isManualRefresh,
+        hasChanged:
+            oldFirstId != (_articles.isNotEmpty ? _articles.first.id : null),
+        saveCache: _saveArticleCache,
+        lastRefreshTime: SettingsService.lastDynamicArticleRefreshTime,
+      );
+    }
+  }
+
+  void _saveArticleCache() {
+    try {
+      final data = {
+        'items': _articles.map((a) => a.toMap()).toList(),
+        'offset': _articleOffset,
+      };
+      SettingsService.setCachedDynamicArticleJson(jsonEncode(data));
+    } catch (_) {}
+  }
+
+  bool _tryLoadArticlesFromCache() {
+    final jsonStr = SettingsService.cachedDynamicArticleJson;
+    if (jsonStr == null) return false;
+    try {
+      final decoded = jsonDecode(jsonStr);
+      if (decoded is! Map) return false;
+      final itemList = decoded['items'] as List? ?? [];
+      final offset = decoded['offset'] as String? ?? '';
+      final articles = itemList
+          .map((item) =>
+              DynamicArticle.fromMap(item as Map<String, dynamic>))
+          .toList();
+      if (articles.isEmpty) return false;
+      setState(() {
+        _articles = articles;
+        _articleLoading = false;
+        _articleOffset = offset;
+        _articleHasMore = offset.isNotEmpty;
+      });
+      _showCachedTimeBanner(SettingsService.lastDynamicArticleRefreshTime);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // ========== 共用工具方法 ==========
+
+  void _handlePostRefresh({
+    required bool isManualRefresh,
+    required bool hasChanged,
+    required VoidCallback saveCache,
+    required int lastRefreshTime,
+  }) {
+    if (isManualRefresh) {
+      if (hasChanged) {
+        saveCache();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            setState(() {
+              _updateTimeText = '更新于刚刚';
+              _updateTimeBannerKey++;
+            });
+          }
+        });
+      } else {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            final timeStr =
+                SettingsService.formatTimestamp(lastRefreshTime);
+            if (timeStr.isNotEmpty) {
+              setState(() {
+                _updateTimeText = timeStr;
+                _updateTimeBannerKey++;
+              });
+            }
+          }
+        });
+      }
+    } else {
+      saveCache();
+    }
+  }
+
+  void _showCachedTimeBanner(int lastRefreshTime) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final timeStr = SettingsService.formatTimestamp(lastRefreshTime);
+      if (timeStr.isNotEmpty && mounted) {
+        setState(() {
+          _updateTimeText = timeStr;
+          _updateTimeBannerKey++;
+        });
+      }
+    });
+  }
+
+  // ========== 加载更多 ==========
+
+  bool get _currentReachedLimit {
+    switch (_selectedTab) {
+      case _DynamicSubTab.video:
+        return _videos.length >= _videoLimit && _videoHasMore;
+      case _DynamicSubTab.draw:
+        return _draws.length >= _drawLimit && _drawHasMore;
+      case _DynamicSubTab.article:
+        return _articles.length >= _articleLimit && _articleHasMore;
+    }
+  }
+
+  int get _currentItemCount {
+    switch (_selectedTab) {
+      case _DynamicSubTab.video:
+        return _videos.length;
+      case _DynamicSubTab.draw:
+        return _draws.length;
+      case _DynamicSubTab.article:
+        return _articles.length;
+    }
+  }
+
+  bool get _currentHasMore {
+    switch (_selectedTab) {
+      case _DynamicSubTab.video:
+        return _videoHasMore;
+      case _DynamicSubTab.draw:
+        return _drawHasMore;
+      case _DynamicSubTab.article:
+        return _articleHasMore;
+    }
+  }
+
+  bool get _currentIsLoading {
+    switch (_selectedTab) {
+      case _DynamicSubTab.video:
+        return _videoLoading;
+      case _DynamicSubTab.draw:
+        return _drawLoading;
+      case _DynamicSubTab.article:
+        return _articleLoading;
+    }
+  }
+
+  void _loadMoreForCurrentTab() {
+    if (_isLoadingMore || !_currentHasMore) return;
+    if (_currentItemCount >= _currentLimit) return;
+    setState(() => _isLoadingMore = true);
+    switch (_selectedTab) {
+      case _DynamicSubTab.video:
+        _loadVideos(refresh: false);
+        break;
+      case _DynamicSubTab.draw:
+        _loadDraws(refresh: false);
+        break;
+      case _DynamicSubTab.article:
+        _loadArticles(refresh: false);
+        break;
+    }
+  }
+
+  int get _currentLimit {
+    switch (_selectedTab) {
+      case _DynamicSubTab.video:
+        return _videoLimit;
+      case _DynamicSubTab.draw:
+        return _drawLimit;
+      case _DynamicSubTab.article:
+        return _articleLimit;
+    }
+  }
+
   void _extendLimit() {
     setState(() {
-      _currentLimit += SettingsService.listMaxItems;
+      switch (_selectedTab) {
+        case _DynamicSubTab.video:
+          _videoLimit += SettingsService.listMaxItems;
+          break;
+        case _DynamicSubTab.draw:
+          _drawLimit += SettingsService.listMaxItems;
+          break;
+        case _DynamicSubTab.article:
+          _articleLimit += SettingsService.listMaxItems;
+          break;
+      }
     });
-    _loadMore();
+    _loadMoreForCurrentTab();
   }
 
-  Widget _buildLoadMoreTile() {
-    return Focus(
-      focusNode: _loadMoreFocusNode,
-      onKeyEvent: (node, event) {
-        return TvKeyHandler.handleSinglePress(
-          event,
-          onUp: () {
-            final gridColumns = SettingsService.videoGridColumns;
-            final lastRowStart = (_videos.length ~/ gridColumns) * gridColumns;
-            final targetIndex = lastRowStart < _videos.length
-                ? lastRowStart
-                : _videos.length - 1;
-            _getFocusNode(targetIndex).requestFocus();
-          },
-          blockDown: true,
-          onLeft: () => widget.sidebarFocusNode?.requestFocus(),
-          onSelect: _extendLimit,
-        );
-      },
-      child: Builder(
-        builder: (ctx) {
-          final isFocused = Focus.of(ctx).hasFocus;
-          return GestureDetector(
-            onTap: _extendLimit,
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              decoration: BoxDecoration(
-                color: isFocused
-                    ? SettingsService.themeColor.withValues(alpha: AppColors.focusAlpha)
-                    : AppColors.navItemSelectedBackground,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.expand_more,
-                    color: isFocused ? AppColors.primaryText : AppColors.inactiveText,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '已加载 ${_videos.length} 条，按确认键加载更多',
-                    style: TextStyle(
-                      color: isFocused ? AppColors.primaryText : AppColors.inactiveText,
-                      fontSize: AppFonts.sizeMD,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
+  // ========== 点击事件 ==========
 
   void _onVideoTap(Video video) {
     final previousFocus = FocusManager.instance.primaryFocus;
@@ -364,10 +691,40 @@ class DynamicTabState extends State<DynamicTab> {
     });
   }
 
+  void _onDrawTap(DynamicDraw draw) {
+    final previousFocus = FocusManager.instance.primaryFocus;
+    Navigator.of(context)
+        .push(MaterialPageRoute(
+            builder: (_) => DynamicDetailScreen.fromDraw(draw)))
+        .then((_) {
+      if (!mounted) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (previousFocus != null && previousFocus.canRequestFocus) {
+          previousFocus.requestFocus();
+        }
+      });
+    });
+  }
+
+  void _onArticleTap(DynamicArticle article) {
+    final previousFocus = FocusManager.instance.primaryFocus;
+    Navigator.of(context)
+        .push(MaterialPageRoute(
+            builder: (_) => DynamicDetailScreen.fromArticle(article)))
+        .then((_) {
+      if (!mounted) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (previousFocus != null && previousFocus.canRequestFocus) {
+          previousFocus.requestFocus();
+        }
+      });
+    });
+  }
+
+  // ========== 构建 ==========
+
   @override
   Widget build(BuildContext context) {
-    final gridColumns = SettingsService.videoGridColumns;
-
     if (!AuthService.isLoggedIn) {
       return Center(
         child: Column(
@@ -375,40 +732,14 @@ class DynamicTabState extends State<DynamicTab> {
           children: [
             Text(
               '请先登录',
-              style: TextStyle(color: AppColors.inactiveText, fontSize: AppFonts.sizeXL),
+              style: TextStyle(
+                  color: AppColors.inactiveText, fontSize: AppFonts.sizeXL),
             ),
             const SizedBox(height: 10),
             Text(
               '登录后可查看关注的动态',
-              style: TextStyle(color: AppColors.disabledText, fontSize: AppFonts.sizeMD),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_videos.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SvgPicture.asset(
-              'assets/icons/dynamic.svg',
-              width: 80,
-              height: 80,
-              colorFilter: ColorFilter.mode(
-                Colors.white.withValues(alpha: 0.3),
-                BlendMode.srcIn,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              '暂无动态',
-              style: TextStyle(color: AppColors.inactiveText, fontSize: AppFonts.sizeXL),
+              style: TextStyle(
+                  color: AppColors.disabledText, fontSize: AppFonts.sizeMD),
             ),
           ],
         ),
@@ -421,86 +752,7 @@ class DynamicTabState extends State<DynamicTab> {
         Positioned.fill(
           child: Column(
             children: [
-              Expanded(
-                child: CustomScrollView(
-                  controller: _scrollController,
-                  slivers: [
-                    SliverPadding(
-                      padding: TabStyle.contentPadding,
-                      sliver: SliverGrid(
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: gridColumns,
-                          childAspectRatio: GridStyle.videoCardAspectRatio(context, gridColumns),
-                          crossAxisSpacing: 20,
-                          mainAxisSpacing: 10,
-                        ),
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            final video = _videos[index];
-
-                            // 预取下一页：避免大列数时无法通过下移触发滚动加载
-                            if (_hasMore &&
-                                !_isLoadingMore &&
-                                !_reachedLimit &&
-                                index >= _videos.length - gridColumns) {
-                              _loadMore();
-                            }
-
-                            // 构建卡片的内容
-                            Widget buildCard(BuildContext ctx) {
-                              return TvVideoCard(
-                                video: video,
-                                focusNode: _getFocusNode(index),
-                                disableCache: false,
-                                index: index,
-                                gridColumns: gridColumns,
-                                onTap: () => _onVideoTap(video),
-                                // 最左列按左键跳到侧边栏
-                                onMoveLeft: (index % gridColumns == 0)
-                                    ? () => widget.sidebarFocusNode
-                                          ?.requestFocus()
-                                    : () => _getFocusNode(
-                                        index - 1,
-                                      ).requestFocus(),
-                                // 强制向右导航
-                                onMoveRight: (index + 1 < _videos.length)
-                                    ? () => _getFocusNode(
-                                        index + 1,
-                                      ).requestFocus()
-                                    : null,
-                                // 严格按列向上移动
-                                onMoveUp: index >= gridColumns
-                                    ? () => _getFocusNode(
-                                        index - gridColumns,
-                                      ).requestFocus()
-                                    : () {}, // 最顶行为无效输入
-                                // 严格按列向下移动；最后一行：有"加载更多"时跳转到它，否则阻止
-                                onMoveDown:
-                                    (index + gridColumns < _videos.length)
-                                    ? () => _getFocusNode(
-                                        index + gridColumns,
-                                      ).requestFocus()
-                                    : _reachedLimit
-                                    ? () => _loadMoreFocusNode.requestFocus()
-                                    : () {},
-                                onFocus: () {},
-                              );
-                            }
-
-                            return Builder(builder: buildCard);
-                          },
-                          childCount: _videos.length,
-                          addAutomaticKeepAlives: false,
-                          addRepaintBoundaries: false,
-                        ),
-                      ),
-                    ),
-                    // 到达上限后显示"加载更多"提示
-                    if (_reachedLimit)
-                      SliverToBoxAdapter(child: _buildLoadMoreTile()),
-                  ],
-                ),
-              ),
+              Expanded(child: _buildContent()),
               if (_isLoadingMore)
                 const Padding(
                   padding: EdgeInsets.all(10),
@@ -509,51 +761,7 @@ class DynamicTabState extends State<DynamicTab> {
             ],
           ),
         ),
-        // 固定标题 — 与其他 tab 页保持一致的 tab 样式
-        Positioned(
-          top: 0,
-          left: 0,
-          right: 0,
-          height: TabStyle.headerHeight,
-          child: Container(
-            color: TabStyle.headerBackgroundColor,
-            padding: TabStyle.headerPadding,
-            child: Row(
-              children: [
-                Container(
-                  padding: TabStyle.tabPadding,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '关注动态',
-                        style: TextStyle(
-                          color: SettingsService.themeColor,
-                          fontSize: TabStyle.tabFontSize,
-                          fontWeight: FontWeight.bold,
-                          height: TabStyle.tabLineHeight,
-                        ),
-                      ),
-                      const SizedBox(height: TabStyle.tabUnderlineGap),
-                      Container(
-                        height: TabStyle.tabUnderlineHeight,
-                        width: TabStyle.tabUnderlineWidth,
-                        decoration: BoxDecoration(
-                          color: SettingsService.themeColor,
-                          borderRadius: BorderRadius.circular(
-                            TabStyle.tabUnderlineRadius,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-
-        // 更新时间 Banner (显示在屏幕高度 2/3 处，自动收起)
+        _buildHeader(),
         if (_updateTimeText.isNotEmpty)
           Positioned(
             top: MediaQuery.of(context).size.height * 2 / 3,
@@ -567,6 +775,470 @@ class DynamicTabState extends State<DynamicTab> {
             ),
           ),
       ],
+    );
+  }
+
+  Widget _buildHeader() {
+    const tabLabels = ['视频投稿', '图文（开发中）', '专栏'];
+    return Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+      height: TabStyle.headerHeight,
+      child: Container(
+        color: TabStyle.headerBackgroundColor,
+        padding: TabStyle.headerPadding,
+        child: FocusTraversalGroup(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: List.generate(3, (index) {
+                final isSelected =
+                    _selectedTab == _DynamicSubTab.values[index];
+                return _DynamicTabLabel(
+                  label: tabLabels[index],
+                  isSelected: isSelected,
+                  focusNode: _tabFocusNodes[index],
+                  onTap: () => _onTabTap(index),
+                  onFocus: () {
+                    if (SettingsService.focusSwitchTab) {
+                      _switchTab(_DynamicSubTab.values[index]);
+                    }
+                  },
+                  onConfirm: () => _onTabTap(index),
+                  onMoveLeft: index == 0
+                      ? () => widget.sidebarFocusNode?.requestFocus()
+                      : null,
+                  onMoveRight: index == 2
+                      ? () => _tabFocusNodes[0].requestFocus()
+                      : null,
+                  onMoveDown: () {
+                    if (_currentItemCount > 0) {
+                      _getCardFocusNode(0).requestFocus();
+                    }
+                  },
+                );
+              }),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContent() {
+    if (_currentIsLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_currentItemCount == 0) {
+      return _buildEmptyState();
+    }
+
+    switch (_selectedTab) {
+      case _DynamicSubTab.video:
+        return _buildVideoGrid();
+      case _DynamicSubTab.draw:
+        return _buildDrawGrid();
+      case _DynamicSubTab.article:
+        return _buildArticleList();
+    }
+  }
+
+  Widget _buildEmptyState() {
+    final messages = {
+      _DynamicSubTab.video: '暂无视频动态',
+      _DynamicSubTab.draw: '暂无图文动态',
+      _DynamicSubTab.article: '暂无专栏动态',
+    };
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SvgPicture.asset(
+            'assets/icons/dynamic.svg',
+            width: 80,
+            height: 80,
+            colorFilter: ColorFilter.mode(
+              Colors.white.withValues(alpha: 0.3),
+              BlendMode.srcIn,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            messages[_selectedTab] ?? '暂无动态',
+            style: TextStyle(
+                color: AppColors.inactiveText, fontSize: AppFonts.sizeXL),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ========== 视频网格 ==========
+
+  Widget _buildVideoGrid() {
+    final gridColumns = SettingsService.videoGridColumns;
+    return CustomScrollView(
+      controller: _scrollController,
+      slivers: [
+        SliverPadding(
+          padding: TabStyle.contentPadding,
+          sliver: SliverGrid(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: gridColumns,
+              childAspectRatio:
+                  GridStyle.videoCardAspectRatio(context, gridColumns),
+              crossAxisSpacing: 20,
+              mainAxisSpacing: 10,
+            ),
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final video = _videos[index];
+                if (_videoHasMore &&
+                    !_isLoadingMore &&
+                    !_currentReachedLimit &&
+                    index >= _videos.length - gridColumns) {
+                  _loadMoreForCurrentTab();
+                }
+                return Builder(
+                  builder: (ctx) => TvVideoCard(
+                    video: video,
+                    focusNode: _getCardFocusNode(index),
+                    disableCache: false,
+                    index: index,
+                    gridColumns: gridColumns,
+                    onTap: () => _onVideoTap(video),
+                    onMoveLeft: (index % gridColumns == 0)
+                        ? () => widget.sidebarFocusNode?.requestFocus()
+                        : () => _getCardFocusNode(index - 1).requestFocus(),
+                    onMoveRight: (index + 1 < _videos.length)
+                        ? () => _getCardFocusNode(index + 1).requestFocus()
+                        : null,
+                    onMoveUp: index >= gridColumns
+                        ? () =>
+                            _getCardFocusNode(index - gridColumns).requestFocus()
+                        : (index < gridColumns
+                            ? () => _tabFocusNodes[0].requestFocus()
+                            : () {}),
+                    onMoveDown: (index + gridColumns < _videos.length)
+                        ? () =>
+                            _getCardFocusNode(index + gridColumns).requestFocus()
+                        : _currentReachedLimit
+                            ? () => _loadMoreFocusNode.requestFocus()
+                            : () {},
+                    onFocus: () {},
+                  ),
+                );
+              },
+              childCount: _videos.length,
+              addAutomaticKeepAlives: false,
+              addRepaintBoundaries: false,
+            ),
+          ),
+        ),
+        if (_currentReachedLimit)
+          SliverToBoxAdapter(child: _buildLoadMoreTile()),
+      ],
+    );
+  }
+
+  // ========== 图文网格 ==========
+
+  Widget _buildDrawGrid() {
+    final gridColumns = SettingsService.drawGridColumns;
+    return CustomScrollView(
+      controller: _scrollController,
+      slivers: [
+        SliverPadding(
+          padding: TabStyle.contentPadding,
+          sliver: SliverGrid(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: gridColumns,
+              childAspectRatio:
+                  GridStyle.videoCardAspectRatio(context, gridColumns),
+              crossAxisSpacing: 20,
+              mainAxisSpacing: 10,
+            ),
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final draw = _draws[index];
+                if (_drawHasMore &&
+                    !_isLoadingMore &&
+                    !_currentReachedLimit &&
+                    index >= _draws.length - gridColumns) {
+                  _loadMoreForCurrentTab();
+                }
+                return Builder(
+                  builder: (ctx) => TvDynamicDrawCard(
+                    item: draw,
+                    focusNode: _getCardFocusNode(index),
+                    index: index,
+                    gridColumns: gridColumns,
+                    onTap: () => _onDrawTap(draw),
+                    onMoveLeft: (index % gridColumns == 0)
+                        ? () => widget.sidebarFocusNode?.requestFocus()
+                        : () => _getCardFocusNode(index - 1).requestFocus(),
+                    onMoveRight: (index + 1 < _draws.length)
+                        ? () => _getCardFocusNode(index + 1).requestFocus()
+                        : null,
+                    onMoveUp: index >= gridColumns
+                        ? () =>
+                            _getCardFocusNode(index - gridColumns).requestFocus()
+                        : (index < gridColumns
+                            ? () => _tabFocusNodes[1].requestFocus()
+                            : () {}),
+                    onMoveDown: (index + gridColumns < _draws.length)
+                        ? () =>
+                            _getCardFocusNode(index + gridColumns).requestFocus()
+                        : _currentReachedLimit
+                            ? () => _loadMoreFocusNode.requestFocus()
+                            : () {},
+                    onFocus: () {},
+                  ),
+                );
+              },
+              childCount: _draws.length,
+              addAutomaticKeepAlives: false,
+              addRepaintBoundaries: false,
+            ),
+          ),
+        ),
+        if (_currentReachedLimit)
+          SliverToBoxAdapter(child: _buildLoadMoreTile()),
+      ],
+    );
+  }
+
+  // ========== 专栏列表 ==========
+
+  Widget _buildArticleList() {
+    return CustomScrollView(
+      controller: _scrollController,
+      slivers: [
+        SliverPadding(
+          padding: TabStyle.contentPadding,
+          sliver: SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final article = _articles[index];
+                if (_articleHasMore &&
+                    !_isLoadingMore &&
+                    !_currentReachedLimit &&
+                    index >= _articles.length - 1) {
+                  _loadMoreForCurrentTab();
+                }
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: SizedBox(
+                    height: 134,
+                    child: TvDynamicArticleCard(
+                      item: article,
+                      focusNode: _getCardFocusNode(index),
+                      index: index,
+                      onTap: () => _onArticleTap(article),
+                      onMoveLeft: () =>
+                          widget.sidebarFocusNode?.requestFocus(),
+                      onMoveRight: null,
+                      onMoveUp: index > 0
+                          ? () =>
+                              _getCardFocusNode(index - 1).requestFocus()
+                          : () => _tabFocusNodes[2].requestFocus(),
+                      onMoveDown: (index + 1 < _articles.length)
+                          ? () =>
+                              _getCardFocusNode(index + 1).requestFocus()
+                          : _currentReachedLimit
+                              ? () => _loadMoreFocusNode.requestFocus()
+                              : () {},
+                      onFocus: () {},
+                    ),
+                  ),
+                );
+              },
+              childCount: _articles.length,
+              addAutomaticKeepAlives: false,
+              addRepaintBoundaries: false,
+            ),
+          ),
+        ),
+        if (_currentReachedLimit)
+          SliverToBoxAdapter(child: _buildLoadMoreTile()),
+      ],
+    );
+  }
+
+  // ========== 加载更多按钮 ==========
+
+  Widget _buildLoadMoreTile() {
+    final gridColumns = _selectedTab == _DynamicSubTab.article
+        ? 1
+        : (_selectedTab == _DynamicSubTab.draw
+            ? SettingsService.drawGridColumns
+            : SettingsService.videoGridColumns);
+
+    return Focus(
+      focusNode: _loadMoreFocusNode,
+      onKeyEvent: (node, event) {
+        return TvKeyHandler.handleSinglePress(
+          event,
+          onUp: () {
+            final total = _currentItemCount;
+            final lastRowStart = (total ~/ gridColumns) * gridColumns;
+            final targetIndex =
+                lastRowStart < total ? lastRowStart : total - 1;
+            _getCardFocusNode(targetIndex).requestFocus();
+          },
+          blockDown: true,
+          onLeft: () => widget.sidebarFocusNode?.requestFocus(),
+          onSelect: _extendLimit,
+        );
+      },
+      child: Builder(
+        builder: (ctx) {
+          final isFocused = Focus.of(ctx).hasFocus;
+          return GestureDetector(
+            onTap: _extendLimit,
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              decoration: BoxDecoration(
+                color: isFocused
+                    ? SettingsService.themeColor
+                        .withValues(alpha: AppColors.focusAlpha)
+                    : AppColors.navItemSelectedBackground,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.expand_more,
+                    color: isFocused
+                        ? AppColors.primaryText
+                        : AppColors.inactiveText,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '已加载 $_currentItemCount 条，按确认键加载更多',
+                    style: TextStyle(
+                      color: isFocused
+                          ? AppColors.primaryText
+                          : AppColors.inactiveText,
+                      fontSize: AppFonts.sizeMD,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// 动态 Tab 标签组件
+class _DynamicTabLabel extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final FocusNode focusNode;
+  final VoidCallback onTap;
+  final VoidCallback onFocus;
+  final VoidCallback onConfirm;
+  final VoidCallback? onMoveLeft;
+  final VoidCallback? onMoveRight;
+  final VoidCallback? onMoveDown;
+
+  const _DynamicTabLabel({
+    required this.label,
+    required this.isSelected,
+    required this.focusNode,
+    required this.onTap,
+    required this.onFocus,
+    required this.onConfirm,
+    this.onMoveLeft,
+    this.onMoveRight,
+    this.onMoveDown,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 14),
+      child: Focus(
+        focusNode: focusNode,
+        onFocusChange: (f) => f ? onFocus() : null,
+        onKeyEvent: (node, event) {
+          return TvKeyHandler.handleSinglePress(
+            event,
+            onLeft: onMoveLeft,
+            onRight: onMoveRight,
+            onDown: onMoveDown,
+            onSelect: onConfirm,
+          );
+        },
+        child: Builder(
+          builder: (ctx) {
+            final f = Focus.of(ctx).hasFocus;
+            return MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  focusNode.requestFocus();
+                  onTap();
+                },
+                child: Container(
+                  padding: TabStyle.tabPadding,
+                  decoration: BoxDecoration(
+                    color: f
+                        ? SettingsService.themeColor
+                            .withValues(alpha: AppColors.focusAlpha)
+                        : Colors.transparent,
+                    borderRadius:
+                        BorderRadius.circular(TabStyle.tabBorderRadius),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        label,
+                        style: TextStyle(
+                          color: f
+                              ? AppColors.primaryText
+                              : (isSelected
+                                  ? AppColors.primaryText
+                                  : AppColors.inactiveText),
+                          fontSize: TabStyle.tabFontSize,
+                          fontWeight: f || isSelected
+                              ? AppFonts.bold
+                              : AppFonts.medium,
+                          height: TabStyle.tabLineHeight,
+                        ),
+                      ),
+                      const SizedBox(height: TabStyle.tabUnderlineGap),
+                      Container(
+                        height: TabStyle.tabUnderlineHeight,
+                        width: TabStyle.tabUnderlineWidth,
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? SettingsService.themeColor
+                                  .withValues(alpha: AppColors.focusAlpha)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(
+                            TabStyle.tabUnderlineRadius,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'base_api.dart';
 import 'sign_utils.dart';
 import '../auth_service.dart';
+import '../../models/dynamic_item.dart';
 import '../../models/favorite_folder.dart';
 import '../../models/video.dart';
 
@@ -495,6 +496,170 @@ class VideoApi {
       }
     } catch (_) {}
     return DynamicFeed(videos: [], offset: '', hasMore: false);
+  }
+
+  /// 获取动态图文列表
+  static Future<DynamicDrawFeed> getDynamicDrawFeed({String offset = ''}) async {
+    try {
+      await BaseApi.ensureWbiKeys();
+
+      final response = await http.get(
+        Uri.parse(
+          '${BaseApi.apiBase}/x/polymer/web-dynamic/v1/feed/all?type=draw&offset=$offset',
+        ),
+        headers: BaseApi.getHeaders(withCookie: true),
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['code'] == 0 && json['data'] != null) {
+          final data = json['data'];
+          final items = data['items'] as List? ?? [];
+          final newOffset = data['offset'] as String? ?? '';
+          final hasMore = data['has_more'] as bool? ?? false;
+
+          final draws = <DynamicDraw>[];
+
+          for (final item in items) {
+            try {
+              if (item['visible'] == false) continue;
+
+              final modules = item['modules'] as Map<String, dynamic>? ?? {};
+              final dynamicModule =
+                  modules['module_dynamic'] as Map<String, dynamic>? ?? {};
+              final major =
+                  dynamicModule['major'] as Map<String, dynamic>? ?? {};
+
+              if (major['type'] != 'MAJOR_TYPE_DRAW') continue;
+
+              final draw = major['draw'] as Map<String, dynamic>? ?? {};
+              final drawItems = draw['items'] as List? ?? [];
+              final images = drawItems
+                  .map((e) => BaseApi.fixPicUrl(
+                      (e as Map<String, dynamic>)['src'] as String? ?? ''))
+                  .where((url) => url.isNotEmpty)
+                  .toList();
+
+              final desc =
+                  dynamicModule['desc'] as Map<String, dynamic>? ?? {};
+              final author =
+                  modules['module_author'] as Map<String, dynamic>? ?? {};
+              final stat =
+                  modules['module_stat'] as Map<String, dynamic>? ?? {};
+
+              draws.add(
+                DynamicDraw(
+                  id: item['id_str'] as String? ?? '',
+                  text: desc['text'] as String? ?? '',
+                  images: images,
+                  authorName: author['name'] as String? ?? '',
+                  authorFace: BaseApi.fixPicUrl(
+                      author['face'] as String? ?? ''),
+                  authorMid: BaseApi.toInt(author['mid'] ?? 0),
+                  pubTs: BaseApi.toInt(author['pub_ts'] ?? 0),
+                  likeCount: BaseApi.toInt(
+                      (stat['like'] as Map?)?['count'] ?? 0),
+                  commentCount: BaseApi.toInt(
+                      (stat['comment'] as Map?)?['count'] ?? 0),
+                  forwardCount: BaseApi.toInt(
+                      (stat['forward'] as Map?)?['count'] ?? 0),
+                ),
+              );
+            } catch (_) {
+              continue;
+            }
+          }
+
+          return DynamicDrawFeed(
+            items: draws,
+            offset: newOffset,
+            hasMore: hasMore,
+          );
+        }
+      }
+    } catch (_) {}
+    return DynamicDrawFeed(items: [], offset: '', hasMore: false);
+  }
+
+  /// 获取动态专栏列表
+  static Future<DynamicArticleFeed> getDynamicArticleFeed({String offset = ''}) async {
+    try {
+      await BaseApi.ensureWbiKeys();
+
+      final response = await http.get(
+        Uri.parse(
+          '${BaseApi.apiBase}/x/polymer/web-dynamic/v1/feed/all?type=article&offset=$offset',
+        ),
+        headers: BaseApi.getHeaders(withCookie: true),
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['code'] == 0 && json['data'] != null) {
+          final data = json['data'];
+          final items = data['items'] as List? ?? [];
+          final newOffset = data['offset'] as String? ?? '';
+          final hasMore = data['has_more'] as bool? ?? false;
+
+          final articles = <DynamicArticle>[];
+
+          for (final item in items) {
+            try {
+              if (item['visible'] == false) continue;
+
+              final modules = item['modules'] as Map<String, dynamic>? ?? {};
+              final dynamicModule =
+                  modules['module_dynamic'] as Map<String, dynamic>? ?? {};
+              final major =
+                  dynamicModule['major'] as Map<String, dynamic>? ?? {};
+
+              if (major['type'] != 'MAJOR_TYPE_ARTICLE') continue;
+
+              final article =
+                  major['article'] as Map<String, dynamic>? ?? {};
+              final covers = article['covers'] as List? ?? [];
+              final author =
+                  modules['module_author'] as Map<String, dynamic>? ?? {};
+              final stat =
+                  modules['module_stat'] as Map<String, dynamic>? ?? {};
+
+              articles.add(
+                DynamicArticle(
+                  id: BaseApi.toInt(article['id'] ?? 0).toString(),
+                  title: article['title'] as String? ?? '',
+                  desc: article['desc'] as String? ?? '',
+                  coverUrl: covers.isNotEmpty
+                      ? BaseApi.fixPicUrl(covers.first as String? ?? '')
+                      : '',
+                  jumpUrl: article['jump_url'] as String? ?? '',
+                  label: article['label'] as String? ?? '',
+                  authorName: author['name'] as String? ?? '',
+                  authorFace: BaseApi.fixPicUrl(
+                      author['face'] as String? ?? ''),
+                  authorMid: BaseApi.toInt(author['mid'] ?? 0),
+                  pubTs: BaseApi.toInt(author['pub_ts'] ?? 0),
+                  likeCount: BaseApi.toInt(
+                      (stat['like'] as Map?)?['count'] ?? 0),
+                  commentCount: BaseApi.toInt(
+                      (stat['comment'] as Map?)?['count'] ?? 0),
+                  forwardCount: BaseApi.toInt(
+                      (stat['forward'] as Map?)?['count'] ?? 0),
+                ),
+              );
+            } catch (_) {
+              continue;
+            }
+          }
+
+          return DynamicArticleFeed(
+            items: articles,
+            offset: newOffset,
+            hasMore: hasMore,
+          );
+        }
+      }
+    } catch (_) {}
+    return DynamicArticleFeed(items: [], offset: '', hasMore: false);
   }
 
   /// 获取相关视频

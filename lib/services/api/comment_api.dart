@@ -21,20 +21,21 @@ class CommentResult {
 
 /// 评论相关 API
 class CommentApi {
-  /// 获取视频评论 (主楼)
+  /// 获取评论 (主楼)
   ///
-  /// [oid] 视频 aid
+  /// [oid] 资源 ID (视频=aid, 专栏=cvid, 图文=动态id)
+  /// [type] 评论区类型: 1=视频, 11=图文动态, 12=专栏
   /// [mode] 排序: 2=按时间, 3=按热度
   /// [nextOffset] 翻页偏移 (首页传 null)
   static Future<CommentResult> getComments({
     required int oid,
+    int type = 1,
     int mode = 3,
     String? nextOffset,
   }) async {
     try {
       await BaseApi.ensureWbiKeys();
 
-      // 构造 pagination_str
       final paginationStr = nextOffset ??
           jsonEncode({
             "offset": "",
@@ -42,7 +43,7 @@ class CommentApi {
 
       Map<String, String> params = {
         'oid': oid.toString(),
-        'type': '1', // 1=视频
+        'type': type.toString(),
         'mode': mode.toString(),
         'pagination_str': paginationStr,
       };
@@ -118,11 +119,13 @@ class CommentApi {
 
   /// 获取评论回复 (楼中楼)
   ///
-  /// [oid] 视频 aid
+  /// [oid] 资源 ID
+  /// [type] 评论区类型: 1=视频, 11=图文动态, 12=专栏
   /// [root] 根评论 rpid
   /// [page] 页码 (从1开始)
   static Future<List<Comment>> getReplies({
     required int oid,
+    int type = 1,
     required int root,
     int page = 1,
   }) async {
@@ -131,7 +134,7 @@ class CommentApi {
         '${BaseApi.apiBase}/x/v2/reply/reply',
       ).replace(queryParameters: {
         'oid': oid.toString(),
-        'type': '1',
+        'type': type.toString(),
         'root': root.toString(),
         'pn': page.toString(),
         'ps': '10',

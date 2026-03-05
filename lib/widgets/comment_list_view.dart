@@ -13,11 +13,14 @@ import '../utils/image_url_utils.dart';
 class CommentListView extends StatefulWidget {
   final int aid;
   final VoidCallback onClose;
+  /// 评论区类型: 1=视频, 11=图文动态, 12=专栏
+  final int commentType;
 
   const CommentListView({
     super.key,
     required this.aid,
     required this.onClose,
+    this.commentType = 1,
   });
 
   @override
@@ -81,6 +84,7 @@ class _CommentListViewState extends State<CommentListView> {
 
     final result = await BilibiliApi.getComments(
       oid: widget.aid,
+      type: widget.commentType,
       mode: _sortMode,
       nextOffset: loadMore ? _nextOffset : null,
     );
@@ -116,6 +120,7 @@ class _CommentListViewState extends State<CommentListView> {
     } else {
       final replies = await BilibiliApi.getReplies(
         oid: widget.aid,
+        type: widget.commentType,
         root: comment.rpid,
         page: 1,
       );
@@ -138,6 +143,7 @@ class _CommentListViewState extends State<CommentListView> {
     final nextPage = (_replyPages[rpid] ?? 1) + 1;
     final replies = await BilibiliApi.getReplies(
       oid: widget.aid,
+      type: widget.commentType,
       root: rpid,
       page: nextPage,
     );
