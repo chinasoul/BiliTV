@@ -332,7 +332,7 @@ class HistoryVideoCard extends StatelessWidget {
     const int targetHeight = 200;
 
     return CachedNetworkImage(
-      imageUrl: ImageUrlUtils.getResizedUrl(video.pic, width: 640, height: 360),
+      imageUrl: ImageUrlUtils.getResizedUrl(video.pic, width: 360, height: 200),
       fit: BoxFit.cover,
       memCacheWidth: targetWidth,
       memCacheHeight: targetHeight,

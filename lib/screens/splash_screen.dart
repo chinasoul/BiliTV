@@ -63,8 +63,8 @@ class _SplashScreenState extends State<SplashScreen> {
               if (url.isNotEmpty) {
                 final optimizedUrl = ImageUrlUtils.getResizedUrl(
                   url,
-                  width: 640,
-                  height: 360,
+                  width: 360,
+                  height: 200,
                 );
                 final imageProvider = CachedNetworkImageProvider(
                   optimizedUrl,
