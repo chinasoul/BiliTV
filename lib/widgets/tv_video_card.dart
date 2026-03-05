@@ -8,6 +8,7 @@ import '../utils/image_url_utils.dart';
 import '../config/app_style.dart';
 
 class TvVideoCard extends StatelessWidget {
+  static const double _titleLineHeight = 1.4;
   final Video video;
   final VoidCallback onTap;
   final VoidCallback onFocus;
@@ -54,6 +55,7 @@ class TvVideoCard extends StatelessWidget {
       color: AppColors.primaryText,
       fontSize: AppFonts.sizeMD,
       fontWeight: FontWeight.bold,
+      height: _titleLineHeight,
     );
     final mode = SettingsService.focusedTitleDisplayMode;
     switch (mode) {
@@ -77,7 +79,7 @@ class TvVideoCard extends StatelessWidget {
           text: video.title,
           style: focusedStyle,
           blankSpace: 30.0,
-          velocity: 30.0, // 稍微慢一点
+          velocity: 30.0,
         );
     }
   }
@@ -175,18 +177,20 @@ class TvVideoCard extends StatelessWidget {
         ],
       ),
       infoContentBuilder: (context, isFocused) {
+        final isNormalMode = SettingsService.focusedTitleDisplayMode ==
+            FocusedTitleDisplayMode.normal;
+        final maxLines = isNormalMode ? 2 : 1;
+        final scaledFontSize =
+            MediaQuery.textScalerOf(context).scale(AppFonts.sizeMD);
+        final titleAreaHeight =
+            (scaledFontSize * _titleLineHeight * maxLines).ceilToDouble();
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 标题区域
-            ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight:
-                    SettingsService.focusedTitleDisplayMode ==
-                        FocusedTitleDisplayMode.normal
-                    ? 40
-                    : 20,
-              ),
+            // 标题区域：固定高度确保同行卡片的 UP主行对齐
+            SizedBox(
+              height: titleAreaHeight,
               child: isFocused
                   ? _buildFocusedTitle()
                   : Text(
@@ -195,12 +199,9 @@ class TvVideoCard extends StatelessWidget {
                         color: AppColors.secondaryText,
                         fontSize: AppFonts.sizeMD,
                         fontWeight: AppFonts.semibold,
+                        height: _titleLineHeight,
                       ),
-                      maxLines:
-                          SettingsService.focusedTitleDisplayMode ==
-                              FocusedTitleDisplayMode.normal
-                          ? 2
-                          : 1,
+                      maxLines: maxLines,
                       overflow: TextOverflow.ellipsis,
                     ),
             ),

@@ -14,6 +14,7 @@ import 'package:bili_tv_app/config/app_style.dart';
 /// 2. 显示进度条和 xx:xx/yy:yy 格式的进度
 /// 3. 播放完成显示"已播完"
 class HistoryVideoCard extends StatelessWidget {
+  static const double _titleLineHeight = 1.4;
   final Video video;
   final VoidCallback onTap;
   final VoidCallback onFocus;
@@ -78,6 +79,7 @@ class HistoryVideoCard extends StatelessWidget {
       color: AppColors.primaryText,
       fontSize: AppFonts.sizeMD,
       fontWeight: FontWeight.bold,
+      height: _titleLineHeight,
     );
     final mode = SettingsService.focusedTitleDisplayMode;
     switch (mode) {
@@ -257,18 +259,20 @@ class HistoryVideoCard extends StatelessWidget {
         ],
       ),
       infoContentBuilder: (context, isFocused) {
+        final isNormalMode = SettingsService.focusedTitleDisplayMode ==
+            FocusedTitleDisplayMode.normal;
+        final maxLines = isNormalMode ? 2 : 1;
+        final scaledFontSize =
+            MediaQuery.textScalerOf(context).scale(AppFonts.sizeMD);
+        final titleAreaHeight =
+            (scaledFontSize * _titleLineHeight * maxLines).ceilToDouble();
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 标题区域
-            ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight:
-                    SettingsService.focusedTitleDisplayMode ==
-                        FocusedTitleDisplayMode.normal
-                    ? 40
-                    : 20,
-              ),
+            // 标题区域：固定高度确保同行卡片的 UP主行对齐
+            SizedBox(
+              height: titleAreaHeight,
               child: isFocused
                   ? _buildFocusedTitle()
                   : Text(
@@ -277,12 +281,9 @@ class HistoryVideoCard extends StatelessWidget {
                         color: AppColors.secondaryText,
                         fontSize: AppFonts.sizeMD,
                         fontWeight: AppFonts.semibold,
+                        height: _titleLineHeight,
                       ),
-                      maxLines:
-                          SettingsService.focusedTitleDisplayMode ==
-                              FocusedTitleDisplayMode.normal
-                          ? 2
-                          : 1,
+                      maxLines: maxLines,
                       overflow: TextOverflow.ellipsis,
                     ),
             ),

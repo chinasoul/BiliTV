@@ -57,12 +57,10 @@ class _DeviceInfoSettingsState extends State<DeviceInfoSettings> {
     });
     final info = await DeviceInfoService.getDeviceInfo();
     if (!mounted) return;
-    setState(() {
-      _info = info;
-      _isLoading = false;
-    });
-    // 异步获取公网 IP
-    _fetchPublicIp();
+    setState(() => _info = info);
+    await _fetchPublicIp();
+    if (!mounted) return;
+    setState(() => _isLoading = false);
   }
 
   Future<void> _fetchPublicIp() async {
@@ -133,87 +131,85 @@ class _DeviceInfoSettingsState extends State<DeviceInfoSettings> {
     String label,
     String value, {
     VoidCallback? onSelect,
+    bool isFirst = false,
+    bool isLast = false,
   }) {
-    return Focus(
+    return TvFocusScope(
+      pattern: FocusPattern.vertical,
+      enableKeyRepeat: true,
       focusNode: _infoFocusNodes[index],
+      exitLeft: widget.sidebarFocusNode,
+      onExitUp: isFirst ? () => _refreshFocusNode.requestFocus() : null,
+      isFirst: isFirst,
+      isLast: isLast,
+      onSelect: onSelect,
       onFocusChange: (focused) {
         if (!focused || !mounted) return;
-        final context = _infoFocusNodes[index].context;
-        if (context != null) {
+        final ctx = _infoFocusNodes[index].context;
+        if (ctx != null) {
           Scrollable.ensureVisible(
-            context,
+            ctx,
             alignment: 0.2,
             duration: const Duration(milliseconds: 220),
             curve: Curves.easeOutCubic,
           );
         }
       },
-      onKeyEvent: (node, event) {
-        return TvKeyHandler.handleNavigation(
-          event,
-          onUp: () {
-            if (index == 0) {
-              _refreshFocusNode.requestFocus();
-            } else {
-              _infoFocusNodes[index - 1].requestFocus();
-            }
-          },
-          onDown: () {
-            if (index < _infoFocusNodes.length - 1) {
-              _infoFocusNodes[index + 1].requestFocus();
-            }
-          },
-          onLeft: widget.sidebarFocusNode != null
-              ? () => widget.sidebarFocusNode!.requestFocus()
-              : null,
-          onSelect: onSelect,
-        );
-      },
       child: Builder(
         builder: (ctx) {
-          final focused = Focus.of(ctx).hasFocus;
-          return Container(
-            width: double.infinity,
-            constraints: const BoxConstraints(
-              minHeight: AppSpacing.settingItemMinHeight,
-            ),
-            margin: const EdgeInsets.only(bottom: AppSpacing.settingItemGap),
-            padding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: AppSpacing.settingItemVerticalPadding,
-            ),
-            decoration: BoxDecoration(
-              color: focused
-                  ? SettingsService.themeColor.withValues(alpha: AppColors.focusAlpha)
-                  : AppColors.navItemSelectedBackground,
-              borderRadius: BorderRadius.circular(8),
-              border: focused
-                  ? Border.all(color: SettingsService.themeColor, width: 2)
-                  : null,
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  width: 150,
-                  child: Text(
-                    label,
-                    style: TextStyle(
-                      color: focused ? AppColors.primaryText : AppColors.inactiveText,
-                      fontSize: AppFonts.sizeMD,
-                    ),
-                  ),
+          final isFocused = Focus.of(ctx).hasFocus;
+          return MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                _infoFocusNodes[index].requestFocus();
+                onSelect?.call();
+              },
+              child: Container(
+                width: double.infinity,
+                constraints: const BoxConstraints(
+                  minHeight: AppSpacing.settingItemMinHeight,
                 ),
-                Expanded(
-                  child: Text(
-                    value,
-                    style: TextStyle(
-                      color: AppColors.secondaryText,
-                      fontSize: AppFonts.sizeMD,
-                    ),
-                  ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: AppSpacing.settingItemVerticalPadding,
                 ),
-              ],
+                decoration: BoxDecoration(
+                  color: isFocused
+                      ? AppColors.navItemSelectedBackground
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      label,
+                      style: TextStyle(
+                        color: isFocused
+                            ? AppColors.primaryText
+                            : AppColors.secondaryText,
+                        fontSize: AppFonts.sizeMD,
+                        fontWeight: AppFonts.medium,
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        value,
+                        style: TextStyle(
+                          color: AppColors.inactiveText,
+                          fontSize: AppFonts.sizeSM,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           );
         },
@@ -228,8 +224,8 @@ class _DeviceInfoSettingsState extends State<DeviceInfoSettings> {
       children: [
         SettingActionRow(
           label: '本机信息',
-          value: _isLoading ? '读取中...' : '查看当前设备的硬件与系统信息',
-          buttonLabel: _isLoading ? '加载中...' : '刷新',
+          value: '查看当前设备的硬件与系统信息',
+          buttonLabel: _isLoading ? '刷新中...' : '刷新',
           autofocus: true,
           focusNode: _refreshFocusNode,
           isFirst: true,
@@ -239,28 +235,20 @@ class _DeviceInfoSettingsState extends State<DeviceInfoSettings> {
           sidebarFocusNode: widget.sidebarFocusNode,
           onTap: _isLoading ? null : _loadDeviceInfo,
         ),
-        const SizedBox(height: AppSpacing.settingItemGap),
-        // Android 版本 (SDK xx)
         _buildInfoItem(
           0,
           '系统版本',
           'Android ${_valueOf('androidVersion')} (SDK ${_valueOf('sdkInt')})',
           onSelect: _onVersionTap,
+          isFirst: true,
         ),
-        // 设备名
         _buildInfoItem(1, '设备名', _valueOf('model')),
-        // 支持 ABI 列表
         _buildInfoItem(2, '支持 ABI 列表', _valueOf('supportedAbis')),
-        // CPU
         _buildInfoItem(3, 'CPU', _valueOf('arch')),
-        // GPU
         _buildInfoItem(4, 'GPU', _valueOf('gpu')),
-        // 网络名
         _buildInfoItem(5, '网络', _valueOf('networkName')),
-        // 内网 IP 地址
         _buildInfoItem(6, '内网 IP', _valueOf('ipAddress')),
-        // 公网 IP 地址
-        _buildInfoItem(7, '公网 IP', _publicIp),
+        _buildInfoItem(7, '公网 IP', _publicIp, isLast: true),
       ],
     );
   }

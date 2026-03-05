@@ -38,6 +38,7 @@ class HistoryTabState extends State<HistoryTab> {
   // 每个视频卡片的 FocusNode
   final Map<int, FocusNode> _videoFocusNodes = {};
   final FocusNode _loadMoreFocusNode = FocusNode();
+  final FocusNode _headerFocusNode = FocusNode();
 
   @override
   void initState() {
@@ -70,6 +71,7 @@ class HistoryTabState extends State<HistoryTab> {
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     _loadMoreFocusNode.dispose();
+    _headerFocusNode.dispose();
     // 清理所有视频卡片的 FocusNode
     for (final node in _videoFocusNodes.values) {
       node.dispose();
@@ -97,9 +99,7 @@ class HistoryTabState extends State<HistoryTab> {
   }
 
   void focusFirstItem() {
-    if (_videos.isNotEmpty) {
-      _getFocusNode(0).requestFocus();
-    }
+    _headerFocusNode.requestFocus();
   }
 
   /// 用户主动点击"加载更多"时，扩展上限并继续加载
@@ -429,12 +429,11 @@ class HistoryTabState extends State<HistoryTab> {
                           onMoveRight: (index + 1 < _videos.length)
                               ? () => _getFocusNode(index + 1).requestFocus()
                               : null,
-                          // 严格按列向上移动
                           onMoveUp: index >= gridColumns
                               ? () => _getFocusNode(
                                   index - gridColumns,
                                 ).requestFocus()
-                              : () {}, // 最顶行为无效输入
+                              : () => _headerFocusNode.requestFocus(),
                           // 严格按列向下移动；最后一行：有"加载更多"时跳转到它，否则阻止
                           onMoveDown: (index + gridColumns < _videos.length)
                               ? () => _getFocusNode(
@@ -478,32 +477,59 @@ class HistoryTabState extends State<HistoryTab> {
             padding: TabStyle.headerPadding,
             child: Row(
               children: [
-                Container(
-                  padding: TabStyle.tabPadding,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '观看历史',
-                        style: TextStyle(
-                          color: SettingsService.themeColor,
-                          fontSize: TabStyle.tabFontSize,
-                          fontWeight: FontWeight.bold,
-                          height: TabStyle.tabLineHeight,
-                        ),
-                      ),
-                      const SizedBox(height: TabStyle.tabUnderlineGap),
-                      Container(
-                        height: TabStyle.tabUnderlineHeight,
-                        width: TabStyle.tabUnderlineWidth,
+                Focus(
+                  focusNode: _headerFocusNode,
+                  onKeyEvent: (node, event) {
+                    return TvKeyHandler.handleSinglePress(
+                      event,
+                      onLeft: () => widget.sidebarFocusNode?.requestFocus(),
+                      onSelect: () => refresh(),
+                      blockUp: true,
+                      blockRight: true,
+                    );
+                  },
+                  child: Builder(
+                    builder: (ctx) {
+                      final f = Focus.of(ctx).hasFocus;
+                      return Container(
+                        padding: TabStyle.tabPadding,
                         decoration: BoxDecoration(
-                          color: SettingsService.themeColor,
-                          borderRadius: BorderRadius.circular(
-                            TabStyle.tabUnderlineRadius,
-                          ),
+                          color: f
+                              ? SettingsService.themeColor
+                                  .withValues(alpha: AppColors.focusAlpha)
+                              : Colors.transparent,
+                          borderRadius:
+                              BorderRadius.circular(TabStyle.tabBorderRadius),
                         ),
-                      ),
-                    ],
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '观看历史',
+                              style: TextStyle(
+                                color: f
+                                    ? AppColors.primaryText
+                                    : SettingsService.themeColor,
+                                fontSize: TabStyle.tabFontSize,
+                                fontWeight: FontWeight.bold,
+                                height: TabStyle.tabLineHeight,
+                              ),
+                            ),
+                            const SizedBox(height: TabStyle.tabUnderlineGap),
+                            Container(
+                              height: TabStyle.tabUnderlineHeight,
+                              width: TabStyle.tabUnderlineWidth,
+                              decoration: BoxDecoration(
+                                color: SettingsService.themeColor,
+                                borderRadius: BorderRadius.circular(
+                                  TabStyle.tabUnderlineRadius,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
                 ),
               ],

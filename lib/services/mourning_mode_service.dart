@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/env.dart';
+import '../utils/server_time.dart';
 
 class MourningPeriod {
   final DateTime? startAt;
@@ -235,6 +236,7 @@ class MourningModeService {
         headers: const {'Accept': 'application/json'},
       ).timeout(_requestTimeout);
       if (response.statusCode != 200) return null;
+      ServerTime.updateFromHeader(response.headers['date']);
 
       final decoded = jsonDecode(response.body);
       if (decoded is! Map<String, dynamic>) return null;

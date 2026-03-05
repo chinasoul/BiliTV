@@ -1,3 +1,5 @@
+import '../utils/server_time.dart';
+
 /// 图文动态数据模型
 class DynamicDraw {
   final String id;
@@ -34,7 +36,7 @@ class DynamicDraw {
   String get pubdateFormatted {
     if (pubTs == 0) return '';
     final date = DateTime.fromMillisecondsSinceEpoch(pubTs * 1000);
-    final now = DateTime.now();
+    final now = ServerTime.now;
     final diff = now.difference(date);
     if (diff.inDays > 365) return '${diff.inDays ~/ 365}年前';
     if (diff.inDays > 30) return '${diff.inDays ~/ 30}月前';
@@ -115,7 +117,7 @@ class DynamicArticle {
   String get pubdateFormatted {
     if (pubTs == 0) return '';
     final date = DateTime.fromMillisecondsSinceEpoch(pubTs * 1000);
-    final now = DateTime.now();
+    final now = ServerTime.now;
     final diff = now.difference(date);
     if (diff.inDays > 365) return '${diff.inDays ~/ 365}年前';
     if (diff.inDays > 30) return '${diff.inDays ~/ 30}月前';

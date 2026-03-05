@@ -6,6 +6,7 @@ import '../auth_service.dart';
 import '../../models/dynamic_item.dart';
 import '../../models/favorite_folder.dart';
 import '../../models/video.dart';
+import '../../utils/server_time.dart';
 
 /// 视频列表和搜索相关 API
 class VideoApi {
@@ -19,6 +20,7 @@ class VideoApi {
       final response = await http.get(uri, headers: BaseApi.getHeaders());
 
       if (response.statusCode == 200) {
+        ServerTime.updateFromHeader(response.headers['date']);
         final json = jsonDecode(response.body);
         if (json['code'] == 0 && json['data'] != null) {
           final list = json['data']['list'] as List? ?? [];
@@ -131,6 +133,7 @@ class VideoApi {
       );
 
       if (response.statusCode == 200) {
+        ServerTime.updateFromHeader(response.headers['date']);
         final json = jsonDecode(response.body);
         if (json['code'] == 0 && json['data'] != null) {
           final listData = json['data']['list'] as List? ?? [];

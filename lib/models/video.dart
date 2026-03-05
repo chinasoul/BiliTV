@@ -1,3 +1,5 @@
+import '../utils/server_time.dart';
+
 /// 视频数据模型
 class Video {
   final String bvid;
@@ -209,7 +211,7 @@ class Video {
   String get pubdateFormatted {
     if (pubdate == 0) return '';
     final date = DateTime.fromMillisecondsSinceEpoch(pubdate * 1000);
-    final now = DateTime.now();
+    final now = ServerTime.now;
     final diff = now.difference(date);
 
     if (diff.inDays > 365) {
@@ -226,25 +228,24 @@ class Video {
     return '刚刚';
   }
 
-  /// 格式化最后观看时间
+  /// 格式化最后观看时间（仿 B站 web 端风格）
   String get viewAtFormatted {
     if (viewAt == 0) return '';
     final date = DateTime.fromMillisecondsSinceEpoch(viewAt * 1000);
-    final now = DateTime.now();
-    final diff = now.difference(date);
+    final now = ServerTime.now;
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    final dateDay = DateTime(date.year, date.month, date.day);
+    final time = '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
 
-    if (diff.inDays > 365) {
-      return '${diff.inDays ~/ 365}年前看过';
-    } else if (diff.inDays > 30) {
-      return '${diff.inDays ~/ 30}月前看过';
-    } else if (diff.inDays > 0) {
-      return '${diff.inDays}天前看过';
-    } else if (diff.inHours > 0) {
-      return '${diff.inHours}小时前看过';
-    } else if (diff.inMinutes > 0) {
-      return '${diff.inMinutes}分钟前看过';
+    if (dateDay == today) {
+      return '今天 $time';
+    } else if (dateDay == yesterday) {
+      return '昨天 $time';
+    } else if (date.year == now.year) {
+      return '${date.month}月${date.day}日';
     }
-    return '刚刚看过';
+    return '${date.year}年${date.month}月${date.day}日';
   }
 
   /// 格式化时长

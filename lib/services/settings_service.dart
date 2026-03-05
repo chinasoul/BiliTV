@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:bili_tv_app/utils/toast_utils.dart';
+import 'package:bili_tv_app/utils/server_time.dart';
 
 /// 视频编解码器枚举
 enum VideoCodec {
@@ -129,6 +130,7 @@ class SettingsService {
     _fontScaleNotifier.value = fontScale;
     _themeModeNotifier.value = themeMode;
     _mouringEnabledNotifier.value = mouringEnabled;
+    ServerTime.load(_prefs!);
     // 初始化完成后通知监听者
     onShowMemoryInfoChanged?.call();
   }
@@ -1031,7 +1033,7 @@ class SettingsService {
   /// 设置指定分类的上次刷新时间戳
   static Future<void> setLastCategoryRefreshTime(String categoryName) async {
     await init();
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final timestamp = ServerTime.now.millisecondsSinceEpoch;
     if (categoryName == 'recommend') {
       await _prefs!.setInt(_lastHomeRefreshTimeKey, timestamp);
     } else {
@@ -1057,7 +1059,7 @@ class SettingsService {
     await _prefs!.setString(_cachedHomeVideosKey, json);
     await _prefs!.setInt(
       _lastHomeRefreshTimeKey,
-      DateTime.now().millisecondsSinceEpoch,
+      ServerTime.now.millisecondsSinceEpoch,
     );
   }
 
@@ -1095,7 +1097,7 @@ class SettingsService {
   /// 通用：格式化毫秒时间戳为 "更新于X前" 字符串
   static String formatTimestamp(int timestampMs) {
     if (timestampMs == 0) return '';
-    final diff = DateTime.now().difference(
+    final diff = ServerTime.now.difference(
       DateTime.fromMillisecondsSinceEpoch(timestampMs),
     );
     if (diff.inDays > 0) return '更新于${diff.inDays}天前';
@@ -1126,7 +1128,7 @@ class SettingsService {
     await _prefs!.setString(_cachedFollowingKey, json);
     await _prefs!.setInt(
       _lastFollowingRefreshTimeKey,
-      DateTime.now().millisecondsSinceEpoch,
+      ServerTime.now.millisecondsSinceEpoch,
     );
   }
 
@@ -1168,7 +1170,7 @@ class SettingsService {
     await _prefs!.setString(_cachedDynamicKey, json);
     await _prefs!.setInt(
       _lastDynamicRefreshTimeKey,
-      DateTime.now().millisecondsSinceEpoch,
+      ServerTime.now.millisecondsSinceEpoch,
     );
   }
 
@@ -1186,7 +1188,7 @@ class SettingsService {
     await _prefs!.setString(_cachedDynamicDrawKey, json);
     await _prefs!.setInt(
       _lastDynamicDrawRefreshTimeKey,
-      DateTime.now().millisecondsSinceEpoch,
+      ServerTime.now.millisecondsSinceEpoch,
     );
   }
 
@@ -1205,7 +1207,7 @@ class SettingsService {
     await _prefs!.setString(_cachedDynamicArticleKey, json);
     await _prefs!.setInt(
       _lastDynamicArticleRefreshTimeKey,
-      DateTime.now().millisecondsSinceEpoch,
+      ServerTime.now.millisecondsSinceEpoch,
     );
   }
 
@@ -1236,7 +1238,7 @@ class SettingsService {
     await _prefs!.setString(_cachedHistoryKey, json);
     await _prefs!.setInt(
       _lastHistoryRefreshTimeKey,
-      DateTime.now().millisecondsSinceEpoch,
+      ServerTime.now.millisecondsSinceEpoch,
     );
   }
 

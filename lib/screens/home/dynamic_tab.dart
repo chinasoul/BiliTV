@@ -812,11 +812,6 @@ class DynamicTabState extends State<DynamicTab> {
                   onMoveRight: index == 2
                       ? () => _tabFocusNodes[0].requestFocus()
                       : null,
-                  onMoveDown: () {
-                    if (_currentItemCount > 0) {
-                      _getCardFocusNode(0).requestFocus();
-                    }
-                  },
                 );
               }),
             ),
@@ -1148,7 +1143,6 @@ class _DynamicTabLabel extends StatelessWidget {
   final VoidCallback onConfirm;
   final VoidCallback? onMoveLeft;
   final VoidCallback? onMoveRight;
-  final VoidCallback? onMoveDown;
 
   const _DynamicTabLabel({
     required this.label,
@@ -1159,7 +1153,6 @@ class _DynamicTabLabel extends StatelessWidget {
     required this.onConfirm,
     this.onMoveLeft,
     this.onMoveRight,
-    this.onMoveDown,
   });
 
   @override
@@ -1174,8 +1167,8 @@ class _DynamicTabLabel extends StatelessWidget {
             event,
             onLeft: onMoveLeft,
             onRight: onMoveRight,
-            onDown: onMoveDown,
             onSelect: onConfirm,
+            blockUp: true,
           );
         },
         child: Builder(

@@ -1151,7 +1151,7 @@ mixin PlayerActionMixin on PlayerStateMixin {
         ToastUtils.show(
           context,
           '${action.reason} (${skippedSec}s)',
-          duration: const Duration(milliseconds: 2000),
+          duration: const Duration(milliseconds: 3000),
         );
         // 跳过也可能需要清除之前的按钮
         newAction = null;

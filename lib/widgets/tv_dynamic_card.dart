@@ -10,6 +10,7 @@ import '../config/app_style.dart';
 
 /// 图文动态卡片 — 网格布局，基于 BaseTvCard
 class TvDynamicDrawCard extends StatelessWidget {
+  static const double _titleLineHeight = 1.4;
   final DynamicDraw item;
   final VoidCallback onTap;
   final VoidCallback onFocus;
@@ -46,6 +47,7 @@ class TvDynamicDrawCard extends StatelessWidget {
       color: AppColors.primaryText,
       fontSize: AppFonts.sizeMD,
       fontWeight: FontWeight.bold,
+      height: _titleLineHeight,
     );
     final mode = SettingsService.focusedTitleDisplayMode;
     switch (mode) {
@@ -156,16 +158,19 @@ class TvDynamicDrawCard extends StatelessWidget {
         ],
       ),
       infoContentBuilder: (context, isFocused) {
+        final isNormalMode = SettingsService.focusedTitleDisplayMode ==
+            FocusedTitleDisplayMode.normal;
+        final maxLines = isNormalMode ? 2 : 1;
+        final scaledFontSize =
+            MediaQuery.textScalerOf(context).scale(AppFonts.sizeMD);
+        final titleAreaHeight =
+            (scaledFontSize * _titleLineHeight * maxLines).ceilToDouble();
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight:
-                    SettingsService.focusedTitleDisplayMode == FocusedTitleDisplayMode.normal
-                    ? 40
-                    : 20,
-              ),
+            SizedBox(
+              height: titleAreaHeight,
               child: isFocused
                   ? _buildFocusedTitle()
                   : Text(
@@ -174,11 +179,9 @@ class TvDynamicDrawCard extends StatelessWidget {
                         color: AppColors.secondaryText,
                         fontSize: AppFonts.sizeMD,
                         fontWeight: AppFonts.semibold,
+                        height: _titleLineHeight,
                       ),
-                      maxLines: SettingsService.focusedTitleDisplayMode ==
-                              FocusedTitleDisplayMode.normal
-                          ? 2
-                          : 1,
+                      maxLines: maxLines,
                       overflow: TextOverflow.ellipsis,
                     ),
             ),

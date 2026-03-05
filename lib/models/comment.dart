@@ -1,3 +1,5 @@
+import '../utils/server_time.dart';
+
 /// 评论数据模型
 class Comment {
   final int rpid; // 评论 ID
@@ -59,7 +61,7 @@ class Comment {
   /// 格式化时间
   String get timeText {
     final dt = DateTime.fromMillisecondsSinceEpoch(ctime * 1000);
-    final now = DateTime.now();
+    final now = ServerTime.now;
     final diff = now.difference(dt);
 
     if (diff.inMinutes < 1) return '刚刚';
