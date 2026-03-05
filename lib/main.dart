@@ -103,13 +103,18 @@ class BtApp extends StatelessWidget {
                 );
                 return ValueListenableBuilder<bool>(
                   valueListenable: MourningModeService.enabledListenable,
-                  builder: (context, enabled, _) {
-                    if (!enabled) return root;
-                    return ColorFiltered(
-                      colorFilter: ColorFilter.matrix(
-                        MourningModeService.grayscaleMatrix,
-                      ),
-                      child: root,
+                  builder: (context, remoteEnabled, _) {
+                    return ValueListenableBuilder<bool>(
+                      valueListenable: SettingsService.mouringEnabledListenable,
+                      builder: (context, localEnabled, _) {
+                        if (!remoteEnabled || !localEnabled) return root;
+                        return ColorFiltered(
+                          colorFilter: ColorFilter.matrix(
+                            MourningModeService.grayscaleMatrix,
+                          ),
+                          child: root,
+                        );
+                      },
                     );
                   },
                 );

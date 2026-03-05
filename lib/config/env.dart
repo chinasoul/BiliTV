@@ -20,9 +20,7 @@ class Env {
   /// 哀悼模式远程配置 URL（按顺序回退）。
   /// 当前建议顺序：GitHub Raw -> Gitee Raw -> 其他备用源（OSS/COS/CDN）。
   static const List<String> mourningModeConfigUrls = [
-    // 示例：
-    // 'https://raw.githubusercontent.com/your-org/your-repo/main/configs/mourning-config.json',
-    // 'https://gitee.com/your-org/your-repo/raw/main/configs/mourning-config.json',
-    // 'https://your-cdn.example.com/configs/mourning-config.json',
+    'https://raw.githubusercontent.com/chinasoul/BT/main/configs/mourning-config.json',
+    'https://gitee.com/chinasoul/BT/raw/main/configs/mourning-config.json',
   ];
 }

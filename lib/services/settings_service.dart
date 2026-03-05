@@ -118,6 +118,7 @@ class SettingsService {
   static final ValueNotifier<ThemeMode> _themeModeNotifier = ValueNotifier(
     ThemeMode.dark,
   );
+  static final ValueNotifier<bool> _mouringEnabledNotifier = ValueNotifier(true);
 
   /// Android SDK 版本号（缓存），非 Android 平台为 99
   static int androidSdkInt = 99;
@@ -127,6 +128,7 @@ class SettingsService {
     _prefs ??= await SharedPreferences.getInstance();
     _fontScaleNotifier.value = fontScale;
     _themeModeNotifier.value = themeMode;
+    _mouringEnabledNotifier.value = mouringEnabled;
     // 初始化完成后通知监听者
     onShowMemoryInfoChanged?.call();
   }
@@ -687,6 +689,7 @@ class SettingsService {
 
   static const List<String> _developerPreferenceKeys = [
     _developerModeKey,
+    _mouringEnabledKey,
     _showMemoryInfoKey,
     _showAppCpuKey,
     _showCoreFreqKey,
@@ -709,6 +712,7 @@ class SettingsService {
       await _prefs!.remove(key);
     }
     _fontScaleNotifier.value = fontScale;
+    _mouringEnabledNotifier.value = mouringEnabled;
   }
 
   /// 重置「播放设置」页偏好
@@ -1208,6 +1212,8 @@ class SettingsService {
   static ValueNotifier<double> get fontScaleListenable => _fontScaleNotifier;
 
   static ValueNotifier<ThemeMode> get themeModeListenable => _themeModeNotifier;
+  static ValueNotifier<bool> get mouringEnabledListenable =>
+      _mouringEnabledNotifier;
 
   /// 设置字体缩放比例
   static Future<void> setFontScale(double value) async {
@@ -1423,6 +1429,7 @@ class SettingsService {
 
   // ==================== 开发者选项 ====================
   static const String _developerModeKey = 'developer_mode';
+  static const String _mouringEnabledKey = 'mouring_enabled';
   static const String _showAppCpuKey = 'show_app_cpu';
   static const String _showCoreFreqKey = 'show_core_freq';
   static const String _marqueeFpsKey = 'marquee_fps';
@@ -1456,6 +1463,15 @@ class SettingsService {
     await init();
     await _prefs!.setBool(_developerModeKey, value);
     onDeveloperModeChanged?.call();
+  }
+
+  /// 是否允许哀悼模式灰度生效（默认开启）
+  static bool get mouringEnabled => _prefs?.getBool(_mouringEnabledKey) ?? true;
+
+  static Future<void> setMouringEnabled(bool value) async {
+    await init();
+    await _prefs!.setBool(_mouringEnabledKey, value);
+    _mouringEnabledNotifier.value = value;
   }
 
   /// 是否在 overlay 上显示 APP 进程占用率

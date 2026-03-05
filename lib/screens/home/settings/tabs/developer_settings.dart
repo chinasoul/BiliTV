@@ -36,6 +36,7 @@ class _DeveloperSettingsState extends State<DeveloperSettings> {
   double _panelBackgroundAlpha = 0.95;
   int _popupBackgroundColorValue = 0xFF2A2A2A;
   double _popupBackgroundAlpha = 0.95;
+  bool _mouringEnabled = true;
 
   static const List<double> _nativeDanmakuStrokeWidthOptions = [
     1.2,
@@ -143,6 +144,7 @@ class _DeveloperSettingsState extends State<DeveloperSettings> {
   final FocusNode _panelBackgroundAlphaFocusNode = FocusNode();
   final FocusNode _popupBackgroundColorFocusNode = FocusNode();
   final FocusNode _popupBackgroundAlphaFocusNode = FocusNode();
+  final FocusNode _mouringToggleFocusNode = FocusNode();
   final FocusNode _resetFocusNode = FocusNode();
 
   T _closestValue<T extends num>(List<T> options, T value) {
@@ -242,6 +244,7 @@ class _DeveloperSettingsState extends State<DeveloperSettings> {
       _commentBackgroundAlphaOptions,
       SettingsService.popupBackgroundAlpha,
     );
+    _mouringEnabled = SettingsService.mouringEnabled;
   }
 
   @override
@@ -261,6 +264,7 @@ class _DeveloperSettingsState extends State<DeveloperSettings> {
     _panelBackgroundAlphaFocusNode.dispose();
     _popupBackgroundColorFocusNode.dispose();
     _popupBackgroundAlphaFocusNode.dispose();
+    _mouringToggleFocusNode.dispose();
     _resetFocusNode.dispose();
     super.dispose();
   }
@@ -589,12 +593,25 @@ class _DeveloperSettingsState extends State<DeveloperSettings> {
           focusNode: _popupBackgroundAlphaFocusNode,
           isLast: false,
           onMoveUp: () => _popupBackgroundColorFocusNode.requestFocus(),
-          onMoveDown: () => _resetFocusNode.requestFocus(),
+          onMoveDown: () => _mouringToggleFocusNode.requestFocus(),
           sidebarFocusNode: widget.sidebarFocusNode,
           onChanged: (value) async {
             if (value == null) return;
             setState(() => _popupBackgroundAlpha = value);
             await SettingsService.setCommentPopupBackgroundAlpha(value);
+          },
+        ),
+        const SizedBox(height: AppSpacing.settingItemGap),
+        SettingToggleRow(
+          label: 'Mouring',
+          value: _mouringEnabled,
+          focusNode: _mouringToggleFocusNode,
+          onMoveUp: () => _popupBackgroundAlphaFocusNode.requestFocus(),
+          onMoveDown: () => _resetFocusNode.requestFocus(),
+          sidebarFocusNode: widget.sidebarFocusNode,
+          onChanged: (v) {
+            setState(() => _mouringEnabled = v);
+            SettingsService.setMouringEnabled(v);
           },
         ),
         const SizedBox(height: AppSpacing.settingItemGap),

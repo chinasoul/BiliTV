@@ -444,7 +444,7 @@ class VideoApi {
 
           for (final item in items) {
             try {
-              if (item['visible'] != true) continue;
+              if (item['visible'] == false) continue;
 
               final modules = item['modules'] as Map<String, dynamic>? ?? {};
               final dynamicModule =
@@ -469,19 +469,19 @@ class VideoApi {
                   pic: BaseApi.fixPicUrl(archive['cover'] ?? ''),
                   ownerName: author['name'] ?? '',
                   ownerFace: BaseApi.fixPicUrl(author['face'] ?? ''),
-                  ownerMid: author['mid'] ?? 0,
+                  ownerMid: BaseApi.toInt(author['mid'] ?? 0),
                   view: BaseApi.toInt(viewValue),
                   danmaku: BaseApi.toInt(danmakuValue),
                   duration: BaseApi.parseDuration(
                     archive['duration_text'] ?? '',
                   ),
-                  pubdate: author['pub_ts'] ?? 0,
+                  pubdate: BaseApi.toInt(author['pub_ts'] ?? 0),
                   badge:
                       (archive['badge'] as Map<String, dynamic>?)?['text'] ??
                       '',
                 ),
               );
-            } catch (e) {
+            } catch (_) {
               continue;
             }
           }
@@ -493,9 +493,7 @@ class VideoApi {
           );
         }
       }
-    } catch (e) {
-      // 忽略错误
-    }
+    } catch (_) {}
     return DynamicFeed(videos: [], offset: '', hasMore: false);
   }
 
