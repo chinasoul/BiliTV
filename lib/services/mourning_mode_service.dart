@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -159,8 +161,10 @@ class MourningModeService {
   static const String _cacheSourceUrlKey = 'mourning_mode_cached_source_url';
 
   static const Duration _requestTimeout = Duration(seconds: 3);
-  static const Duration _fetchInterval = Duration(minutes: 30);
+  static const Duration _fetchInterval = Duration(minutes: 10);
   static const Duration _statusEvalInterval = Duration(minutes: 1);
+  static const int _maxFetchJitterSeconds = 10;
+  static final Random _random = Random();
 
   static final ValueNotifier<bool> _enabledNotifier = ValueNotifier(false);
   static ValueListenable<bool> get enabledListenable => _enabledNotifier;
@@ -171,10 +175,12 @@ class MourningModeService {
   static Timer? _statusEvalTimer;
   static Timer? _remoteFetchTimer;
   static bool _refreshing = false;
+  static bool _lifecycleRegistered = false;
 
   static Future<void> init() async {
     _prefs ??= await SharedPreferences.getInstance();
     _restoreCachedConfig();
+    _registerLifecycleObserver();
     _startTimers();
     unawaited(refreshRemoteConfig(force: true));
   }
@@ -302,7 +308,7 @@ class MourningModeService {
 
   static void _startTimers() {
     _statusEvalTimer?.cancel();
-    _remoteFetchTimer?.cancel();
+    _stopRemoteFetchTimer();
 
     _statusEvalTimer = Timer.periodic(_statusEvalInterval, (_) {
       final cfg = _config;
@@ -310,9 +316,49 @@ class MourningModeService {
       _setEnabled(cfg.isActiveAt(DateTime.now()));
     });
 
+    _startRemoteFetchTimer();
+  }
+
+  static void _startRemoteFetchTimer() {
+    _remoteFetchTimer?.cancel();
     _remoteFetchTimer = Timer.periodic(_fetchInterval, (_) {
-      unawaited(refreshRemoteConfig());
+      unawaited(_refreshRemoteConfigWithJitter());
     });
+  }
+
+  static Future<void> _refreshRemoteConfigWithJitter() async {
+    // 为周期轮询增加轻微随机抖动，降低设备在同一秒请求远端配置的概率。
+    final delaySeconds = _random.nextInt(_maxFetchJitterSeconds + 1);
+    if (delaySeconds > 0) {
+      await Future<void>.delayed(Duration(seconds: delaySeconds));
+    }
+    await refreshRemoteConfig();
+  }
+
+  static void _stopRemoteFetchTimer() {
+    _remoteFetchTimer?.cancel();
+    _remoteFetchTimer = null;
+  }
+
+  static void _registerLifecycleObserver() {
+    if (_lifecycleRegistered) return;
+    WidgetsBinding.instance.addObserver(_MourningLifecycleObserver());
+    _lifecycleRegistered = true;
+  }
+
+  static void onAppLifecycleChanged(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.resumed:
+        _startRemoteFetchTimer();
+        unawaited(refreshRemoteConfig(force: true));
+        break;
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+      case AppLifecycleState.hidden:
+        _stopRemoteFetchTimer();
+        break;
+    }
   }
 
   static void _setEnabled(bool enabled) {
@@ -326,4 +372,11 @@ class MourningModeService {
     0.2126, 0.7152, 0.0722, 0, 0,
     0, 0, 0, 1, 0,
   ];
+}
+
+class _MourningLifecycleObserver with WidgetsBindingObserver {
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    MourningModeService.onAppLifecycleChanged(state);
+  }
 }
