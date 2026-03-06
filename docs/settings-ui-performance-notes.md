@@ -289,7 +289,57 @@
 - 已完成：标签页切换策略与省内存模式对齐
 - 已完成：播放器侧边面板 & UP主弹窗 & 连播预览图片解码优化（覆盖 +150MB / +20MB 场景）
 
-## 8. 新增设置语义与默认值调整（2026-02）
+## 8. 首次启动性能自动配置
+
+### 8.1 背景
+
+"标签切换策略"和"播放性能模式"默认值均为最高档（流畅优先 / 高），这对低端 TV 设备不友好。用户往往不知道需要手动调低档位。
+
+### 8.2 适用场景
+
+仅在 **全新安装**（首次安装 / 卸载后重装）时自动配置，覆盖安装不触发。
+
+| 场景 | 是否自动配置 | 理由 |
+|------|:----------:|------|
+| 全新安装 / 卸载后重装 | 是 | 用户对 app 零认知，低端设备默认高档可能首次体验就卡顿 |
+| 覆盖安装（从未改过设置） | 否 | 用户已适应当前行为，自动降档反而困惑 |
+| 覆盖安装（改过设置） | 否 | 用户已有明确偏好，不应干预 |
+| 二次启动 | 否 | `performance_auto_configured` 标记为已完成 |
+
+### 8.3 RAM 分级
+
+从 `DeviceInfoService.getDeviceInfo()` 获取 `totalRamMb`，按以下规则设置两个选项：
+
+| 标称 RAM | 判定阈值（`totalRamMb`） | 播放性能模式 | 标签切换策略 | 档位标签 |
+|---------|----------------------|------------|------------|---------|
+| >= 2 GB | >= 1800 | 高 | 流畅优先 | 高性能 |
+| >= 1 GB | >= 900  | 中 | 平衡 | 均衡 |
+| < 1 GB  | < 900   | 低 | 省内存 | 省内存 |
+
+> 注：Android `ActivityManager.MemoryInfo.totalMem` 返回的是内核可见内存，比标称值小（硬件/固件预留），阈值按常见差异留余量。
+
+### 8.4 执行时机与检测逻辑
+
+- 入口：`SettingsService.autoConfigurePerformance(totalRamMb:)`
+- 在 `SplashScreen._initializeApp()` 中，获取设备信息后立即调用
+- 通过 `performance_auto_configured`（bool）标记是否已执行，仅首次为 `false` 时生效
+- 全新安装检测：检查 `_prefs.getKeys()` 中是否有任何非 `performance_auto_configured` 的 key。全新安装在 splash 阶段 `init()` / `ServerTime.load()` 均只读不写，prefs 为空；覆盖安装 / 存量用户必有缓存、时间戳等 key
+- RAM 信息不可用（`totalRamMb <= 0`）时跳过
+
+### 8.5 副作用与联动
+
+- 自动配置后，`SplashScreen` 重新应用 `imageCacheMaxSize` / `imageCacheMaxBytes` 到 `PaintingBinding`，确保 `main.dart` 中按旧默认值设置的缓存上限被覆盖
+- 配置完成后，提示文案传递给 `HomeScreen`，在首帧渲染后 500ms 展示 Toast（时长 3s），示例：`已根据设备内存(1.5GB)自动设为「均衡」模式，可在设置中调整`
+
+### 8.6 涉及文件
+
+| 文件 | 改动 |
+|------|------|
+| `lib/services/settings_service.dart` | 新增 `_performanceAutoConfiguredKey`、`performanceAutoConfigured`、`autoConfigurePerformance()` |
+| `lib/screens/splash_screen.dart` | 获取 `totalRamMb` 并调用自动配置，重新应用 image cache |
+| `lib/screens/home_screen.dart` | 新增 `autoConfigMessage` 参数，首帧后 Toast 提示 |
+
+## 9. 新增设置语义与默认值调整（2026-02）
 
 本节记录近期对播放/界面/弹幕设置的语义升级和默认值调整，避免后续误改回旧行为。
 

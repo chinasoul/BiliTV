@@ -1,40 +1,37 @@
-## 1) 更新 / 修改说明
+# BT-哔哩哔哩Tv客户端
 
-- 首页与导航  
-  - 新增「我的内容」页（关注 UP 主 / 收藏 / 稍后再看）
-  - 修改遥控器按键逻辑（仍有问题，后续改进）
 
-- 播放器与稳定性
-  - 播放器控制面板加入评论等功能
-  - 全屏进度条移除圆点，加入缓存进度显示
-  - 弹幕占屏比增加 `1/8`, 视频展示列数可设置4/5/6
-  - 视频数据监测面板改为纯文字实时数据（曲线功能后续加）
+**参考项目**：  
+[Hyper-Beast/BiliTV](https://github.com/Hyper-Beast/BiliTV)（MIT）  
+[jay3-yy/BiliPai](https://github.com/jay3-yy/BiliPai)（GPL-3.0）
 
-- 系统与设置  
-  - 界面/弹幕/播放等设置增强
-  - 彩蛋（开发者模式）
-  - 支持鼠标和键盘操作
- 
-## **重要**  
-弹幕卡顿可能跟机器有关，需要在设置-弹幕设置-原生弹幕渲染优化里实测  
-
-## 2) 截图预览
-
-![设置页](assets/screenshots/Screenshot_1771513851.png)
-![播放页](assets/screenshots/Screenshot_1771513689.png)
-![我的内容页](assets/screenshots/Screenshot_1771144188.png)
-
-## 3) License
-
-本项目采用 **GPL-3.0** 协议发布。
-
-### Upstream Notice
-- 本项目开发参考/基于：[`Hyper-Beast/BiliTV`](https://github.com/Hyper-Beast/BiliTV)（仓库标注 MIT）
-- 其上游来源：[`jay3-yy/BiliPai`](https://github.com/jay3-yy/BiliPai)（GPL-3.0）
-
+**License**：  
 鉴于上游许可证链路，本项目按 GPL-3.0 进行分发与声明。  
-如有许可证归属异议，请通过 Issue 联系维护者处理。
 
-说明：
-- 视频内容、商标及相关素材版权归对应权利方所有；
-- 本项目仅用于学习与技术交流，请勿用于侵权或非法用途。
+
+**最低支持**：  
+Android 5.0（API 21）
+
+## 重要（低内存设备注意！！！）
+
+**标签切换策略/播放性能模式**  
+设置 → 界面/播放设置 按需设置，首次安装会根据设备 RAM 自动配置
+
+## 功能
+- **动态**：视频投稿 / 图文 / 专栏，独立缓存
+- **我的内容**：关注 UP 主、收藏、稍后再看
+- **播放前详情页**：可选显示视频详情、评论、分享 QR
+- **播放器**：播放面板选项可调节
+- **开发者模式**：更多可控选项
+- **交互**：支持键鼠
+
+
+## 截图
+
+<img src="assets/screenshots/Screenshot_1771513851.png" width="560" alt="设置页" />
+<img src="assets/screenshots/Screenshot_1771513689.png" width="560" alt="播放页" />
+<img src="assets/screenshots/Screenshot_1771144188.png" width="560" alt="我的内容页" />
+
+
+
+

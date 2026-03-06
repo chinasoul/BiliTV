@@ -1384,6 +1384,64 @@ class SettingsService {
     await _prefs!.setInt(_playbackPerformanceModeKey, value.index);
   }
 
+  // ==================== 首次启动性能自动配置 ====================
+  static const String _performanceAutoConfiguredKey =
+      'performance_auto_configured';
+
+  static bool get performanceAutoConfigured {
+    return _prefs?.getBool(_performanceAutoConfiguredKey) ?? false;
+  }
+
+  /// 首次启动时根据设备 RAM 自动设置播放性能模式与标签切换策略。
+  /// 返回提示文案（首次配置时），或 null（已配置过 / 存量用户 / 信息不可用）。
+  static Future<String?> autoConfigurePerformance({
+    required int totalRamMb,
+  }) async {
+    await init();
+    if (performanceAutoConfigured) return null;
+
+    // 非全新安装（覆盖安装 / 存量用户）：prefs 中已有任何 app 数据即跳过。
+    // 全新安装时 splash 阶段 init()/ServerTime.load() 均只读不写，prefs 为空。
+    final existingKeys = _prefs!.getKeys();
+    if (existingKeys.any((k) => k != _performanceAutoConfiguredKey)) {
+      await _prefs!.setBool(_performanceAutoConfiguredKey, true);
+      return null;
+    }
+
+    // RAM 信息不可用时跳过
+    if (totalRamMb <= 0) {
+      await _prefs!.setBool(_performanceAutoConfiguredKey, true);
+      return null;
+    }
+
+    PlaybackPerformanceMode perfMode;
+    TabSwitchPolicy tabPolicy;
+    String tierLabel;
+
+    // 阈值留余量：标称 2GB 设备实际 totalMem 约 1800~1950MB，
+    // 标称 1GB 约 900~950MB，使用 1800/900 避免误判。
+    if (totalRamMb >= 1800) {
+      perfMode = PlaybackPerformanceMode.high;
+      tabPolicy = TabSwitchPolicy.smooth;
+      tierLabel = '高性能';
+    } else if (totalRamMb >= 900) {
+      perfMode = PlaybackPerformanceMode.medium;
+      tabPolicy = TabSwitchPolicy.balanced;
+      tierLabel = '均衡';
+    } else {
+      perfMode = PlaybackPerformanceMode.low;
+      tabPolicy = TabSwitchPolicy.memorySaver;
+      tierLabel = '省内存';
+    }
+
+    await setPlaybackPerformanceMode(perfMode);
+    await setTabSwitchPolicy(tabPolicy);
+    await _prefs!.setBool(_performanceAutoConfiguredKey, true);
+
+    final ramGb = (totalRamMb / 1024).toStringAsFixed(1);
+    return '已根据设备内存(${ramGb}GB)自动设为「$tierLabel」模式，可在设置中调整';
+  }
+
   /// 弹幕同步间隔
   static Duration get danmakuSyncInterval {
     switch (playbackPerformanceMode) {

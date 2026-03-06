@@ -27,13 +27,24 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> _initializeApp() async {
     List<Video> preloadedVideos = [];
+    String? autoConfigMessage;
     // 初始化基础服务
     await Future.wait([
       AuthService.init(),
       SettingsService.init(),
       UpdateService.init(),
-      DeviceInfoService.getDeviceInfo().then((info) {
+      DeviceInfoService.getDeviceInfo().then((info) async {
         SettingsService.androidSdkInt = info['sdkInt'] as int? ?? 99;
+        final totalRamMb = info['totalRamMb'] as int? ?? 0;
+        autoConfigMessage = await SettingsService.autoConfigurePerformance(
+          totalRamMb: totalRamMb,
+        );
+        if (autoConfigMessage != null) {
+          PaintingBinding.instance.imageCache.maximumSize =
+              SettingsService.imageCacheMaxSize;
+          PaintingBinding.instance.imageCache.maximumSizeBytes =
+              SettingsService.imageCacheMaxBytes;
+        }
       }),
     ]);
 
@@ -106,7 +117,10 @@ class _SplashScreenState extends State<SplashScreen> {
         PageRouteBuilder(
           opaque: false,
           pageBuilder: (context, a1, a2) =>
-              HomeScreen(preloadedVideos: preloadedVideos),
+              HomeScreen(
+                preloadedVideos: preloadedVideos,
+                autoConfigMessage: autoConfigMessage,
+              ),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return FadeTransition(opacity: animation, child: child);
           },

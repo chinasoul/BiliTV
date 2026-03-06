@@ -22,8 +22,9 @@ import '../config/app_style.dart';
 /// Tab 顺序: 首页(0)、动态(1)、关注(2)、历史(3)、直播(4)、我(5)、搜索(6)、设置(7)
 class HomeScreen extends StatefulWidget {
   final List<Video>? preloadedVideos;
+  final String? autoConfigMessage;
 
-  const HomeScreen({super.key, this.preloadedVideos});
+  const HomeScreen({super.key, this.preloadedVideos, this.autoConfigMessage});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -92,15 +93,38 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       FocusManager.instance.highlightStrategy =
           FocusHighlightStrategy.alwaysTraditional;
-      // 自动检查更新（根据用户设置的间隔）
-      UpdateService.autoCheckAndNotify(context);
 
       // 如果需要切换到首页的特定分类（如热门），在首次加载完成后执行
       if (_pendingHomeCategory != null && _selectedTabIndex == 0) {
         _switchHomeCategory(_pendingHomeCategory!);
         _pendingHomeCategory = null;
       }
+
+      if (widget.autoConfigMessage != null) {
+        // 首次安装：用独立 OverlayEntry 展示，不走 ToastUtils，避免被刷新等 Toast 覆盖
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) _showAutoConfigBanner(widget.autoConfigMessage!);
+        });
+        Future.delayed(const Duration(milliseconds: 6000), () {
+          if (mounted) UpdateService.autoCheckAndNotify(context);
+        });
+      } else {
+        UpdateService.autoCheckAndNotify(context);
+      }
     });
+  }
+
+  /// 独立 OverlayEntry 展示自动配置提示，不走 ToastUtils，不会被其他 Toast 覆盖
+  void _showAutoConfigBanner(String message) {
+    final overlay = Overlay.of(context);
+    late OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (context) => _AutoConfigBanner(
+        message: message,
+        onDismiss: () => entry.remove(),
+      ),
+    );
+    overlay.insert(entry);
   }
 
   /// 根据启动页面设置获取初始 tab 索引
@@ -512,6 +536,87 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// 首次安装自动配置提示横幅，5 秒后自动淡出，独立于 ToastUtils
+class _AutoConfigBanner extends StatefulWidget {
+  final String message;
+  final VoidCallback onDismiss;
+
+  const _AutoConfigBanner({required this.message, required this.onDismiss});
+
+  @override
+  State<_AutoConfigBanner> createState() => _AutoConfigBannerState();
+}
+
+class _AutoConfigBannerState extends State<_AutoConfigBanner>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final CurvedAnimation _opacity;
+  bool _dismissed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    _opacity = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
+    _controller.forward();
+    Future.delayed(const Duration(milliseconds: 5000), () {
+      if (mounted && !_dismissed) {
+        _dismissed = true;
+        _controller.reverse().then((_) {
+          if (mounted) widget.onDismiss();
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    if (!_dismissed) {
+      _dismissed = true;
+      try { widget.onDismiss(); } catch (_) {}
+    }
+    _opacity.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final sidebarWidth = screenWidth * 0.05;
+    return Positioned(
+      top: 40,
+      left: sidebarWidth,
+      right: 0,
+      child: Center(
+        child: FadeTransition(
+          opacity: _opacity,
+          child: IgnorePointer(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              decoration: BoxDecoration(
+                color: SettingsService.themeColor.withValues(alpha: 0.92),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Text(
+                widget.message,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: AppFonts.sizeMD,
+                  decoration: TextDecoration.none,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
