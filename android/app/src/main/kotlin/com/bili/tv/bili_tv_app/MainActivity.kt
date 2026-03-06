@@ -5,6 +5,7 @@ import android.media.MediaCodecList
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
+import android.view.WindowManager
 import androidx.core.content.FileProvider
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -17,6 +18,7 @@ class MainActivity : FlutterActivity() {
     private val UPDATE_CHANNEL = "com.bili.tv/update"
     private val CODEC_CHANNEL = "com.bili.tv/codec"
     private val DEVICE_INFO_CHANNEL = "com.bili.tv/device_info"
+    private val SCREEN_CHANNEL = "com.bili.tv/screen"
     private val NATIVE_DANMAKU_VIEW_TYPE = "com.bili.tv/native_danmaku_view"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -73,6 +75,25 @@ class MainActivity : FlutterActivity() {
                     } catch (e: Exception) {
                         result.error("DEVICE_INFO_ERROR", e.message, null)
                     }
+                }
+                else -> result.notImplemented()
+            }
+        }
+
+        // 屏幕常亮 Channel — 直接操作 Activity Window，比 wakelock_plus 插件更可靠，
+        // 部分电视盒子的自定义屏保不响应插件的 FLAG_KEEP_SCREEN_ON。
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, SCREEN_CHANNEL).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "setKeepScreenOn" -> {
+                    val on = call.argument<Boolean>("on") ?: false
+                    runOnUiThread {
+                        if (on) {
+                            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                        } else {
+                            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                        }
+                    }
+                    result.success(true)
                 }
                 else -> result.notImplemented()
             }

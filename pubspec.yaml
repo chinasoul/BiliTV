@@ -46,8 +46,6 @@ dependencies:
   package_info_plus: ^9.0.0
   permission_handler: ^12.0.1
 
-  # Keep Screen On (prevent TV standby during playback)
-  wakelock_plus: ^1.2.8
   web_socket_channel: ^3.0.3
   brotli: ^0.6.0
 

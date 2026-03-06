@@ -4,8 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:video_player/video_player.dart';
-import 'package:wakelock_plus/wakelock_plus.dart';
 import '../../config/build_flags.dart';
+import '../../services/screen_service.dart';
 import '../../models/video.dart';
 import '../../services/settings_service.dart';
 import 'widgets/video_layer.dart';
@@ -54,8 +54,7 @@ class _PlayerScreenState extends State<PlayerScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    // 保持屏幕常亮，防止电视待机
-    WakelockPlus.enable();
+    ScreenService.keepScreenOn(true);
     loadSettings();
     initializePlayer();
   }
@@ -81,7 +80,7 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   @override
   void dispose() {
-    WakelockPlus.disable();
+    ScreenService.keepScreenOn(false);
     WidgetsBinding.instance.removeObserver(this);
     hideTimer?.cancel();
     progressReportTimer?.cancel();

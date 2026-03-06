@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
-import 'package:wakelock_plus/wakelock_plus.dart';
+import '../../services/screen_service.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:bili_tv_app/utils/toast_utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -88,7 +88,7 @@ class _LivePlayerScreenState extends State<LivePlayerScreen>
     _realRoomId = widget.roomId; // Default
     // _danmakuController will be set by DanmakuScreen
     WidgetsBinding.instance.addObserver(this);
-    WakelockPlus.enable();
+    ScreenService.keepScreenOn(true);
     // Initialize online count from widget
     final initialOnline = widget.online ?? 0;
     if (initialOnline >= 10000) {
@@ -143,7 +143,7 @@ class _LivePlayerScreenState extends State<LivePlayerScreen>
 
   @override
   void dispose() {
-    WakelockPlus.disable();
+    ScreenService.keepScreenOn(false);
     WidgetsBinding.instance.removeObserver(this);
     // _danmakuController is disposed by its widget usually, or doesn't need disposal
     _danmakuSubscription?.cancel();
