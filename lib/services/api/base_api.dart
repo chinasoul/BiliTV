@@ -110,6 +110,27 @@ class BaseApi {
     }
   }
 
+  /// 带重试的 HTTP GET，应对 DNS 解析抖动等瞬态故障。
+  /// [retries] 最大重试次数（不含首次请求），[delay] 首次重试前等待时长（后续翻倍）。
+  static Future<http.Response> getWithRetry(
+    Uri url, {
+    Map<String, String>? headers,
+    int retries = 1,
+    Duration delay = const Duration(milliseconds: 800),
+  }) async {
+    for (var i = 0; i <= retries; i++) {
+      try {
+        final response = await http.get(url, headers: headers)
+            .timeout(const Duration(seconds: 10));
+        return response;
+      } catch (e) {
+        if (i == retries) rethrow;
+        await Future.delayed(delay * (i + 1));
+      }
+    }
+    throw Exception('unreachable');
+  }
+
   /// 修复图片 URL
   static String fixPicUrl(String url) {
     if (url.startsWith('//')) return 'https:$url';

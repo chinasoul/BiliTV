@@ -16,6 +16,7 @@ import '../widgets/time_display.dart';
 import '../services/auth_service.dart';
 import '../services/update_service.dart';
 import '../services/settings_service.dart';
+import '../services/network_check_service.dart';
 import '../config/app_style.dart';
 
 /// 主页框架
@@ -111,7 +112,44 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       } else {
         UpdateService.autoCheckAndNotify(context);
       }
+
+      _runNetworkCheck();
     });
+  }
+
+  // ── 网络可达性检测 ──────────────────────────────────────
+
+  OverlayEntry? _networkWarningEntry;
+
+  Future<void> _runNetworkCheck() async {
+    final ok = await NetworkCheckService.check();
+    if (ok || !mounted) return;
+
+    _showNetworkWarning();
+
+    NetworkCheckService.startRetrying(onRestored: () {
+      if (!mounted) return;
+      _dismissNetworkWarning();
+      ToastUtils.show(context, '网络已恢复');
+    });
+  }
+
+  void _showNetworkWarning() {
+    _dismissNetworkWarning();
+    final overlay = Overlay.of(context);
+    _networkWarningEntry = OverlayEntry(
+      builder: (context) => _NetworkWarningBanner(
+        onDismiss: _dismissNetworkWarning,
+      ),
+    );
+    overlay.insert(_networkWarningEntry!);
+  }
+
+  void _dismissNetworkWarning() {
+    try {
+      _networkWarningEntry?.remove();
+    } catch (_) {}
+    _networkWarningEntry = null;
   }
 
   /// 独立 OverlayEntry 展示自动配置提示，不走 ToastUtils，不会被其他 Toast 覆盖
@@ -189,6 +227,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    NetworkCheckService.stopRetrying();
+    _dismissNetworkWarning();
     for (var node in _sideBarFocusNodes) {
       node.dispose();
     }
@@ -612,6 +652,101 @@ class _AutoConfigBannerState extends State<_AutoConfigBanner>
                   fontSize: AppFonts.sizeMD,
                   decoration: TextDecoration.none,
                 ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 网络不可达警告横幅
+///
+/// 独立 OverlayEntry，不与 ToastUtils 冲突。
+/// 15 秒后自动淡出；网络恢复时由外部调用 [onDismiss] 移除。
+class _NetworkWarningBanner extends StatefulWidget {
+  final VoidCallback onDismiss;
+
+  const _NetworkWarningBanner({required this.onDismiss});
+
+  @override
+  State<_NetworkWarningBanner> createState() => _NetworkWarningBannerState();
+}
+
+class _NetworkWarningBannerState extends State<_NetworkWarningBanner>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final CurvedAnimation _curve;
+  bool _dismissed = false;
+
+  static const _autoDismissDelay = Duration(seconds: 15);
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    _curve = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
+    _controller.forward();
+
+    Future.delayed(_autoDismissDelay, () {
+      if (mounted && !_dismissed) {
+        _dismissed = true;
+        _controller.reverse().then((_) {
+          if (mounted) widget.onDismiss();
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    if (!_dismissed) {
+      _dismissed = true;
+      try { widget.onDismiss(); } catch (_) {}
+    }
+    _curve.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final sidebarWidth = screenWidth * 0.05;
+    return Positioned(
+      top: 40,
+      left: sidebarWidth,
+      right: 0,
+      child: Center(
+        child: FadeTransition(
+          opacity: _curve,
+          child: IgnorePointer(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xDD8B6914),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.wifi_off, color: Colors.white, size: 18),
+                  const SizedBox(width: 8),
+                  const Flexible(
+                    child: Text(
+                      '无法连接 B 站服务器，请检查网络或 DNS 设置',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: AppFonts.sizeMD,
+                        decoration: TextDecoration.none,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
