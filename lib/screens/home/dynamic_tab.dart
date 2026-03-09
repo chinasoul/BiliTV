@@ -108,6 +108,15 @@ class DynamicTabState extends State<DynamicTab> {
       });
       return;
     }
+    _tabScrollOffsets.remove(_selectedTab);
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    _scrollController = ScrollController(
+      initialScrollOffset: 0,
+      keepScrollOffset: false,
+    );
+    _scrollController.addListener(_onScroll);
+
     setState(() => _updateTimeText = '');
     switch (_selectedTab) {
       case _DynamicSubTab.video:
