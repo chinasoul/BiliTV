@@ -171,6 +171,9 @@ class _DeviceInfoSettingsState extends State<DeviceInfoSettings> {
                 constraints: const BoxConstraints(
                   minHeight: AppSpacing.settingItemMinHeight,
                 ),
+                margin: EdgeInsets.only(
+                  bottom: isLast ? 0 : AppSpacing.settingItemGap,
+                ),
                 padding: const EdgeInsets.symmetric(
                   horizontal: 14,
                   vertical: AppSpacing.settingItemVerticalPadding,
@@ -181,30 +184,34 @@ class _DeviceInfoSettingsState extends State<DeviceInfoSettings> {
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
+                child: Row(
                   children: [
-                    Text(
-                      label,
-                      style: TextStyle(
-                        color: isFocused
-                            ? AppColors.primaryText
-                            : AppColors.secondaryText,
-                        fontSize: AppFonts.sizeMD,
-                        fontWeight: AppFonts.medium,
+                    Expanded(
+                      child: Text(
+                        label,
+                        style: TextStyle(
+                          color: isFocused
+                              ? AppColors.primaryText
+                              : AppColors.secondaryText,
+                          fontSize: AppFonts.sizeMD,
+                          fontWeight: AppFonts.medium,
+                        ),
                       ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Text(
-                        value,
-                        style: TextStyle(
-                          color: AppColors.inactiveText,
-                          fontSize: AppFonts.sizeSM,
+                    const SizedBox(width: 12),
+                    Flexible(
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          value,
+                          textAlign: TextAlign.right,
+                          style: TextStyle(
+                            color: AppColors.secondaryText,
+                            fontSize: AppFonts.sizeSM,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
@@ -235,6 +242,7 @@ class _DeviceInfoSettingsState extends State<DeviceInfoSettings> {
           sidebarFocusNode: widget.sidebarFocusNode,
           onTap: _isLoading ? null : _loadDeviceInfo,
         ),
+        const SizedBox(height: AppSpacing.settingItemGap),
         _buildInfoItem(
           0,
           '系统版本',

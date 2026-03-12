@@ -88,7 +88,9 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
     ).copyWith(
       backgroundColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.focused)) {
-          return SettingsService.themeColor.withValues(alpha: AppColors.focusAlpha);
+          return SettingsService.themeColor.withValues(
+            alpha: AppColors.focusAlpha,
+          );
         }
         return Colors.transparent;
       }),
@@ -175,9 +177,7 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
           TextSpan(
             style: baseStyle,
             children: [
-              const TextSpan(
-                text: '省内存：缓冲 15s，回看 0s，图片缓存 20 张，',
-              ),
+              const TextSpan(text: '省内存：缓冲 15s，回看 0s，图片缓存 20 张，'),
               TextSpan(
                 text: '低内存设备推荐',
                 style: TextStyle(
@@ -194,7 +194,6 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
   }
 
   String _buildQualitySubtitle(VideoQuality quality) {
-    if (quality.qn >= 120) return '需要大会员，非大会员将自动降级';
     if (quality.qn >= 112) return '需要大会员或登录，未达条件将自动降级';
     return '每次打开视频时默认请求此画质';
   }
@@ -225,7 +224,8 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
             separatorBuilder: (_, _) => const SizedBox(width: 8),
             itemBuilder: (context, index) {
               final controlIndex = _playerControlOrder[index];
-              final label = _playerControlLabels[controlIndex] ?? '$controlIndex';
+              final label =
+                  _playerControlLabels[controlIndex] ?? '$controlIndex';
               final isEnabled = SettingsService.isPlayerControlEnabled(
                 controlIndex,
               );
@@ -253,7 +253,8 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
                     final focused = Focus.of(context).hasFocus;
                     return GestureDetector(
                       onTap: () async {
-                        final enabledNow = SettingsService.enabledPlayerControls;
+                        final enabledNow =
+                            SettingsService.enabledPlayerControls;
                         if (isEnabled && enabledNow.length <= 1) {
                           ToastUtils.show(context, '至少保留一个按钮');
                           return;
@@ -270,7 +271,9 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         decoration: BoxDecoration(
                           color: isEnabled
-                              ? SettingsService.themeColor.withValues(alpha: AppColors.focusAlpha)
+                              ? SettingsService.themeColor.withValues(
+                                  alpha: AppColors.focusAlpha,
+                                )
                               : AppColors.navItemSelectedBackground,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
@@ -331,9 +334,7 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
               ? Center(
                   child: Text(
                     '请至少启用一个按钮',
-                    style: TextStyle(
-                      color: AppColors.inactiveText,
-                    ),
+                    style: TextStyle(color: AppColors.inactiveText),
                   ),
                 )
               : ListView.separated(
@@ -350,7 +351,8 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
                       controlIndex,
                     );
                     if (focusNodeIndex < 0 ||
-                        focusNodeIndex >= _playerControlOrderFocusNodes.length) {
+                        focusNodeIndex >=
+                            _playerControlOrderFocusNodes.length) {
                       return const SizedBox.shrink();
                     }
 
@@ -367,7 +369,9 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
                         if (event is KeyDownEvent &&
                             (event.logicalKey == LogicalKeyboardKey.select ||
                                 event.logicalKey == LogicalKeyboardKey.enter)) {
-                          setState(() => _isControlDragging = !_isControlDragging);
+                          setState(
+                            () => _isControlDragging = !_isControlDragging,
+                          );
                           return KeyEventResult.handled;
                         }
 
@@ -376,7 +380,8 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
                             controlIndex,
                           );
 
-                          if (event.logicalKey == LogicalKeyboardKey.arrowLeft &&
+                          if (event.logicalKey ==
+                                  LogicalKeyboardKey.arrowLeft &&
                               index > 0) {
                             final prevControl = enabledOrder[index - 1];
                             final prevFullIndex = _playerControlOrder.indexOf(
@@ -396,7 +401,8 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
                             });
                             return KeyEventResult.handled;
                           }
-                          if (event.logicalKey == LogicalKeyboardKey.arrowRight &&
+                          if (event.logicalKey ==
+                                  LogicalKeyboardKey.arrowRight &&
                               index < enabledOrder.length - 1) {
                             final nextControl = enabledOrder[index + 1];
                             final nextFullIndex = _playerControlOrder.indexOf(
@@ -575,7 +581,10 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
               await SettingsService.setTunnelModeHintShown(false);
             }
             setState(() {});
-            ToastUtils.show(context, value ? '隧道播放已开启，下次播放生效' : '隧道播放已关闭，下次播放生效');
+            ToastUtils.show(
+              context,
+              value ? '隧道播放已开启，下次播放生效' : '隧道播放已关闭，下次播放生效',
+            );
           },
         ),
         const SizedBox(height: AppSpacing.settingItemGap),

@@ -91,7 +91,9 @@ class PlaybackApi {
     if (subtitles is! List) return const [];
     return subtitles
         .whereType<Map>()
-        .map((raw) => BiliSubtitleTrack.fromJson(Map<String, dynamic>.from(raw)))
+        .map(
+          (raw) => BiliSubtitleTrack.fromJson(Map<String, dynamic>.from(raw)),
+        )
         .where((e) => e.subtitleUrl.isNotEmpty)
         .toList();
   }
@@ -147,7 +149,11 @@ class PlaybackApi {
     required int cid,
     int? aid,
   }) async {
-    final result = await getSubtitleTracksWithMeta(bvid: bvid, cid: cid, aid: aid);
+    final result = await getSubtitleTracksWithMeta(
+      bvid: bvid,
+      cid: cid,
+      aid: aid,
+    );
     return result.tracks;
   }
 
@@ -198,16 +204,15 @@ class PlaybackApi {
         return BiliSubtitleTracksResult(
           tracks: viewTracks,
           needLoginSubtitle:
-              fallback?.needLoginSubtitle ?? primary?.needLoginSubtitle ?? false,
+              fallback?.needLoginSubtitle ??
+              primary?.needLoginSubtitle ??
+              false,
         );
       }
 
       return fallback ??
           primary ??
-          const BiliSubtitleTracksResult(
-            tracks: [],
-            needLoginSubtitle: false,
-          );
+          const BiliSubtitleTracksResult(tracks: [], needLoginSubtitle: false);
     } catch (_) {
       return const BiliSubtitleTracksResult(
         tracks: [],
@@ -217,7 +222,9 @@ class PlaybackApi {
   }
 
   /// 下载并解析字幕 JSON
-  static Future<List<BiliSubtitleItem>> getSubtitleItems(String subtitleUrl) async {
+  static Future<List<BiliSubtitleItem>> getSubtitleItems(
+    String subtitleUrl,
+  ) async {
     if (subtitleUrl.isEmpty) return const [];
     try {
       final normalizedUrl = subtitleUrl.startsWith('//')
@@ -237,12 +244,16 @@ class PlaybackApi {
       final json = jsonDecode(response.body);
       final body = json['body'];
       if (body is! List) return const [];
-      final items = body
-          .whereType<Map>()
-          .map((raw) => BiliSubtitleItem.fromJson(Map<String, dynamic>.from(raw)))
-          .where((e) => e.content.trim().isNotEmpty)
-          .toList()
-        ..sort((a, b) => a.from.compareTo(b.from));
+      final items =
+          body
+              .whereType<Map>()
+              .map(
+                (raw) =>
+                    BiliSubtitleItem.fromJson(Map<String, dynamic>.from(raw)),
+              )
+              .where((e) => e.content.trim().isNotEmpty)
+              .toList()
+            ..sort((a, b) => a.from.compareTo(b.from));
       return items;
     } catch (_) {
       return const [];
@@ -292,12 +303,24 @@ class PlaybackApi {
           final qualities = <Map<String, dynamic>>[];
           final acceptQuality = data['accept_quality'] as List? ?? [];
           final acceptDesc = data['accept_description'] as List? ?? [];
+
+          // 从 support_formats 提取每个画质的观看限制
+          // limit_watch_reason: 0=无限制, 1=需大会员
+          final supportFormats = data['support_formats'] as List? ?? [];
+          final limitMap = <int, int>{};
+          for (final fmt in supportFormats) {
+            if (fmt is Map) {
+              final qn = fmt['quality'] as int? ?? 0;
+              limitMap[qn] = fmt['limit_watch_reason'] as int? ?? 0;
+            }
+          }
+
           for (int i = 0; i < acceptQuality.length; i++) {
+            final qn = acceptQuality[i];
             qualities.add({
-              'qn': acceptQuality[i],
-              'desc': i < acceptDesc.length
-                  ? acceptDesc[i]
-                  : '${acceptQuality[i]}P',
+              'qn': qn,
+              'desc': i < acceptDesc.length ? acceptDesc[i] : '${qn}P',
+              'limitReason': limitMap[qn] ?? 0,
             });
           }
 
@@ -325,7 +348,7 @@ class PlaybackApi {
                 final sortedQualities = videosByQuality.keys.toList()
                   ..sort(
                     (a, b) =>
-                        (b - targetQn).abs().compareTo((a - targetQn).abs()),
+                        (a - targetQn).abs().compareTo((b - targetQn).abs()),
                   );
                 if (sortedQualities.isNotEmpty) {
                   candidateVideos = videosByQuality[sortedQualities.first];
@@ -419,8 +442,7 @@ class PlaybackApi {
                     dolbyAudioList.first['baseUrl'] ??
                     dolbyAudioList.first['base_url'];
               } else if (flacAudio != null) {
-                audioUrl =
-                    flacAudio['baseUrl'] ?? flacAudio['base_url'];
+                audioUrl = flacAudio['baseUrl'] ?? flacAudio['base_url'];
               } else if (audios.isNotEmpty) {
                 var sortedAudios = List.from(audios);
                 sortedAudios.sort(
@@ -441,11 +463,13 @@ class PlaybackApi {
                 final frameRate = _parseFrameRate(
                   selectedVideo['frameRate'] ?? selectedVideo['frame_rate'],
                 );
-                final actualStreamQn = selectedVideo['id'] as int? ?? data['quality'] ?? qn;
+                final actualStreamQn =
+                    selectedVideo['id'] as int? ?? data['quality'] ?? qn;
 
                 // 判断是否请求了杜比视界但因权限不足无法获取
                 final bool dvRequested = qn == 126;
-                final bool dvAvailable = dash['dolby'] != null &&
+                final bool dvAvailable =
+                    dash['dolby'] != null &&
                     dash['dolby']['video'] is List &&
                     (dash['dolby']['video'] as List).isNotEmpty;
 
@@ -536,10 +560,20 @@ class PlaybackApi {
               final qualities = <Map<String, dynamic>>[];
               final acceptQuality = data['accept_quality'] as List? ?? [];
               final acceptDesc = data['accept_description'] as List? ?? [];
+              final compatFormats = data['support_formats'] as List? ?? [];
+              final compatLimitMap = <int, int>{};
+              for (final fmt in compatFormats) {
+                if (fmt is Map) {
+                  final q = fmt['quality'] as int? ?? 0;
+                  compatLimitMap[q] = fmt['limit_watch_reason'] as int? ?? 0;
+                }
+              }
               for (int i = 0; i < acceptQuality.length; i++) {
+                final qn = acceptQuality[i];
                 qualities.add({
-                  'qn': acceptQuality[i],
+                  'qn': qn,
                   'desc': i < acceptDesc.length ? acceptDesc[i] : '',
+                  'limitReason': compatLimitMap[qn] ?? 0,
                 });
               }
 

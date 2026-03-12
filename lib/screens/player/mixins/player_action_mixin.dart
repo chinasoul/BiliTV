@@ -61,7 +61,9 @@ mixin PlayerActionMixin on PlayerStateMixin {
   }
 
   Future<void> _rebuildCurrentPlaybackForTunnelModeChange() async {
-    if (cid == null || videoController == null || !videoController!.value.isInitialized) {
+    if (cid == null ||
+        videoController == null ||
+        !videoController!.value.isInitialized) {
       return;
     }
 
@@ -92,9 +94,11 @@ mixin PlayerActionMixin on PlayerStateMixin {
     currentAudioUrl = playInfo['audioUrl'];
     videoWidth = int.tryParse(playInfo['width']?.toString() ?? '') ?? 0;
     videoHeight = int.tryParse(playInfo['height']?.toString() ?? '') ?? 0;
-    videoFrameRate = double.tryParse(playInfo['frameRate']?.toString() ?? '') ?? 0.0;
+    videoFrameRate =
+        double.tryParse(playInfo['frameRate']?.toString() ?? '') ?? 0.0;
     videoDataRateKbps =
-        ((int.tryParse(playInfo['videoBandwidth']?.toString() ?? '') ?? 0) / 1000)
+        ((int.tryParse(playInfo['videoBandwidth']?.toString() ?? '') ?? 0) /
+                1000)
             .round();
     qualities = List<Map<String, dynamic>>.from(playInfo['qualities'] ?? []);
 
@@ -123,7 +127,8 @@ mixin PlayerActionMixin on PlayerStateMixin {
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36',
         'Referer': 'https://www.bilibili.com/',
         'Origin': 'https://www.bilibili.com',
-        if (AuthService.sessdata != null) 'Cookie': 'SESSDATA=${AuthService.sessdata}',
+        if (AuthService.sessdata != null)
+          'Cookie': 'SESSDATA=${AuthService.sessdata}',
       },
     );
 
@@ -165,10 +170,11 @@ mixin PlayerActionMixin on PlayerStateMixin {
     if (!mounted || videoController == null) return false;
 
     final endPos = videoController!.value.position;
-    final wallElapsed =
-        DateTime.now().difference(wallStart).inMilliseconds.toDouble();
-    final posElapsed =
-        (endPos - startPos).inMilliseconds.toDouble();
+    final wallElapsed = DateTime.now()
+        .difference(wallStart)
+        .inMilliseconds
+        .toDouble();
+    final posElapsed = (endPos - startPos).inMilliseconds.toDouble();
 
     if (wallElapsed < 200) return false;
 
@@ -252,7 +258,8 @@ mixin PlayerActionMixin on PlayerStateMixin {
   }
 
   bool get useNativeDanmakuRender {
-    if (defaultTargetPlatform != TargetPlatform.android || !preferNativeDanmaku) {
+    if (defaultTargetPlatform != TargetPlatform.android ||
+        !preferNativeDanmaku) {
       return false;
     }
     // On API <= 25, PlatformVideoView uses setZOrderMediaOverlay(true) which
@@ -412,83 +419,136 @@ mixin PlayerActionMixin on PlayerStateMixin {
       }
 
       String? lastError;
-      final baseQn = currentQuality > 0 ? currentQuality : SettingsService.preferredQualityQn;
+      final baseQn = currentQuality > 0
+          ? currentQuality
+          : SettingsService.preferredQualityQn;
       final requestedQn = baseQn;
-      // 只做“降级”画质兜底，避免出现先升后降导致的额外等待
-      final qualityFallbackList = <int>[
+      // 基于 VideoQuality 枚举的全档位降级列表，从 baseQn 开始逐级降低，
+      // 避免跳档过大（如 4K 直降 720P 而跳过 1080P）。
+      // 强制插入 baseQn 并去重，防止 baseQn 不在枚举中时被跳过。
+      // 降级路径中跳过 HDR/杜比视界/8K 等特殊档位（除非是 baseQn 本身），
+      // 这些档位对普通设备几乎不可能播放成功，白白浪费重试次数。
+      const specialOnlyQns = {125, 126, 127}; // HDR, DV, 8K
+      final qualityFallbackList = <int>{
         baseQn,
-        if (baseQn > 64) 64,
-        if (baseQn > 32) 32,
-        if (baseQn > 16) 16,
-      ];
+        ...VideoQuality.values
+            .map((q) => q.qn)
+            .where(
+              (qn) =>
+                  qn <= baseQn &&
+                  (qn == baseQn || !specialOnlyQns.contains(qn)),
+            ),
+      }.toList()..sort((a, b) => b.compareTo(a)); // 从高到低
 
-      // 尝试每个编码器
-      for (final tryCodec in uniqueCodecs) {
-        // 二次兜底：同一编码器下按画质降级重试
-        qualityLoop:
-        for (final tryQn in qualityFallbackList) {
-          // 1. 首次请求: 使用默认画质(80)或当前设定画质
-          // 这样可以获取到视频实际支持的 accept_quality 列表，而不是盲猜
-          var playInfo = await BilibiliApi.getVideoPlayUrl(
-            bvid: widget.video.bvid,
-            cid: cid!,
-            qn: tryQn,
-            forceCodec: tryCodec,
-          );
+      // 总超时保护：避免大量组合重试让用户等太久
+      // 正常播放 2-3 秒即可起播，10 秒足够覆盖 3 个失败组合
+      final retryDeadline = DateTime.now().add(const Duration(seconds: 10));
 
-          // 2. 智能升级 (仅针对 VIP)
-          // 只在首次画质尝试时启用，避免兜底降级时又回到超高画质导致循环失败
-          if (AuthService.isVip &&
-              tryQn == qualityFallbackList.first &&
-              playInfo != null &&
-              playInfo['qualities'] != null) {
-            final qualities = playInfo['qualities'] as List;
-            if (qualities.isNotEmpty) {
-              // 获取该视频支持的最高画质
-              // qualities 是 List<Map<String, dynamic>>, 需提取 qn 并排序
-              final supportedQns = qualities
-                  .map((e) => e['qn'] as int)
-                  .toList();
-              if (supportedQns.isNotEmpty) {
-                final maxQn = supportedQns.reduce(
-                  (curr, next) => curr > next ? curr : next,
-                );
-                final currentQn = playInfo['currentQuality'] as int? ?? 0;
+      // ── 画质优先、编码器内嵌的双层重试 ──
+      // 外层按全档位逐级降级（如 120→116→112→80→64→32→16），
+      // 内层遍历编码器（auto→avc→hevc→av1）。
+      // 这样同一画质会先试完所有编码器，只有全部编码器都失败时才降一档画质，
+      // 避免仅因某个编码器不兼容就跳过本可播放的高画质。
 
-                // 如果最高画质 > 当前画质 (且当前画质只是默认的80，或者我们想强制升级)
-                // 注意: 有时候 maxQn 可能高达 127/126，而 currentQn 只有 80
-                if (maxQn > currentQn) {
-                  debugPrint(
-                    '🎬 [SmartQuality] VIP detected. Upgrading from $currentQn to $maxQn',
-                  );
+      // ── 首次探测：拿到视频实际支持的画质列表，裁剪降级路径 ──
+      // 用第一个编码器请求一次 API，既可做 VIP 智能升级，
+      // 又可用 accept_quality 过滤掉视频不支持的档位，避免无谓尝试。
+      Map<String, dynamic>? firstProbeInfo;
+      Set<int>? videoSupportedQns; // 视频实际支持的 qn 集合
 
-                  final upgradePlayInfo = await BilibiliApi.getVideoPlayUrl(
-                    bvid: widget.video.bvid,
-                    cid: cid!,
-                    qn: maxQn, // 精确请求最高画质
-                    forceCodec: tryCodec,
-                  );
+      final probeInfo = await BilibiliApi.getVideoPlayUrl(
+        bvid: widget.video.bvid,
+        cid: cid!,
+        qn: qualityFallbackList.first,
+        forceCodec: uniqueCodecs.first,
+      );
+      if (probeInfo != null && probeInfo['qualities'] != null) {
+        final probeQualities = probeInfo['qualities'] as List;
+        if (probeQualities.isNotEmpty) {
+          videoSupportedQns = probeQualities.map((e) => e['qn'] as int).toSet();
 
-                  // 如果升级请求成功，使用新数据
-                  if (upgradePlayInfo != null) {
-                    playInfo = upgradePlayInfo;
-                  }
-                }
+          // VIP 智能升级：如果视频最高画质 > 当前返回画质，尝试升级
+          if (AuthService.isVip) {
+            final maxQn = videoSupportedQns.reduce(
+              (curr, next) => curr > next ? curr : next,
+            );
+            final currentQn = probeInfo['currentQuality'] as int? ?? 0;
+            if (maxQn > currentQn) {
+              debugPrint(
+                '🎬 [SmartQuality] VIP detected. Upgrading from $currentQn to $maxQn',
+              );
+              // 重新请求最高画质
+              final upgradeInfo = await BilibiliApi.getVideoPlayUrl(
+                bvid: widget.video.bvid,
+                cid: cid!,
+                qn: maxQn,
+                forceCodec: uniqueCodecs.first,
+              );
+              if (upgradeInfo != null) {
+                firstProbeInfo = upgradeInfo;
+              } else {
+                firstProbeInfo = probeInfo;
               }
+            } else {
+              firstProbeInfo = probeInfo;
             }
+          } else {
+            firstProbeInfo = probeInfo;
+          }
+
+          // 用 accept_quality 裁剪降级列表：只保留视频实际支持的档位
+          // 仍保留 baseQn 作为首次尝试（API 会自动降到最近可用画质）
+          if (videoSupportedQns.isNotEmpty) {
+            qualityFallbackList.retainWhere(
+              (qn) =>
+                  qn == qualityFallbackList.first ||
+                  videoSupportedQns!.contains(qn),
+            );
+            debugPrint(
+              '🎬 [Quality] Pruned fallback list by accept_quality: $qualityFallbackList',
+            );
+          }
+        }
+      }
+
+      for (final tryQn in qualityFallbackList) {
+        // 超时保护：超过 deadline 直接跳出，走 CompatFallback
+        if (DateTime.now().isAfter(retryDeadline)) {
+          debugPrint(
+            '🎬 [Timeout] Retry deadline exceeded, skipping remaining combinations',
+          );
+          break;
+        }
+
+        codecLoop:
+        for (final tryCodec in uniqueCodecs) {
+          // 获取播放地址（首个编码器首个画质复用探测响应）
+          Map<String, dynamic>? playInfo;
+          if (firstProbeInfo != null &&
+              tryQn == qualityFallbackList.first &&
+              tryCodec == uniqueCodecs.first) {
+            playInfo = firstProbeInfo;
+            firstProbeInfo = null; // 仅用一次
+          } else {
+            playInfo = await BilibiliApi.getVideoPlayUrl(
+              bvid: widget.video.bvid,
+              cid: cid!,
+              qn: tryQn,
+              forceCodec: tryCodec,
+            );
           }
 
           if (playInfo == null) {
             lastError =
                 '解析播放地址失败(codec=${tryCodec?.name ?? 'auto'}, qn=$tryQn)';
-            continue qualityLoop;
+            continue codecLoop;
           }
 
           // 检查是否返回了错误信息
           if (playInfo['error'] != null) {
             lastError =
                 '${playInfo['error']} (codec=${tryCodec?.name ?? 'auto'}, qn=$tryQn)';
-            continue qualityLoop;
+            continue codecLoop;
           }
 
           if (!mounted) return;
@@ -511,7 +571,10 @@ mixin PlayerActionMixin on PlayerStateMixin {
           if (currentQuality < requestedQn && mounted) {
             final requested = VideoQuality.fromQn(requestedQn).label;
             final actual = VideoQuality.fromQn(currentQuality).label;
-            ToastUtils.show(context, '未达到 $requested，当前 $actual');
+            debugPrint(
+              '🎬 [Quality] API returned $actual (requested $requested), '
+              'will show toast after successful init',
+            );
           }
 
           String? playUrl;
@@ -536,7 +599,7 @@ mixin PlayerActionMixin on PlayerStateMixin {
           if (playUrl == null || playUrl.isEmpty) {
             lastError =
                 '未获取到可播放地址(codec=${tryCodec?.name ?? 'auto'}, qn=$tryQn)';
-            continue qualityLoop;
+            continue codecLoop;
           }
 
           // 创建 VideoPlayerController (快速失败 + 轻量重试)
@@ -560,27 +623,32 @@ mixin PlayerActionMixin on PlayerStateMixin {
 
               // 初始化
               await videoController!.initialize();
-              break; // 成功，跳出循环
+              break; // 成功，跳出重试循环
             } catch (e) {
               // 清理失败的控制器
               await videoController?.dispose();
               videoController = null;
 
               final err = e.toString();
+              // 仅匹配真正的硬件解码器初始化失败，不包含 Source error 等网络/数据源错误。
+              // ExoPlaybackException 太宽泛（含 Source error），单独匹配会把 CDN 超时
+              // 也当成编码器问题，导致白白遍历所有编码器而不做网络重试。
               final isCodecInitError =
                   err.contains('MediaCodecVideoRenderer') ||
                   err.contains('Decoder init failed') ||
-                  err.contains('ExoPlaybackException') ||
-                  err.contains('VideoCodec');
+                  err.contains('VideoCodec') ||
+                  (err.contains('ExoPlaybackException') &&
+                      !err.contains('Source error'));
 
-              // 典型硬解初始化错误时直接快速切换兜底分支，不再原地等待重试
+              // 硬解初始化错误 → 跳到下一个编码器（同画质），
+              // 避免仅因编码器不兼容就降低分辨率
               if (isCodecInitError) {
                 debugPrint(
-                  '视频硬解初始化失败，跳过同组合重试(codec=${tryCodec?.name ?? 'auto'}, qn=$tryQn): $e',
+                  '视频硬解初始化失败，切换编码器重试(codec=${tryCodec?.name ?? 'auto'}, qn=$tryQn): $e',
                 );
                 lastError =
                     '播放器初始化失败(codec=${tryCodec?.name ?? 'auto'}, qn=$tryQn): $e';
-                continue qualityLoop;
+                continue codecLoop;
               }
 
               if (attempt < maxRetries) {
@@ -588,11 +656,11 @@ mixin PlayerActionMixin on PlayerStateMixin {
                 debugPrint('视频初始化失败 (尝试 $attempt/$maxRetries): $e');
                 await Future.delayed(retryDelay);
               } else {
-                // 单画质重试次数用尽，尝试同编码器的更低画质
+                // 重试次数用尽，尝试下一个编码器
                 debugPrint('Codec/qn execution failed: $e');
                 lastError =
                     '播放器初始化失败(codec=${tryCodec?.name ?? 'auto'}, qn=$tryQn): $e';
-                continue qualityLoop;
+                continue codecLoop;
               }
             }
           }
@@ -613,6 +681,13 @@ mixin PlayerActionMixin on PlayerStateMixin {
           setState(() {
             isLoading = false;
           });
+
+          // 播放器初始化成功后，若实际画质低于用户设定，提示一次
+          if (currentQuality < requestedQn && mounted) {
+            final requested = VideoQuality.fromQn(requestedQn).label;
+            final actual = VideoQuality.fromQn(currentQuality).label;
+            ToastUtils.show(context, '未达到 $requested，当前 $actual');
+          }
 
           debugPrint(
             '🎬 [Init] Player ready: initialized=${videoController!.value.isInitialized}, '
@@ -709,8 +784,8 @@ mixin PlayerActionMixin on PlayerStateMixin {
           await loadDanmaku();
           await loadSubtitles();
           return; // 成功，退出
-        } // qualityLoop 结束
-      } // codecLoop 结束
+        } // codecLoop 结束
+      } // qualityFallbackList 结束
 
       // ── 最终兜底：用非 DASH(durl/mp4/flv) 再试一次 ──
       debugPrint(
@@ -773,6 +848,12 @@ mixin PlayerActionMixin on PlayerStateMixin {
           setState(() {
             isLoading = false;
           });
+
+          // 兼容模式起播成功，提示用户
+          if (mounted) {
+            final actual = VideoQuality.fromQn(currentQuality).label;
+            ToastUtils.show(context, '加载不太顺利，已降至 $actual，可稍后再试或在设置页调整解码器');
+          }
 
           await videoController!.play();
           // 兼容回退路径也要恢复倍速，并同步弹幕速度（含原生弹幕渲染）
@@ -2531,14 +2612,14 @@ mixin PlayerActionMixin on PlayerStateMixin {
 
     if (subtitleTracks.isEmpty) {
       ToastUtils.dismiss();
-      ToastUtils.show(
-        context,
-        subtitleNeedLogin ? '该视频字幕需登录后可用' : '当前视频无字幕',
-      );
+      ToastUtils.show(context, subtitleNeedLogin ? '该视频字幕需登录后可用' : '当前视频无字幕');
       return;
     }
 
-    final targetIndex = (focusedSettingIndex - 1).clamp(0, subtitleTracks.length - 1);
+    final targetIndex = (focusedSettingIndex - 1).clamp(
+      0,
+      subtitleTracks.length - 1,
+    );
     if (targetIndex == selectedSubtitleTrackIndex && subtitleItems.isNotEmpty) {
       return;
     }
@@ -2637,7 +2718,8 @@ mixin PlayerActionMixin on PlayerStateMixin {
 
       if (playInfo != null) {
         if (!mounted) return;
-        currentQuality = playInfo['currentQuality'] ?? SettingsService.preferredQualityQn;
+        currentQuality =
+            playInfo['currentQuality'] ?? SettingsService.preferredQualityQn;
         currentCodec = playInfo['codec'] ?? currentCodec;
         currentAudioUrl = playInfo['audioUrl'];
         videoWidth = int.tryParse(playInfo['width']?.toString() ?? '') ?? 0;
@@ -2799,7 +2881,8 @@ mixin PlayerActionMixin on PlayerStateMixin {
       final returnedQuality = playInfo['currentQuality'] as int? ?? qn;
 
       // 升级请求但不可用（含杜比视界无权限、API 降级等）→ 统一拒绝
-      final bool dvUnavailable = qn == 126 &&
+      final bool dvUnavailable =
+          qn == 126 &&
           playInfo['dvRequested'] == true &&
           playInfo['dvAvailable'] != true;
       if (dvUnavailable ||
@@ -2841,6 +2924,10 @@ mixin PlayerActionMixin on PlayerStateMixin {
           ((int.tryParse(playInfo['videoBandwidth']?.toString() ?? '') ?? 0) /
                   1000)
               .round();
+      // 同步更新可用画质列表，与 switchEpisode 保持一致
+      if (playInfo['qualities'] != null) {
+        qualities = List<Map<String, dynamic>>.from(playInfo['qualities']);
+      }
 
       SettingsService.setPreferredQuality(VideoQuality.fromQn(currentQuality));
 

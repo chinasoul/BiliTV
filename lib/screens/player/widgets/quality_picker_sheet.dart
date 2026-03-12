@@ -57,6 +57,14 @@ class _QualityPickerSheetState extends State<QualityPickerSheet> {
     }
   }
 
+  /// 根据 API 返回的 limit_watch_reason 字段生成画质标签。
+  /// 0=无限制, 1=需大会员。
+  String? _qualityTag(Map<String, dynamic> q) {
+    final limitReason = q['limitReason'] as int? ?? 0;
+    if (limitReason == 1) return '大会员';
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Focus(
@@ -111,16 +119,42 @@ class _QualityPickerSheetState extends State<QualityPickerSheet> {
                         ? AppColors.navItemSelectedBackground
                         : Colors.transparent,
                     child: ListTile(
-                      title: Text(
-                        q['desc'] ?? '${q['qn']}P',
-                        style: TextStyle(
-                          color: isCurrent
-                              ? SettingsService.themeColor
-                              : AppColors.primaryText,
-                          fontWeight: isCurrent || isFocused
-                              ? FontWeight.bold
-                              : AppFonts.regular,
-                        ),
+                      title: Row(
+                        children: [
+                          Text(
+                            q['desc'] ?? '${q['qn']}P',
+                            style: TextStyle(
+                              color: isCurrent
+                                  ? SettingsService.themeColor
+                                  : AppColors.primaryText,
+                              fontWeight: isCurrent || isFocused
+                                  ? FontWeight.bold
+                                  : AppFonts.regular,
+                            ),
+                          ),
+                          if (_qualityTag(q) != null) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 1,
+                              ),
+                              decoration: BoxDecoration(
+                                color: SettingsService.themeColor.withValues(
+                                  alpha: 0.15,
+                                ),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                _qualityTag(q)!,
+                                style: TextStyle(
+                                  color: SettingsService.themeColor,
+                                  fontSize: AppFonts.sizeXS,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                       trailing: isCurrent
                           ? Icon(Icons.check, color: SettingsService.themeColor)

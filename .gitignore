@@ -52,3 +52,4 @@ lib/config/env.dart
 # 本地 fork 的插件中的编译产物（源码需要提交）
 /packages/video_player_android/example/
 /packages/video_player_android/.dart_tool/
+.specstory/*
