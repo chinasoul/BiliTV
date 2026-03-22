@@ -1,39 +1,41 @@
 # BT-哔哩哔哩Tv客户端
-
-> v0.9.0 起请前往 [BT-native](https://github.com/chinasoul/BT-native) 下载
-<br />
-
-**参考项目**：  
-[Hyper-Beast/BiliTV](https://github.com/Hyper-Beast/BiliTV)（MIT）  
-[jay3-yy/BiliPai](https://github.com/jay3-yy/BiliPai)（GPL-3.0）
-
-**License**：  
-鉴于上游许可证链路，本项目按 GPL-3.0 进行分发与声明。  
-
+BT - Bilibili TV Client
 
 **最低支持**：  
 Android 5.0（API 21）
 
-## 重要（低内存设备注意！！！）
-
-**标签切换策略/播放性能模式**  
-设置 → 界面/播放设置 按需设置，首次安装会根据设备 RAM 自动配置
+**特色**：  
+支持键鼠  
+支持音量均衡  
+支持AI原声翻译  
+支持图文/专栏  
+用户可自定义程度较高  
 
 ## 功能
-- **动态**：视频投稿 / 图文 / 专栏，独立缓存
-- **我的内容**：关注 UP 主、收藏、稍后再看
-- **播放前详情页**：可选显示视频详情、评论、分享 QR
-- **播放器**：播放面板选项可调节
-- **开发者模式**：更多可控选项
-- **交互**：支持键鼠
+- **动态**：视频投稿、图文、专栏
+- **我的**：关注、追番、追剧、收藏、稍后再看
+- **辅助功能**：跳恰饭，屏蔽指定弹幕
+- **开发者模式**：可定制程度较高，额外彩蛋自己探索
+
+## 截图(取自平板截图仅供参考)
+
+**首页热门**
+
+<img src="assets/screenshots/1.jpg" alt="首页热门" width="600" />
+
+**视频详情**
+
+<img src="assets/screenshots/2.jpg" alt="视频详情" width="600" />
+
+**界面设置**
+
+<img src="assets/screenshots/3.jpg" alt="界面设置" width="600" />
+
+**播放设置**
+
+<img src="assets/screenshots/4.jpg" alt="播放设置" width="600" />
 
 
-## 截图
-
-<img src="assets/screenshots/Screenshot_1771513851.png" width="560" alt="设置页" />
-<img src="assets/screenshots/Screenshot_1771513689.png" width="560" alt="播放页" />
-<img src="assets/screenshots/Screenshot_1771144188.png" width="560" alt="我的内容页" />
-
-
-
-
+## 注
+0.9.0版本后基于 Kotlin + View 完全重构，由AI主导完成  
+**跳恰饭**依赖 [BilibiliSponsorBlock](https://github.com/hanydd/BilibiliSponsorBlock)（小电视空降助手）提供的 **API 与社区标注片段数据**
