@@ -4,7 +4,7 @@ BT - Bilibili TV Client
 **最低支持**：  
 Android 4.4（API 19）  
 安卓>5.1 universal.apk  
-安卓4.4~5.1下载地址 https://github.com/chinasoul/BT/releases/tag/v0.9.8  universal-api19-22.apk  
+安卓4.4~5.1下载地址 https://github.com/chinasoul/BT/releases/tag/v0.9.9 universal-api19-22.apk  
 
 **特色**：  
 支持键鼠，音量均衡，AI原声翻译，图文/专栏，互动弹幕，人像防挡，查看所有评论(回复/点赞/点踩/删除)，开发者模式  
